@@ -610,7 +610,6 @@ async function getOrderPdf(req, res) {
   try {
     const { id } = req.params;
 
-    // 🔥 REGRA: só admin pode gerar PDF
     if (req.user.profile !== 'admin') {
       return res.status(403).json({
         message: 'Apenas administradores podem gerar o PDF do pedido',

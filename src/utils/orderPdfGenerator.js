@@ -99,47 +99,44 @@ function generateOrderPdf(order, res) {
   const s = order.supplierSnapshot || {};
 
   // ── CABEÇALHO DO FORNECEDOR ──────────────────────────────────────────────
-  // Coordenadas do correto: nome x=43 y=553 fs=12
+  // Quando há logo: exibe apenas a imagem, ocupando toda a área do cabeçalho.
+  // Quando não há logo: exibe os dados textuais como fallback.
   if (s.logoUrl) {
     try {
       const logoPath = path.resolve(s.logoUrl);
-      doc.image(logoPath, 43, py(553, 12), { fit: [220, 55] });
+      // Logo centralizada verticalmente na faixa do cabeçalho (y=515..553)
+      doc.image(logoPath, 43, 22, { fit: [700, 82] });
     } catch {
+      // Fallback para texto se a imagem não puder ser carregada
       doc.fontSize(12).font('Helvetica-Bold').text(s.name || '', 43, py(553, 12));
+      doc.fontSize(9).font('Helvetica');
+      if (s.cnpj) doc.text(`CNPJ: ${s.cnpj}`, 43, py(539, 9), { lineBreak: false });
+      if (s.stateRegistration) doc.text(`IE: ${s.stateRegistration}`, 159, py(539, 9), { lineBreak: false });
+      if (s.phone) doc.text(`Fone: ${s.phone}`, 248, py(539, 9), { lineBreak: false });
+      if (s.address) {
+        const cepPart = s.zipCode ? ` - CEP: ${s.zipCode}` : '';
+        doc.text(`Endereço: ${s.address}${cepPart}`, 43, py(527, 9), { lineBreak: false });
+      }
+      if (s.city || s.state) {
+        doc.text([s.city, s.state].filter(Boolean).join(' - '), 43, py(515, 9), { lineBreak: false });
+      }
+      if (s.email) doc.text(`E-mail: ${s.email}`, 113, py(515, 9), { lineBreak: false });
     }
   } else {
+    // Sem logo: exibe nome e dados do fornecedor em texto
     doc.fontSize(12).font('Helvetica-Bold').text(s.name || '', 43, py(553, 12));
-  }
-
-  // CNPJ | IE | Fone  — y=539 fs=9
-  doc.fontSize(9).font('Helvetica');
-  if (s.cnpj) {
-    doc.text(`CNPJ: ${s.cnpj}`, 43, py(539, 9), { lineBreak: false });
-  }
-  if (s.stateRegistration) {
-    doc.text(`IE: ${s.stateRegistration}`, 159, py(539, 9), { lineBreak: false });
-  }
-  if (s.phone) {
-    doc.text(`Fone: ${s.phone}`, 248, py(539, 9), { lineBreak: false });
-  }
-
-  // Endereço — y=527 fs=9
-  if (s.address) {
-    const cepPart = s.zipCode ? ` - CEP: ${s.zipCode}` : '';
-    doc.text(
-      `Endereço: ${s.address}${cepPart}`,
-      43, py(527, 9),
-      { lineBreak: false },
-    );
-  }
-
-  // Cidade - UF  |  E-mail — y=515 fs=9
-  if (s.city || s.state) {
-    const cidadeUF = [s.city, s.state].filter(Boolean).join(' - ');
-    doc.text(cidadeUF, 43, py(515, 9), { lineBreak: false });
-  }
-  if (s.email) {
-    doc.text(`E-mail: ${s.email}`, 113, py(515, 9), { lineBreak: false });
+    doc.fontSize(9).font('Helvetica');
+    if (s.cnpj) doc.text(`CNPJ: ${s.cnpj}`, 43, py(539, 9), { lineBreak: false });
+    if (s.stateRegistration) doc.text(`IE: ${s.stateRegistration}`, 159, py(539, 9), { lineBreak: false });
+    if (s.phone) doc.text(`Fone: ${s.phone}`, 248, py(539, 9), { lineBreak: false });
+    if (s.address) {
+      const cepPart = s.zipCode ? ` - CEP: ${s.zipCode}` : '';
+      doc.text(`Endereço: ${s.address}${cepPart}`, 43, py(527, 9), { lineBreak: false });
+    }
+    if (s.city || s.state) {
+      doc.text([s.city, s.state].filter(Boolean).join(' - '), 43, py(515, 9), { lineBreak: false });
+    }
+    if (s.email) doc.text(`E-mail: ${s.email}`, 113, py(515, 9), { lineBreak: false });
   }
 
   // PEDIDO Nº — x=692 y=553 fs=14
@@ -155,6 +152,15 @@ function generateOrderPdf(order, res) {
     .text(`Data: ${formatDate(order.createdAt)}`, 723, py(537, 10), { lineBreak: false });
 
   // ── DADOS DO CLIENTE ─────────────────────────────────────────────────────
+  // Linha separadora acima da seção — y=490 pdf, alpha=0.6 (cinza claro)
+  doc
+    .moveTo(43, py(490, 0))
+    .lineTo(799, py(490, 0))
+    .lineWidth(0.5)
+    .opacity(0.6)
+    .stroke()
+    .opacity(1); // restaura opacidade
+
   // Título — x=43 y=461 fs=12
   doc
     .fontSize(12)
@@ -214,18 +220,19 @@ function generateOrderPdf(order, res) {
   // Posições X exatas do PDF correto — todos LEFT-aligned.
   // headerX: posição do label do cabeçalho
   // valueX:  posição onde o valor da linha de dados começa
-  // valueWidth: largura disponível para o valor (até o início da próxima coluna)
+  // valueWidth: largura disponível para o valor
+  // Colunas monetárias recuadas para acomodar valores grandes (até R$ 999.999,99 = ~66pt em fs=8)
   const columns = [
     { label: 'FORNECEDOR',   headerX: 46,  valueX: 46,  valueWidth: 83  },
     { label: 'CLIENTE',      headerX: 131, valueX: 131, valueWidth: 68  },
     { label: 'DESCRIÇÃO',    headerX: 201, valueX: 201, valueWidth: 285 },
     { label: 'QNT',          headerX: 488, valueX: 487, valueWidth: 29  },
     { label: 'UN',           headerX: 518, valueX: 519, valueWidth: 33  },
-    { label: 'MILHEIRO',     headerX: 554, valueX: 554, valueWidth: 55  },
-    { label: 'TOTAL S/ IPI', headerX: 611, valueX: 622, valueWidth: 59  },
-    { label: 'VALOR IPI',    headerX: 683, valueX: 691, valueWidth: 73  },
-    // Última coluna: valueX recuado para acomodar valores largos (R$ 5.458,97 = ~47pt)
-    { label: 'TOTAL',        headerX: 766, valueX: 753, valueWidth: 47  },
+    { label: 'MILHEIRO',     headerX: 554, valueX: 548, valueWidth: 62  },
+    { label: 'TOTAL S/ IPI', headerX: 611, valueX: 610, valueWidth: 70  },
+    { label: 'VALOR IPI',    headerX: 683, valueX: 680, valueWidth: 70  },
+    // Última coluna: valueX recuado para dar 70pt de largura até x=800
+    { label: 'TOTAL',        headerX: 752, valueX: 730, valueWidth: 70  },
   ];
 
   // Renderizar headers (LEFT-aligned nas posições headerX)
@@ -234,15 +241,28 @@ function generateOrderPdf(order, res) {
     doc.text(col.label, col.headerX, TABLE_Y, { lineBreak: false });
   });
 
-  // Linha separadora abaixo do cabeçalho (entre y=167 e y=147, ~y=157 em coord PDF)
-  const SEP_Y1 = py(157, 0);
+  // Linha acima do cabeçalho — y=179 pdf, alpha=0.8
   doc
-    .moveTo(43, SEP_Y1)
-    .lineTo(800, SEP_Y1)
+    .moveTo(43, py(179, 0))
+    .lineTo(799, py(179, 0))
     .lineWidth(0.5)
+    .opacity(0.8)
     .stroke();
 
+  // Linha abaixo do cabeçalho — y=163 pdf, alpha=0.8
+  doc
+    .moveTo(43, py(163, 0))
+    .lineTo(799, py(163, 0))
+    .lineWidth(0.5)
+    .opacity(0.8)
+    .stroke()
+    .opacity(1);
+
   // Linhas de dados — primeira linha y=147 fs=8
+  // Cada linha ocupa 22pt (163-141=22). Texto centralizado: (22-8)/2 = 7pt abaixo da linha superior.
+  // Linha superior da 1ª row = y=163, texto = y=163-7=156... mas correto mede y=147.
+  // O correto usa y=147 (pdf) que é o baseline do texto de 8pt dentro da faixa 163→141.
+  // Mantemos y=147 para a 1ª linha e decrementamos 22pt por linha.
   let itemPdfY = 147;
 
   doc.fontSize(8).font('Helvetica');
@@ -285,37 +305,44 @@ function generateOrderPdf(order, res) {
   });
 
   // ── TOTAIS ───────────────────────────────────────────────────────────────
-  // No correto com 1 item: última linha y=147, itemPdfY após loop = 127
-  // Separadora ~y=135 (itemPdfY+8), SUBTOTAL y=123 (itemPdfY-4)
-  // IPI y=109 (subtotal-14), TOTAL y=95 (ipi-14)
-  const SEP_Y2 = py(itemPdfY + 8, 0);
+  // Linha abaixo dos itens — y=141 pdf, alpha=0.3
+  // itemPdfY após o loop = 147 - (n_itens * 22). Com 1 item = 125.
+  // No correto a linha está em y=141 = 147 - 6 (6pt abaixo do baseline do último item).
+  // Para N itens: linha em itemPdfY + (22 - 6) = itemPdfY + 16
+  const SEP_Y2 = py(itemPdfY + 16, 0);
   doc
     .moveTo(43, SEP_Y2)
-    .lineTo(800, SEP_Y2)
+    .lineTo(799, SEP_Y2)
     .lineWidth(0.5)
-    .stroke();
+    .opacity(0.3)
+    .stroke()
+    .opacity(1);
 
-  const subtotalPdfY = itemPdfY - 4;
+  // SUBTOTAL y=123 = itemPdfY - 2 (com 1 item: 125-2=123 ✓)
+  // Valores dos totais: x=715, width=85 -> termina em 800 (comporta até R$ 999.999,99)
+  const subtotalPdfY = itemPdfY - 2;
+  const TOTAL_VAL_X = 715;
+  const TOTAL_VAL_W = 85;
   doc.fontSize(10).font('Helvetica-Bold');
 
   doc.text('SUBTOTAL', 619, py(subtotalPdfY, 10), { lineBreak: false });
-  doc.text(formatCurrency(order.subtotal), 745, py(subtotalPdfY, 10), {
-    width: 55,
+  doc.text(formatCurrency(order.subtotal), TOTAL_VAL_X, py(subtotalPdfY, 10), {
+    width: TOTAL_VAL_W,
     lineBreak: false,
   });
 
   const ipiPdfY = subtotalPdfY - 14;
   doc.text(`IPI (${s.ipi || 0}%)`, 622, py(ipiPdfY, 10), { lineBreak: false });
-  doc.text(formatCurrency(order.ipiValue), 753, py(ipiPdfY, 10), {
-    width: 55,
+  doc.text(formatCurrency(order.ipiValue), TOTAL_VAL_X, py(ipiPdfY, 10), {
+    width: TOTAL_VAL_W,
     lineBreak: false,
   });
 
   const totalPdfY = ipiPdfY - 14;
   doc.fontSize(12).font('Helvetica-Bold');
   doc.text('TOTAL', 632, py(totalPdfY, 12), { lineBreak: false });
-  doc.text(formatCurrency(order.total), 734, py(totalPdfY, 12), {
-    width: 66,
+  doc.text(formatCurrency(order.total), TOTAL_VAL_X, py(totalPdfY, 12), {
+    width: TOTAL_VAL_W,
     lineBreak: false,
   });
 

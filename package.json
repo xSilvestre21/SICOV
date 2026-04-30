@@ -8,11 +8,14 @@
   "main": "app.js",
   "scripts": {
     "test": "jest --runInBand",
+    "test:unit": "jest --runInBand --testPathPattern=tests/(unit|utils|middlewares|controllers)",
+    "test:integration": "jest --runInBand --testPathPattern=tests/integration",
     "test:coverage": "jest --runInBand --coverage",
     "start": "nodemon server.js"
   },
   "jest": {
     "testEnvironment": "node",
+    "testTimeout": 30000,
     "collectCoverageFrom": [
       "src/**/*.js"
     ],
@@ -48,7 +51,9 @@
     "eslint-plugin-prettier": "^5.5.5",
     "eslint-plugin-react": "^7.37.5",
     "jest": "^30.3.0",
+    "mongodb-memory-server": "^11.1.0",
     "pdf-parse": "^2.4.5",
-    "prettier": "^3.8.1"
+    "prettier": "^3.8.1",
+    "supertest": "^7.2.2"
   }
 }
