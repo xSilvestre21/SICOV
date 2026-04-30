@@ -1,8 +1,5 @@
 const Client = require('../models/client');
-
-function onlyNumbers(value) {
-  return value ? value.replace(/\D/g, '') : '';
-}
+const { onlyNumbers } = require('../utils/numberParsers');
 
 async function createClient(req, res) {
   try {
@@ -24,11 +21,19 @@ async function createClient(req, res) {
       notes,
       representativeId,
     } = req.body;
+
     if (!name) {
       return res.status(400).json({
         message: 'Nome é obrigatório',
       });
     }
+
+    // Apenas admins podem criar clientes vinculados a outro representante.
+    // Representantes sempre ficam vinculados a si mesmos.
+    const resolvedRepresentativeId =
+      req.user.profile === 'admin' && representativeId
+        ? representativeId
+        : req.user.id;
 
     const client = await Client.create({
       name,
@@ -46,7 +51,7 @@ async function createClient(req, res) {
       billingAddress,
       carrier,
       notes,
-      representativeId: representativeId || req.user.id,
+      representativeId: resolvedRepresentativeId,
       active: true,
     });
 
@@ -55,9 +60,9 @@ async function createClient(req, res) {
       client,
     });
   } catch (err) {
+    console.error('[createClient]', err.message);
     return res.status(500).json({
       message: 'Falha ao criar o cliente',
-      error: err.message,
     });
   }
 }
@@ -103,7 +108,6 @@ async function getClients(req, res) {
 
     const [clients, total] = await Promise.all([
       Client.find(filter).sort({ name: 1 }).skip(skip).limit(limitNumber),
-
       Client.countDocuments(filter),
     ]);
 
@@ -115,9 +119,9 @@ async function getClients(req, res) {
       clients,
     });
   } catch (err) {
+    console.error('[getClients]', err.message);
     return res.status(500).json({
       message: 'Erro ao obter clientes',
-      error: err.message,
     });
   }
 }
@@ -145,9 +149,9 @@ async function getClientById(req, res) {
 
     return res.json(client);
   } catch (err) {
+    console.error('[getClientById]', err.message);
     return res.status(500).json({
       message: 'Erro ao buscar cliente',
-      error: err.message,
     });
   }
 }
@@ -168,7 +172,7 @@ async function updateClient(req, res) {
       req.user.profile !== 'admin' &&
       client.representativeId.toString() !== req.user.id
     ) {
-      return res.status(404).json({
+      return res.status(403).json({
         message: 'Acesso negado.',
       });
     }
@@ -220,9 +224,9 @@ async function updateClient(req, res) {
       client,
     });
   } catch (err) {
+    console.error('[updateClient]', err.message);
     return res.status(500).json({
       message: 'Erro ao atualizar o cliente',
-      error: err.message,
     });
   }
 }
@@ -254,9 +258,9 @@ async function deleteClient(req, res) {
       message: `Cliente ${client.name} excluído com sucesso`,
     });
   } catch (err) {
+    console.error('[deleteClient]', err.message);
     return res.status(500).json({
       message: 'Erro ao excluir cliente',
-      error: err.message,
     });
   }
 }
@@ -293,9 +297,9 @@ async function toggleClientActive(req, res) {
       client,
     });
   } catch (err) {
+    console.error('[toggleClientActive]', err.message);
     return res.status(500).json({
       message: 'Erro ao alterar status do cliente',
-      error: err.message,
     });
   }
 }

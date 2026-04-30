@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">90.49% </span>
+                <span class="strong">90.74% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>200/221</span>
+                <span class='fraction'>206/227</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">90.95% </span>
+                <span class="strong">91.2% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>191/210</span>
+                <span class='fraction'>197/216</span>
             </div>
         
             
@@ -1174,7 +1174,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1283,7 +1283,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1315,7 +1315,7 @@
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1459,7 +1459,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1493,7 +1493,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1523,7 +1523,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1910,9 +1910,9 @@ async function createProduct(req, res) {
       product,
     });
   } catch (err) {
+    console.error('[createProduct]', err.message);
     return res.status(500).json({
       message: 'Erro ao criar produto',
-      error: err.message,
     });
   }
 }
@@ -2019,9 +2019,9 @@ async function getProducts(req, res) {
       products,
     });
   } catch (err) {
+    console.error('[getProducts]', err.message);
     return res.status(500).json({
       message: 'Erro ao obter produtos',
-      error: err.message,
     });
   }
 }
@@ -2051,9 +2051,9 @@ async function getProductById(req, res) {
 &nbsp;
     return res.json(product);
   } catch (err) {
+    console.error('[getProductById]', err.message);
     return res.status(500).json({
       message: 'Erro ao buscar produto',
-      error: err.message,
     });
   }
 }
@@ -2195,9 +2195,9 @@ async function updateProduct(req, res) {
       product: updatedProduct,
     });
   } catch (err) {
+    console.error('[updateProduct]', err.message);
     return res.status(500).json({
       message: 'Erro ao atualizar produto',
-      error: err.message,
     });
   }
 }
@@ -2229,9 +2229,9 @@ async function toggleProductActive(req, res) {
       product,
     });
   } catch (err) {
+    console.error('[toggleProductActive]', err.message);
     return res.status(500).json({
       message: 'Erro ao alterar status do produto',
-      error: err.message,
     });
   }
 }
@@ -2259,9 +2259,9 @@ async function deleteProduct(req, res) {
       message: 'Produto excluído com sucesso',
     });
   } catch (err) {
+    console.error('[deleteProduct]', err.message);
     return res.status(500).json({
       message: 'Erro ao excluir produto',
-      error: err.message,
     });
   }
 }
@@ -2281,7 +2281,7 @@ module.exports = {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-04-30T13:39:00.843Z
+                at 2026-04-30T20:24:16.978Z
             </div>
         <script src="../prettify.js"></script>
         <script>

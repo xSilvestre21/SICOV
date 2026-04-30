@@ -1,12 +1,16 @@
 const request = require('supertest');
 const app = require('../../app');
 
+// Segredo usado apenas nos testes — deve bater com o que está em process.env
+const TEST_ADMIN_SECRET = process.env.ADMIN_REGISTER_SECRET || 'test-secret';
+
 /**
  * Cria um admin e retorna o token JWT.
  */
 async function createAdminAndLogin(email = 'admin@test.com', password = 'senha123') {
   await request(app)
     .post('/auth/register-admin')
+    .set('x-admin-secret', TEST_ADMIN_SECRET)
     .send({ name: 'Admin Teste', email, password });
 
   const res = await request(app)

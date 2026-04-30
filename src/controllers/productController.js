@@ -371,9 +371,9 @@ async function createProduct(req, res) {
       product,
     });
   } catch (err) {
+    console.error('[createProduct]', err.message);
     return res.status(500).json({
       message: 'Erro ao criar produto',
-      error: err.message,
     });
   }
 }
@@ -480,9 +480,9 @@ async function getProducts(req, res) {
       products,
     });
   } catch (err) {
+    console.error('[getProducts]', err.message);
     return res.status(500).json({
       message: 'Erro ao obter produtos',
-      error: err.message,
     });
   }
 }
@@ -512,9 +512,9 @@ async function getProductById(req, res) {
 
     return res.json(product);
   } catch (err) {
+    console.error('[getProductById]', err.message);
     return res.status(500).json({
       message: 'Erro ao buscar produto',
-      error: err.message,
     });
   }
 }
@@ -656,9 +656,9 @@ async function updateProduct(req, res) {
       product: updatedProduct,
     });
   } catch (err) {
+    console.error('[updateProduct]', err.message);
     return res.status(500).json({
       message: 'Erro ao atualizar produto',
-      error: err.message,
     });
   }
 }
@@ -690,9 +690,9 @@ async function toggleProductActive(req, res) {
       product,
     });
   } catch (err) {
+    console.error('[toggleProductActive]', err.message);
     return res.status(500).json({
       message: 'Erro ao alterar status do produto',
-      error: err.message,
     });
   }
 }
@@ -720,9 +720,9 @@ async function deleteProduct(req, res) {
       message: 'Produto excluído com sucesso',
     });
   } catch (err) {
+    console.error('[deleteProduct]', err.message);
     return res.status(500).json({
       message: 'Erro ao excluir produto',
-      error: err.message,
     });
   }
 }

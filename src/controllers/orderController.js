@@ -220,9 +220,9 @@ async function createOrder(req, res) {
       order,
     });
   } catch (err) {
+    console.error('[createOrder]', err.message);
     return res.status(500).json({
       message: 'Erro ao criar pedido',
-      error: err.message,
     });
   }
 }
@@ -264,9 +264,9 @@ async function markAsSentToSupplier(req, res) {
       order,
     });
   } catch (err) {
+    console.error('[markAsSentToSupplier]', err.message);
     return res.status(500).json({
       message: 'Erro ao atualizar envio',
-      error: err.message,
     });
   }
 }
@@ -301,9 +301,9 @@ async function cancelOrder(req, res) {
       order,
     });
   } catch (err) {
+    console.error('[cancelOrder]', err.message);
     return res.status(500).json({
       message: 'Erro ao cancelar pedido',
-      error: err.message,
     });
   }
 }
@@ -388,9 +388,9 @@ async function getOrders(req, res) {
       orders,
     });
   } catch (err) {
+    console.error('[getOrders]', err.message);
     return res.status(500).json({
       message: 'Erro ao buscar pedidos',
-      error: err.message,
     });
   }
 }
@@ -418,9 +418,9 @@ async function getOrderById(req, res) {
 
     return res.json(order);
   } catch (err) {
+    console.error('[getOrderById]', err.message);
     return res.status(500).json({
       message: 'Erro ao buscar pedido',
-      error: err.message,
     });
   }
 }
@@ -562,9 +562,9 @@ async function updateOrder(req, res) {
       order,
     });
   } catch (err) {
+    console.error('[updateOrder]', err.message);
     return res.status(500).json({
       message: 'Erro ao atualizar pedido',
-      error: err.message,
     });
   }
 }
@@ -599,9 +599,9 @@ async function getDuplicateOrderTemplate(req, res) {
       notes: oldOrder.notes,
     });
   } catch (err) {
+    console.error('[getDuplicateOrderTemplate]', err.message);
     return res.status(500).json({
       message: 'Erro ao montar cópia do pedido',
-      error: err.message,
     });
   }
 }
@@ -626,9 +626,9 @@ async function getOrderPdf(req, res) {
 
     return generateOrderPdf(order, res);
   } catch (err) {
+    console.error('[getOrderPdf]', err.message);
     return res.status(500).json({
       message: 'Erro ao gerar PDF do pedido',
-      error: err.message,
     });
   }
 }

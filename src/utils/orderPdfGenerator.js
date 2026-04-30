@@ -1,5 +1,40 @@
 const PDFDocument = require('pdfkit');
 const path = require('path');
+const fs = require('fs');
+
+// Diretório base onde logos de fornecedores devem estar armazenadas.
+// logoUrl deve ser um caminho relativo a este diretório (ex: "logos/fornecedor.png").
+// Isso impede path traversal: qualquer tentativa de sair do diretório é bloqueada.
+const LOGO_BASE_DIR = path.resolve(process.env.LOGO_BASE_DIR || 'uploads/logos');
+
+/**
+ * Valida e resolve o caminho da logo de forma segura.
+ * Retorna o caminho absoluto se for válido, ou null caso contrário.
+ */
+function resolveLogoPath(logoUrl) {
+  if (!logoUrl || typeof logoUrl !== 'string') return null;
+
+  // Rejeita URLs HTTP/HTTPS e caminhos absolutos
+  if (/^https?:\/\//i.test(logoUrl)) return null;
+  if (path.isAbsolute(logoUrl)) return null;
+
+  const resolved = path.resolve(LOGO_BASE_DIR, logoUrl);
+
+  // Garante que o caminho resolvido está dentro do diretório base
+  if (!resolved.startsWith(LOGO_BASE_DIR + path.sep) && resolved !== LOGO_BASE_DIR) {
+    return null;
+  }
+
+  // Verifica se o arquivo existe e é um arquivo regular
+  try {
+    const stat = fs.statSync(resolved);
+    if (!stat.isFile()) return null;
+  } catch {
+    return null;
+  }
+
+  return resolved;
+}
 
 // ─── Formatadores ────────────────────────────────────────────────────────────
 
@@ -101,9 +136,10 @@ function generateOrderPdf(order, res) {
   // ── CABEÇALHO DO FORNECEDOR ──────────────────────────────────────────────
   // Quando há logo: exibe apenas a imagem, ocupando toda a área do cabeçalho.
   // Quando não há logo: exibe os dados textuais como fallback.
-  if (s.logoUrl) {
+  const logoPath = resolveLogoPath(s.logoUrl);
+
+  if (logoPath) {
     try {
-      const logoPath = path.resolve(s.logoUrl);
       // Logo centralizada verticalmente na faixa do cabeçalho (y=515..553)
       doc.image(logoPath, 43, 22, { fit: [700, 82] });
     } catch {

@@ -8,6 +8,7 @@ const jwt = require('jsonwebtoken');
 const { registerAdmin, login } = require('../../src/controllers/authController');
 
 process.env.JWT_SECRET = 'test_secret';
+process.env.ADMIN_REGISTER_SECRET = 'test-secret';
 
 function makeRes() {
   const res = {};
@@ -22,7 +23,7 @@ describe('registerAdmin', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('retorna 400 quando campos obrigatórios estão ausentes', async () => {
-    const req = { body: { name: 'Admin' } }; // sem email e password
+    const req = { body: { name: 'Admin' }, headers: { 'x-admin-secret': 'test-secret' } }; // sem email e password
     const res = makeRes();
 
     await registerAdmin(req, res);
@@ -34,7 +35,7 @@ describe('registerAdmin', () => {
   });
 
   it('retorna 409 quando email já existe', async () => {
-    const req = { body: { name: 'Admin', email: 'admin@test.com', password: '123456' } };
+    const req = { body: { name: 'Admin', email: 'admin@test.com', password: '123456' }, headers: { 'x-admin-secret': 'test-secret' } };
     const res = makeRes();
 
     User.findOne.mockResolvedValue({ _id: 'existingId', email: 'admin@test.com' });
@@ -48,7 +49,7 @@ describe('registerAdmin', () => {
   });
 
   it('cria admin com sucesso e retorna 201', async () => {
-    const req = { body: { name: 'Admin', email: 'admin@test.com', password: '123456' } };
+    const req = { body: { name: 'Admin', email: 'admin@test.com', password: '123456' }, headers: { 'x-admin-secret': 'test-secret' } };
     const res = makeRes();
 
     User.findOne.mockResolvedValue(null);
@@ -72,7 +73,7 @@ describe('registerAdmin', () => {
   });
 
   it('retorna 500 em caso de erro inesperado', async () => {
-    const req = { body: { name: 'Admin', email: 'admin@test.com', password: '123456' } };
+    const req = { body: { name: 'Admin', email: 'admin@test.com', password: '123456' }, headers: { 'x-admin-secret': 'test-secret' } };
     const res = makeRes();
 
     User.findOne.mockRejectedValue(new Error('DB error'));
@@ -96,7 +97,7 @@ describe('login', () => {
 
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json).toHaveBeenCalledWith({
-      message: 'Email e senha são obrigatórios!',
+      message: 'Email e senha são obrigatórios.',
     });
   });
 

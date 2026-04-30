@@ -41,9 +41,9 @@ async function createRepresentative(req, res) {
       },
     });
   } catch (err) {
+    console.error('[createRepresentative]', err.message);
     return res.status(500).json({
       message: 'Erro ao criar representante',
-      error: err.message,
     });
   }
 }
@@ -65,9 +65,9 @@ async function getRepresentatives(req, res) {
 
     return res.json(representatives);
   } catch (err) {
+    console.error('[getRepresentatives]', err.message);
     return res.status(500).json({
       message: 'Erro ao listar representantes',
-      error: err.message,
     });
   }
 }
@@ -89,9 +89,9 @@ async function getRepresentativeById(req, res) {
 
     return res.json(representative);
   } catch (err) {
+    console.error('[getRepresentativeById]', err.message);
     return res.status(500).json({
       message: 'Erro ao buscar representante',
-      error: err.message,
     });
   }
 }
@@ -150,9 +150,9 @@ async function updateRepresentative(req, res) {
       },
     });
   } catch (err) {
+    console.error('[updateRepresentative]', err.message);
     return res.status(500).json({
       message: 'Erro ao atualizar representante',
-      error: err.message,
     });
   }
 }
@@ -189,9 +189,9 @@ async function deleteRepresentative(req, res) {
       message: `Representante ${representative.name} excluído com sucesso`,
     });
   } catch (err) {
+    console.error('[deleteRepresentative]', err.message);
     return res.status(500).json({
       message: 'Erro ao excluir representante',
-      error: err.message,
     });
   }
 }
@@ -228,9 +228,9 @@ async function toggleRepresentativeActive(req, res) {
       },
     });
   } catch (err) {
+    console.error('[toggleRepresentativeActive]', err.message);
     return res.status(500).json({
       message: 'Erro ao alterar status do representante',
-      error: err.message,
     });
   }
 }

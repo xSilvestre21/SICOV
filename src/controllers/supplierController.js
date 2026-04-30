@@ -155,9 +155,9 @@ async function createSupplier(req, res) {
       supplier,
     });
   } catch (err) {
+    console.error('[createSupplier]', err.message);
     return res.status(500).json({
       message: 'Erro ao criar fornecedor',
-      error: err.message,
     });
   }
 }
@@ -215,9 +215,9 @@ async function getSuppliers(req, res) {
       suppliers,
     });
   } catch (err) {
+    console.error('[getSuppliers]', err.message);
     return res.status(500).json({
       message: 'Erro ao buscar fornecedores',
-      error: err.message,
     });
   }
 }
@@ -249,9 +249,9 @@ async function getSupplierById(req, res) {
 
     return res.json(supplier);
   } catch (err) {
+    console.error('[getSupplierById]', err.message);
     return res.status(500).json({
       message: 'Erro ao obter fornecedor',
-      error: err.message,
     });
   }
 }
@@ -379,9 +379,9 @@ async function updateSupplier(req, res) {
       supplier: updatedSupplier,
     });
   } catch (err) {
+    console.error('[updateSupplier]', err.message);
     return res.status(500).json({
       message: 'Erro ao atualizar fornecedor',
-      error: err.message,
     });
   }
 }
@@ -409,9 +409,9 @@ async function toggleSupplierActive(req, res) {
       supplier,
     });
   } catch (err) {
+    console.error('[toggleSupplierActive]', err.message);
     return res.status(500).json({
       message: 'Erro ao alterar status do fornecedor',
-      error: err.message,
     });
   }
 }
@@ -434,9 +434,9 @@ async function deleteSupplier(req, res) {
       message: 'Fornecedor excluído com sucesso',
     });
   } catch (err) {
+    console.error('[deleteSupplier]', err.message);
     return res.status(500).json({
       message: 'Erro ao excluir fornecedor',
-      error: err.message,
     });
   }
 }

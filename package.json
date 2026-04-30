@@ -1,59 +1,45 @@
 {
-  "name": "sicov",
-  "version": "1.0.0",
-  "description": "Gerenciador de vendas com controle de representantes.",
-  "license": "ISC",
-  "author": "Gustavo Silvestre",
-  "type": "commonjs",
-  "main": "app.js",
-  "scripts": {
-    "test": "jest --runInBand",
-    "test:unit": "jest --runInBand --testPathPattern=tests/(unit|utils|middlewares|controllers)",
-    "test:integration": "jest --runInBand --testPathPattern=tests/integration",
-    "test:coverage": "jest --runInBand --coverage",
-    "start": "nodemon server.js"
-  },
-  "jest": {
-    "testEnvironment": "node",
-    "testTimeout": 30000,
-    "collectCoverageFrom": [
-      "src/**/*.js"
-    ],
-    "coverageReporters": [
-      "html",
-      "text",
-      "lcov"
-    ],
-    "coverageDirectory": "coverage",
-    "testMatch": [
-      "**/tests/**/*.test.js"
-    ]
-  },
-  "dependencies": {
-    "argon2": "^0.44.0",
-    "cors": "^2.8.6",
-    "dotenv": "^17.4.1",
-    "express": "^5.2.1",
-    "jsonwebtoken": "^9.0.3",
-    "mongodb": "^7.1.1",
-    "mongoose": "^9.4.1",
-    "nodemon": "^3.1.14",
-    "pdfkit": "^0.18.0"
-  },
-  "devDependencies": {
-    "@jest/globals": "^30.3.0",
-    "eslint": "^8.57.1",
-    "eslint-config-airbnb": "^19.0.4",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-import": "^2.32.0",
-    "eslint-plugin-jsx-a11y": "^6.10.2",
-    "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-prettier": "^5.5.5",
-    "eslint-plugin-react": "^7.37.5",
-    "jest": "^30.3.0",
-    "mongodb-memory-server": "^11.1.0",
-    "pdf-parse": "^2.4.5",
-    "prettier": "^3.8.1",
-    "supertest": "^7.2.2"
-  }
+    "name": "sicov",
+    "version": "1.0.0",
+    "description": "Gerenciador de vendas com controle de representantes.",
+    "license": "ISC",
+    "author": "Gustavo Silvestre",
+    "type": "commonjs",
+    "main": "app.js",
+    "scripts": {
+        "test": "jest --runInBand --forceExit",
+        "test:unit": "jest --runInBand --forceExit --testPathPatterns tests/utils tests/middlewares tests/controllers",
+        "test:integration": "jest --runInBand --forceExit --testPathPatterns tests/integration",
+        "test:coverage": "jest --runInBand --forceExit --coverage",
+        "start": "nodemon server.js"
+    },
+    "dependencies": {
+        "argon2": "^0.44.0",
+        "cors": "^2.8.6",
+        "dotenv": "^17.4.1",
+        "express": "^5.2.1",
+        "express-rate-limit": "8.4.1",
+        "helmet": "8.1.0",
+        "jsonwebtoken": "^9.0.3",
+        "mongodb": "^7.1.1",
+        "mongoose": "^9.4.1",
+        "nodemon": "^3.1.14",
+        "pdfkit": "^0.18.0"
+    },
+    "devDependencies": {
+        "@jest/globals": "^30.3.0",
+        "eslint": "^8.57.1",
+        "eslint-config-airbnb": "^19.0.4",
+        "eslint-config-prettier": "^10.1.8",
+        "eslint-plugin-import": "^2.32.0",
+        "eslint-plugin-jsx-a11y": "^6.10.2",
+        "eslint-plugin-node": "^11.1.0",
+        "eslint-plugin-prettier": "^5.5.5",
+        "eslint-plugin-react": "^7.37.5",
+        "jest": "^30.3.0",
+        "mongodb-memory-server": "^11.1.0",
+        "pdf-parse": "^2.4.5",
+        "prettier": "^3.8.1",
+        "supertest": "^7.2.2"
+    }
 }

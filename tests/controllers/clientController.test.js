@@ -265,7 +265,7 @@ describe('updateClient', () => {
     expect(res.json).toHaveBeenCalledWith({ message: 'Cliente não encontrado.' });
   });
 
-  it('404 quando representante tenta editar cliente de outro', async () => {
+  it('403 quando representante tenta editar cliente de outro', async () => {
     const req = { params: { id: 'c1' }, body: {}, user: repUser };
     const res = makeRes();
     Client.findById.mockResolvedValue({
@@ -275,7 +275,7 @@ describe('updateClient', () => {
 
     await updateClient(req, res);
 
-    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.status).toHaveBeenCalledWith(403);
     expect(res.json).toHaveBeenCalledWith({ message: 'Acesso negado.' });
   });
 

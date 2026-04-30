@@ -1,6 +1,9 @@
 const { MongoMemoryServer } = require('mongodb-memory-server');
 const mongoose = require('mongoose');
 
+// Garante que o endpoint de registro de admin funciona nos testes
+process.env.ADMIN_REGISTER_SECRET = process.env.ADMIN_REGISTER_SECRET || 'test-secret';
+
 let mongod;
 
 /**

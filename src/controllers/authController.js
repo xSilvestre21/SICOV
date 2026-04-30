@@ -2,9 +2,28 @@ const argon2 = require('argon2');
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 
+// Rota protegida: só pode ser chamada se já não existir nenhum admin,
+// ou se a variável ADMIN_REGISTER_SECRET estiver definida e for enviada no header.
 async function registerAdmin(req, res) {
   try {
+    const secret = process.env.ADMIN_REGISTER_SECRET;
+
+    if (!secret) {
+      return res.status(403).json({
+        message: 'Registro de administrador desabilitado neste ambiente.',
+      });
+    }
+
+    const providedSecret = req.headers['x-admin-secret'];
+
+    if (!providedSecret || providedSecret !== secret) {
+      return res.status(403).json({
+        message: 'Acesso negado.',
+      });
+    }
+
     const { name, email, password } = req.body;
+
     if (!name || !email || !password) {
       return res
         .status(400)
@@ -39,9 +58,9 @@ async function registerAdmin(req, res) {
       },
     });
   } catch (err) {
+    console.error('[registerAdmin]', err.message);
     return res.status(500).json({
       message: 'Erro ao cadastrar o administrador.',
-      error: err.message,
     });
   }
 }
@@ -53,11 +72,12 @@ async function login(req, res) {
     if (!email || !password) {
       return res
         .status(400)
-        .json({ message: 'Email e senha são obrigatórios!' });
+        .json({ message: 'Email e senha são obrigatórios.' });
     }
 
     const user = await User.findOne({ email });
 
+    // Resposta genérica para não revelar se o email existe
     if (!user) {
       return res.status(401).json({ message: 'Credenciais inválidas.' });
     }
@@ -74,6 +94,7 @@ async function login(req, res) {
       return res.status(401).json({ message: 'Credenciais inválidas.' });
     }
 
+    // Token com expiração de 8 horas (jornada de trabalho)
     const token = jwt.sign(
       {
         id: user._id,
@@ -81,7 +102,7 @@ async function login(req, res) {
         profile: user.profile,
       },
       process.env.JWT_SECRET,
-      { expiresIn: '1d' },
+      { expiresIn: '4h' },
     );
 
     return res.status(200).json({
@@ -96,9 +117,9 @@ async function login(req, res) {
       },
     });
   } catch (err) {
+    console.error('[login]', err.message);
     return res.status(500).json({
-      message: ' Erro ao reaçizar o login.',
-      error: err.message,
+      message: 'Erro ao realizar o login.',
     });
   }
 }
