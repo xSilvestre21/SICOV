@@ -2,10 +2,11 @@ const PDFDocument = require('pdfkit');
 const path = require('path');
 const fs = require('fs');
 
-// Diretório base onde logos de fornecedores devem estar armazenadas.
-// logoUrl deve ser um caminho relativo a este diretório (ex: "logos/fornecedor.png").
+// Diretório raiz do projeto — logoUrl é um caminho relativo a partir daqui.
+// Ex: "src/assets/logos/Logo-Eripack.jpg.jpeg"
 // Isso impede path traversal: qualquer tentativa de sair do diretório é bloqueada.
-const LOGO_BASE_DIR = path.resolve(process.env.LOGO_BASE_DIR || 'uploads/logos');
+// __dirname está em src/utils, então subimos 2 níveis para chegar na raiz do projeto
+const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
 
 /**
  * Valida e resolve o caminho da logo de forma segura.
@@ -18,10 +19,10 @@ function resolveLogoPath(logoUrl) {
   if (/^https?:\/\//i.test(logoUrl)) return null;
   if (path.isAbsolute(logoUrl)) return null;
 
-  const resolved = path.resolve(LOGO_BASE_DIR, logoUrl);
+  const resolved = path.resolve(PROJECT_ROOT, logoUrl);
 
-  // Garante que o caminho resolvido está dentro do diretório base
-  if (!resolved.startsWith(LOGO_BASE_DIR + path.sep) && resolved !== LOGO_BASE_DIR) {
+  // Garante que o caminho resolvido está dentro do diretório raiz do projeto
+  if (!resolved.startsWith(PROJECT_ROOT + path.sep) && resolved !== PROJECT_ROOT) {
     return null;
   }
 
@@ -70,25 +71,13 @@ function formatDateFile(value) {
 }
 
 // ─── Helper: posiciona texto com coordenadas absolutas ───────────────────────
-// O PDFKit com margin:0 ainda aplica um offset interno de ~3pt no eixo Y.
-// Medido empiricamente: gerado_y = correto_y - 3 (em coordenadas PDF, base inferior).
-// Portanto: pdfkit_y = pageH - pdf_y - fontSize + 3  →  pdfkit_y = pageH - pdf_y - fontSize + OFFSET
-// Simplificando: usamos as coordenadas PDFKit diretamente com o ajuste embutido.
 const PAGE_H = 595.28; // altura A4 landscape
-const Y_OFFSET = 3;    // offset interno do PDFKit medido na comparação
+const Y_OFFSET = 3;    // offset interno do PDFKit medido empiricamente
 
-/**
- * Converte coordenada Y do PDF (origem inferior) para PDFKit (origem superior),
- * aplicando o offset interno do PDFKit.
- */
 function py(pdfY, fontSize) {
   return PAGE_H - pdfY - fontSize + Y_OFFSET;
 }
 
-/**
- * Renderiza label em negrito pequeno + valor abaixo, sem bordas.
- * Usa coordenadas PDF (y = base da linha do label).
- */
 function field(doc, label, value, x, pdfLabelY, width) {
   doc
     .fontSize(9)
@@ -134,14 +123,14 @@ function generateOrderPdf(order, res) {
   const s = order.supplierSnapshot || {};
 
   // ── CABEÇALHO DO FORNECEDOR ──────────────────────────────────────────────
-  // Quando há logo: exibe apenas a imagem, ocupando toda a área do cabeçalho.
-  // Quando não há logo: exibe os dados textuais como fallback.
+  // Lado esquerdo: logo ou dados textuais do fornecedor (x=43..680)
+  // Lado direito:  PEDIDO Nº e Data (x=692..799)
   const logoPath = resolveLogoPath(s.logoUrl);
 
   if (logoPath) {
     try {
-      // Logo centralizada verticalmente na faixa do cabeçalho (y=515..553)
-      doc.image(logoPath, 43, 22, { fit: [700, 82] });
+      // Logo no lado esquerdo do cabeçalho, altura máxima de 82pt
+      doc.image(logoPath, 43, 22, { fit: [630, 82] });
     } catch {
       // Fallback para texto se a imagem não puder ser carregada
       doc.fontSize(12).font('Helvetica-Bold').text(s.name || '', 43, py(553, 12));
@@ -175,66 +164,51 @@ function generateOrderPdf(order, res) {
     if (s.email) doc.text(`E-mail: ${s.email}`, 113, py(515, 9), { lineBreak: false });
   }
 
-  // PEDIDO Nº — x=692 y=553 fs=14
+  // PEDIDO Nº — lado direito do cabeçalho
   doc
     .fontSize(14)
     .font('Helvetica-Bold')
     .text(`PEDIDO Nº ${order.orderNumber}`, 692, py(553, 14), { lineBreak: false });
 
-  // Data — x=723 y=537 fs=10
+  // Data
   doc
     .fontSize(10)
     .font('Helvetica')
     .text(`Data: ${formatDate(order.createdAt)}`, 723, py(537, 10), { lineBreak: false });
 
   // ── DADOS DO CLIENTE ─────────────────────────────────────────────────────
-  // Linha separadora acima da seção — y=490 pdf, alpha=0.6 (cinza claro)
   doc
     .moveTo(43, py(490, 0))
     .lineTo(799, py(490, 0))
     .lineWidth(0.5)
     .opacity(0.6)
     .stroke()
-    .opacity(1); // restaura opacidade
+    .opacity(1);
 
-  // Título — x=43 y=461 fs=12
   doc
     .fontSize(12)
     .font('Helvetica-Bold')
     .text('DADOS DO CLIENTE', 43, py(461, 12));
 
-  // Linha 1: RAZÃO SOCIAL (x=43) | CNPJ/CPF (x=354) | IE (x=482)
-  // label y=441, valor y=429
   field(doc, 'RAZÃO SOCIAL',  c.name,              43,  441, 305);
   field(doc, 'CNPJ/CPF',      c.cnpj,              354, 441, 122);
   field(doc, 'IE',            c.stateRegistration, 482, 441, 316);
 
-  // Linha 2: ENDEREÇO (x=43) | BAIRRO (x=354)
-  // label y=409, valor y=397
   field(doc, 'ENDEREÇO', c.address,  43,  409, 305);
   field(doc, 'BAIRRO',   c.district, 354, 409, 122);
 
-  // Linha 3: MUNICÍPIO (x=43) | UF (x=354) | CEP (x=439)
-  // label y=377, valor y=365
   field(doc, 'MUNICÍPIO', c.city,    43,  377, 305);
   field(doc, 'UF',        c.state,   354, 377, 79);
   field(doc, 'CEP',       c.zipCode, 439, 377, 359);
 
-  // Linha 4: TELEFONE (x=43) | E-MAIL (x=354)
-  // label y=345, valor y=333
-  field(doc, 'TELEFONE',                c.phone, 43,  345, 305);
+  field(doc, 'TELEFONE',                  c.phone, 43,  345, 305);
   field(doc, 'E-MAIL PARA ENVIO DA NF-e', c.email, 354, 345, 444);
 
-  // Linha 5: PRAZO PARA PAGAMENTO (x=43) | PRAZO PARA ENTREGA (x=354)
-  // label y=313, valor y=301
   field(doc, 'PRAZO PARA PAGAMENTO', order.paymentTerm,              43,  313, 305);
   field(doc, 'PRAZO PARA ENTREGA',   formatDate(order.deliveryDate), 354, 313, 444);
 
-  // Linha 6: PEDIDO DO CLIENTE (x=43) — label y=281
   field(doc, 'PEDIDO DO CLIENTE', order.customerPurchaseOrder, 43, 281, 755);
 
-  // Observação — label y=249 fs=9, texto y=237 fs=10
-  // Ordem correta: c.notes primeiro, depois order.notes (conforme PDF correto)
   doc
     .fontSize(9)
     .font('Helvetica-Bold')
@@ -249,35 +223,36 @@ function generateOrderPdf(order, res) {
   }
 
   // ── TABELA DE ITENS ──────────────────────────────────────────────────────
-  // Cabeçalho — y=167 fs=9  (coordenadas PDF do correto)
-  const TABLE_Y = py(167, 9);
-  const ROW_H   = 20; // espaçamento entre linhas (167-147=20 em coord PDF)
-
-  // Posições X exatas do PDF correto — todos LEFT-aligned.
-  // headerX: posição do label do cabeçalho
-  // valueX:  posição onde o valor da linha de dados começa
-  // valueWidth: largura disponível para o valor
-  // Colunas monetárias recuadas para acomodar valores grandes (até R$ 999.999,99 = ~66pt em fs=8)
+  // Layout das colunas (total usável: x=46..800 = 754pt):
+  //
+  //  COD.FORN  COD.CLI  DESCRIÇÃO        QNT   UN   MILHEIRO  TOT S/IPI  IPI      TOTAL
+  //  x=46      x=121    x=191            x=431 x=471 x=511    x=581      x=661    x=731
+  //  w=69      w=64     w=234            w=34  w=34  w=64     w=74       w=64     w=69
+  //
+  // DESCRIÇÃO reduzida de 285 → 234 (-51pt), redistribuídos:
+  //   QNT:      29 → 34  (+5)
+  //   UN:       33 → 34  (+1)
+  //   MILHEIRO: 62 → 64  (+2)
+  //   TOT S/IPI:70 → 74  (+4)
+  //   VALOR IPI:70 → 64  (-6)  ← "IPI" é mais curto, cabe em menos
+  //   TOTAL:    70 → 69  (-1)
+  //   Ganho líquido redistribuído: 51pt ✓
   const columns = [
-    { label: 'FORNECEDOR',   headerX: 46,  valueX: 46,  valueWidth: 83  },
-    { label: 'CLIENTE',      headerX: 131, valueX: 131, valueWidth: 68  },
-    { label: 'DESCRIÇÃO',    headerX: 201, valueX: 201, valueWidth: 285 },
-    { label: 'QNT',          headerX: 488, valueX: 487, valueWidth: 29  },
-    { label: 'UN',           headerX: 518, valueX: 519, valueWidth: 33  },
-    { label: 'MILHEIRO',     headerX: 554, valueX: 548, valueWidth: 62  },
-    { label: 'TOTAL S/ IPI', headerX: 611, valueX: 610, valueWidth: 70  },
-    { label: 'VALOR IPI',    headerX: 683, valueX: 680, valueWidth: 70  },
-    // Última coluna: valueX recuado para dar 70pt de largura até x=800
-    { label: 'TOTAL',        headerX: 752, valueX: 730, valueWidth: 70  },
+    { label: 'COD.FORN',   headerX: 46,  valueX: 46,  valueWidth: 69  },
+    { label: 'COD.CLI',    headerX: 121, valueX: 121, valueWidth: 64  },
+    { label: 'DESCRIÇÃO',  headerX: 191, valueX: 191, valueWidth: 234 },
+    { label: 'QNT',        headerX: 431, valueX: 431, valueWidth: 34  },
+    { label: 'UN',         headerX: 471, valueX: 471, valueWidth: 34  },
+    { label: 'MILHEIRO',   headerX: 511, valueX: 511, valueWidth: 64  },
+    { label: 'TOT S/IPI',  headerX: 581, valueX: 581, valueWidth: 74  },
+    { label: 'IPI',        headerX: 661, valueX: 661, valueWidth: 64  },
+    { label: 'TOTAL',      headerX: 731, valueX: 731, valueWidth: 69  },
   ];
 
-  // Renderizar headers (LEFT-aligned nas posições headerX)
-  doc.fontSize(9).font('Helvetica-Bold');
-  columns.forEach((col) => {
-    doc.text(col.label, col.headerX, TABLE_Y, { lineBreak: false });
-  });
+  const TABLE_Y = py(167, 9);
+  const ROW_H   = 20;
 
-  // Linha acima do cabeçalho — y=179 pdf, alpha=0.8
+  // Linha acima do cabeçalho
   doc
     .moveTo(43, py(179, 0))
     .lineTo(799, py(179, 0))
@@ -285,7 +260,13 @@ function generateOrderPdf(order, res) {
     .opacity(0.8)
     .stroke();
 
-  // Linha abaixo do cabeçalho — y=163 pdf, alpha=0.8
+  // Headers
+  doc.fontSize(9).font('Helvetica-Bold');
+  columns.forEach((col) => {
+    doc.text(col.label, col.headerX, TABLE_Y, { lineBreak: false });
+  });
+
+  // Linha abaixo do cabeçalho
   doc
     .moveTo(43, py(163, 0))
     .lineTo(799, py(163, 0))
@@ -294,13 +275,8 @@ function generateOrderPdf(order, res) {
     .stroke()
     .opacity(1);
 
-  // Linhas de dados — primeira linha y=147 fs=8
-  // Cada linha ocupa 22pt (163-141=22). Texto centralizado: (22-8)/2 = 7pt abaixo da linha superior.
-  // Linha superior da 1ª row = y=163, texto = y=163-7=156... mas correto mede y=147.
-  // O correto usa y=147 (pdf) que é o baseline do texto de 8pt dentro da faixa 163→141.
-  // Mantemos y=147 para a 1ª linha e decrementamos 22pt por linha.
+  // Linhas de dados
   let itemPdfY = 147;
-
   doc.fontSize(8).font('Helvetica');
 
   order.items.forEach((item) => {
@@ -312,8 +288,6 @@ function generateOrderPdf(order, res) {
         : 0;
 
     const itemTotal = item.subtotal + itemIpi;
-
-    // Quantidade com separador de milhar (correto usa "2.000")
     const qtyFormatted = Number(item.quantity || 0).toLocaleString('pt-BR');
 
     const values = [
@@ -337,14 +311,10 @@ function generateOrderPdf(order, res) {
       });
     });
 
-    itemPdfY -= ROW_H; // próxima linha: 20pt abaixo (em coord PDF, y decresce)
+    itemPdfY -= ROW_H;
   });
 
   // ── TOTAIS ───────────────────────────────────────────────────────────────
-  // Linha abaixo dos itens — y=141 pdf, alpha=0.3
-  // itemPdfY após o loop = 147 - (n_itens * 22). Com 1 item = 125.
-  // No correto a linha está em y=141 = 147 - 6 (6pt abaixo do baseline do último item).
-  // Para N itens: linha em itemPdfY + (22 - 6) = itemPdfY + 16
   const SEP_Y2 = py(itemPdfY + 16, 0);
   doc
     .moveTo(43, SEP_Y2)
@@ -354,8 +324,6 @@ function generateOrderPdf(order, res) {
     .stroke()
     .opacity(1);
 
-  // SUBTOTAL y=123 = itemPdfY - 2 (com 1 item: 125-2=123 ✓)
-  // Valores dos totais: x=715, width=85 -> termina em 800 (comporta até R$ 999.999,99)
   const subtotalPdfY = itemPdfY - 2;
   const TOTAL_VAL_X = 715;
   const TOTAL_VAL_W = 85;
@@ -383,7 +351,6 @@ function generateOrderPdf(order, res) {
   });
 
   // ── ASSINATURA ───────────────────────────────────────────────────────────
-  // x=43 y=17 fs=11
   doc
     .fontSize(11)
     .font('Helvetica')
