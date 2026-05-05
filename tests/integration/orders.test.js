@@ -473,3 +473,69 @@ describe('GET /orders/:id/pdf', () => {
     expect(res.headers['content-type']).toMatch(/application\/pdf/);
   });
 });
+
+// ─── GET /orders/:id/pdf (admin gera PDF) ─────────────────────────────────────
+
+// Nota: o teste de PDF do admin já existe acima. Adicionamos aqui testes de edge cases.
+
+describe('POST /orders — validações adicionais', () => {
+  it('retorna 500 quando produto não existe nos items', async () => {
+    const { token, user } = await createAdminAndLogin();
+    const { client } = await buildOrderFixture(token, user.id);
+
+    const res = await request(app)
+      .post('/orders')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        clientId: client._id,
+        items: [{ productId: '000000000000000000000001', quantity: 10 }],
+      });
+
+    // Produto não encontrado resulta em erro 500 (lançado dentro do Promise.all)
+    expect(res.status).toBe(500);
+  });
+});
+
+describe('GET /orders — filtros adicionais', () => {
+  it('filtra por orderNumber', async () => {
+    const { token, user } = await createAdminAndLogin();
+    const { client, product } = await buildOrderFixture(token, user.id);
+
+    const orderRes = await request(app)
+      .post('/orders')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ clientId: client._id, items: [{ productId: product._id, quantity: 10 }] });
+
+    const orderNumber = orderRes.body.order.orderNumber;
+
+    const res = await request(app)
+      .get(`/orders?orderNumber=${orderNumber}`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.total).toBe(1);
+    expect(res.body.orders[0].orderNumber).toBe(orderNumber);
+  });
+
+  it('filtra por sentToSupplier=true', async () => {
+    const { token, user } = await createAdminAndLogin();
+    const { client, product } = await buildOrderFixture(token, user.id);
+
+    const orderRes = await request(app)
+      .post('/orders')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ clientId: client._id, items: [{ productId: product._id, quantity: 10 }] });
+
+    await request(app)
+      .patch(`/orders/${orderRes.body.order._id}/sent-to-supplier`)
+      .set('Authorization', `Bearer ${token}`);
+
+    const res = await request(app)
+      .get('/orders?sentToSupplier=true')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.total).toBe(1);
+    expect(res.body.orders[0].sentToSupplier).toBe(true);
+  });
+});

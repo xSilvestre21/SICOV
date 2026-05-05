@@ -8,6 +8,7 @@ const clientRoutes = require('./src/routes/clientRoutes');
 const supplierRoutes = require('./src/routes/supplierRoutes');
 const productRoutes = require('./src/routes/productRoutes');
 const orderRoutes = require('./src/routes/orderRoutes');
+const quotationRoutes = require('./src/routes/quotationRoutes');
 
 const app = express();
 
@@ -67,6 +68,7 @@ app.use('/clients', clientRoutes);
 app.use('/suppliers', supplierRoutes);
 app.use('/products', productRoutes);
 app.use('/orders', orderRoutes);
+app.use('/quotations', quotationRoutes);
 
 // ── Middleware de erro centralizado ──────────────────────────────────────────
 // Captura erros não tratados e evita vazar detalhes internos

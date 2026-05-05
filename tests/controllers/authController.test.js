@@ -22,19 +22,61 @@ function makeRes() {
 describe('registerAdmin', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('retorna 400 quando campos obrigatórios estão ausentes', async () => {
-    const req = { body: { name: 'Admin' }, headers: { 'x-admin-secret': 'test-secret' } }; // sem email e password
+  it('403 quando ADMIN_REGISTER_SECRET não está definido no ambiente', async () => {
+    const original = process.env.ADMIN_REGISTER_SECRET;
+    delete process.env.ADMIN_REGISTER_SECRET;
+
+    const req = { body: { name: 'Admin', email: 'admin@test.com', password: '123456' }, headers: { 'x-admin-secret': 'test-secret' } };
+    const res = makeRes();
+
+    await registerAdmin(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith({ message: 'Registro de administrador desabilitado neste ambiente.' });
+
+    process.env.ADMIN_REGISTER_SECRET = original;
+  });
+
+  it('403 quando x-admin-secret está ausente', async () => {
+    const req = { body: { name: 'Admin', email: 'admin@test.com', password: '123456' }, headers: {} };
+    const res = makeRes();
+
+    await registerAdmin(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith({ message: 'Acesso negado.' });
+  });
+
+  it('403 quando x-admin-secret está incorreto', async () => {
+    const req = { body: { name: 'Admin', email: 'admin@test.com', password: '123456' }, headers: { 'x-admin-secret': 'segredo-errado' } };
+    const res = makeRes();
+
+    await registerAdmin(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith({ message: 'Acesso negado.' });
+  });
+
+  it('400 quando campos obrigatórios estão ausentes (sem email e password)', async () => {
+    const req = { body: { name: 'Admin' }, headers: { 'x-admin-secret': 'test-secret' } };
     const res = makeRes();
 
     await registerAdmin(req, res);
 
     expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({
-      message: 'Nome, email e senha são obrigatórios',
-    });
+    expect(res.json).toHaveBeenCalledWith({ message: 'Nome, email e senha são obrigatórios' });
   });
 
-  it('retorna 409 quando email já existe', async () => {
+  it('400 quando apenas name está ausente', async () => {
+    const req = { body: { email: 'admin@test.com', password: '123456' }, headers: { 'x-admin-secret': 'test-secret' } };
+    const res = makeRes();
+
+    await registerAdmin(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+  });
+
+  it('409 quando email já existe', async () => {
     const req = { body: { name: 'Admin', email: 'admin@test.com', password: '123456' }, headers: { 'x-admin-secret': 'test-secret' } };
     const res = makeRes();
 
@@ -43,12 +85,10 @@ describe('registerAdmin', () => {
     await registerAdmin(req, res);
 
     expect(res.status).toHaveBeenCalledWith(409);
-    expect(res.json).toHaveBeenCalledWith({
-      message: 'Já existe um usuário com esse email',
-    });
+    expect(res.json).toHaveBeenCalledWith({ message: 'Já existe um usuário com esse email' });
   });
 
-  it('cria admin com sucesso e retorna 201', async () => {
+  it('cria admin com sucesso e retorna 201 sem expor senha', async () => {
     const req = { body: { name: 'Admin', email: 'admin@test.com', password: '123456' }, headers: { 'x-admin-secret': 'test-secret' } };
     const res = makeRes();
 
@@ -70,9 +110,12 @@ describe('registerAdmin', () => {
         user: expect.objectContaining({ email: 'admin@test.com', profile: 'admin' }),
       }),
     );
+    // Senha não deve ser exposta
+    const responseUser = res.json.mock.calls[0][0].user;
+    expect(responseUser).not.toHaveProperty('password');
   });
 
-  it('retorna 500 em caso de erro inesperado', async () => {
+  it('500 em caso de erro inesperado no banco', async () => {
     const req = { body: { name: 'Admin', email: 'admin@test.com', password: '123456' }, headers: { 'x-admin-secret': 'test-secret' } };
     const res = makeRes();
 
@@ -81,6 +124,7 @@ describe('registerAdmin', () => {
     await registerAdmin(req, res);
 
     expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({ message: 'Erro ao cadastrar o administrador.' });
   });
 });
 
@@ -89,19 +133,27 @@ describe('registerAdmin', () => {
 describe('login', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('retorna 400 quando email ou senha estão ausentes', async () => {
-    const req = { body: { email: 'admin@test.com' } }; // sem password
+  it('400 quando email está ausente', async () => {
+    const req = { body: { password: '123456' } };
     const res = makeRes();
 
     await login(req, res);
 
     expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({
-      message: 'Email e senha são obrigatórios.',
-    });
+    expect(res.json).toHaveBeenCalledWith({ message: 'Email e senha são obrigatórios.' });
   });
 
-  it('retorna 401 quando usuário não existe', async () => {
+  it('400 quando senha está ausente', async () => {
+    const req = { body: { email: 'admin@test.com' } };
+    const res = makeRes();
+
+    await login(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ message: 'Email e senha são obrigatórios.' });
+  });
+
+  it('401 quando usuário não existe (resposta genérica para não revelar email)', async () => {
     const req = { body: { email: 'naoexiste@test.com', password: '123456' } };
     const res = makeRes();
 
@@ -113,7 +165,7 @@ describe('login', () => {
     expect(res.json).toHaveBeenCalledWith({ message: 'Credenciais inválidas.' });
   });
 
-  it('retorna 403 quando usuário está inativo', async () => {
+  it('403 quando usuário está inativo', async () => {
     const req = { body: { email: 'inativo@test.com', password: '123456' } };
     const res = makeRes();
 
@@ -122,12 +174,10 @@ describe('login', () => {
     await login(req, res);
 
     expect(res.status).toHaveBeenCalledWith(403);
-    expect(res.json).toHaveBeenCalledWith({
-      message: 'Usuário inativo. Acesso bloqueado.',
-    });
+    expect(res.json).toHaveBeenCalledWith({ message: 'Usuário inativo. Acesso bloqueado.' });
   });
 
-  it('retorna 401 quando senha está incorreta', async () => {
+  it('401 quando senha está incorreta', async () => {
     const req = { body: { email: 'admin@test.com', password: 'senhaerrada' } };
     const res = makeRes();
 
@@ -146,7 +196,7 @@ describe('login', () => {
     expect(res.json).toHaveBeenCalledWith({ message: 'Credenciais inválidas.' });
   });
 
-  it('retorna 200 com token quando credenciais são válidas', async () => {
+  it('200 com token JWT quando credenciais são válidas', async () => {
     const req = { body: { email: 'admin@test.com', password: 'senha123' } };
     const res = makeRes();
 
@@ -170,8 +220,49 @@ describe('login', () => {
       expect.objectContaining({
         message: 'Login realizado com sucesso.',
         token: 'mocked_jwt_token',
-        user: expect.objectContaining({ email: 'admin@test.com' }),
+        user: expect.objectContaining({ email: 'admin@test.com', profile: 'admin' }),
       }),
     );
+    // Senha não deve ser exposta
+    const responseUser = res.json.mock.calls[0][0].user;
+    expect(responseUser).not.toHaveProperty('password');
+  });
+
+  it('token JWT é gerado com expiração de 4h', async () => {
+    const req = { body: { email: 'admin@test.com', password: 'senha123' } };
+    const res = makeRes();
+
+    const mockUser = {
+      _id: 'userId',
+      name: 'Admin',
+      email: 'admin@test.com',
+      password: 'hashed',
+      profile: 'admin',
+      active: true,
+    };
+
+    User.findOne.mockResolvedValue(mockUser);
+    argon2.verify.mockResolvedValue(true);
+    jwt.sign.mockReturnValue('token');
+
+    await login(req, res);
+
+    expect(jwt.sign).toHaveBeenCalledWith(
+      expect.objectContaining({ id: mockUser._id, email: mockUser.email, profile: mockUser.profile }),
+      process.env.JWT_SECRET,
+      { expiresIn: '4h' },
+    );
+  });
+
+  it('500 em caso de erro inesperado no banco', async () => {
+    const req = { body: { email: 'admin@test.com', password: 'senha123' } };
+    const res = makeRes();
+
+    User.findOne.mockRejectedValue(new Error('DB connection lost'));
+
+    await login(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({ message: 'Erro ao realizar o login.' });
   });
 });

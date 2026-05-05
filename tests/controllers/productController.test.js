@@ -524,3 +524,201 @@ describe('updateProduct', () => {
     expect(res.status).toHaveBeenCalledWith(500);
   });
 });
+
+// ─── Funções de normalização internas (cobertura de branches) ─────────────────
+
+describe('normalização de selectedExtras via createProduct', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('filtra extras inválidos (sem name, chargeType ou value negativo)', async () => {
+    const req = {
+      body: {
+        clientId: 'c1', supplierId: 's1', name: 'Produto',
+        productType: 'custom', saleMode: 'unit', calculationMode: 'manual_price',
+        commercialData: { basePrice: 10 },
+        selectedExtras: [
+          { name: 'Extra Válido', chargeType: 'per_kg', value: 5, source: 'manual' },
+          { name: '', chargeType: 'per_kg', value: 5, source: 'manual' }, // sem name — filtrado
+          { name: 'Sem chargeType', chargeType: null, value: 5, source: 'manual' }, // sem chargeType — filtrado
+          { name: 'Valor negativo', chargeType: 'per_kg', value: -1, source: 'manual' }, // valor negativo — filtrado
+          // Nota: source: null vira 'manual' pelo || 'manual', então NÃO é filtrado
+        ],
+      },
+      user: adminUser,
+    };
+    const res = makeRes();
+    mockClientAccess();
+    Product.create.mockResolvedValue({ _id: 'p1' });
+
+    await createProduct(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(201);
+    // 1 extra válido deve ter sido passado (os outros 3 foram filtrados)
+    const createArg = Product.create.mock.calls[0][0];
+    expect(createArg.selectedExtras).toHaveLength(1);
+    expect(createArg.selectedExtras[0].name).toBe('Extra Válido');
+  });
+
+  it('selectedExtras não-array resulta em array vazio', async () => {
+    const req = {
+      body: {
+        clientId: 'c1', supplierId: 's1', name: 'Produto',
+        productType: 'custom', saleMode: 'unit', calculationMode: 'manual_price',
+        commercialData: { basePrice: 10 },
+        selectedExtras: 'não é array',
+      },
+      user: adminUser,
+    };
+    const res = makeRes();
+    mockClientAccess();
+    Product.create.mockResolvedValue({ _id: 'p1' });
+
+    await createProduct(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(201);
+    const createArg = Product.create.mock.calls[0][0];
+    expect(createArg.selectedExtras).toEqual([]);
+  });
+});
+
+describe('normalização de measurements via createProduct', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('parseia medidas em formato brasileiro (vírgula como decimal)', async () => {
+    const req = {
+      body: {
+        clientId: 'c1', supplierId: 's1', name: 'Produto',
+        productType: 'custom', saleMode: 'unit', calculationMode: 'manual_price',
+        commercialData: { basePrice: 10 },
+        technicalData: {
+          measurements: { width: '0,077', length: '0,135', thickness: '0,00015' },
+        },
+      },
+      user: adminUser,
+    };
+    const res = makeRes();
+    mockClientAccess();
+    Product.create.mockResolvedValue({ _id: 'p1' });
+
+    await createProduct(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(201);
+    const createArg = Product.create.mock.calls[0][0];
+    expect(createArg.technicalData.measurements.width).toBeCloseTo(0.077, 5);
+    expect(createArg.technicalData.measurements.length).toBeCloseTo(0.135, 5);
+    expect(createArg.technicalData.measurements.thickness).toBeCloseTo(0.00015, 8);
+  });
+
+  it('measurements undefined resulta em campos undefined (não incluídos)', async () => {
+    const req = {
+      body: {
+        clientId: 'c1', supplierId: 's1', name: 'Produto',
+        productType: 'custom', saleMode: 'unit', calculationMode: 'manual_price',
+        commercialData: { basePrice: 10 },
+        technicalData: {}, // sem measurements
+      },
+      user: adminUser,
+    };
+    const res = makeRes();
+    mockClientAccess();
+    Product.create.mockResolvedValue({ _id: 'p1' });
+
+    await createProduct(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(201);
+    const createArg = Product.create.mock.calls[0][0];
+    expect(createArg.technicalData.measurements.width).toBeUndefined();
+  });
+});
+
+describe('validação de regras de produto (validateProductRules)', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('400 para tape sem unitsPerBox', async () => {
+    const req = {
+      body: {
+        clientId: 'c1', supplierId: 's1', name: 'Fita',
+        productType: 'tape', saleMode: 'box',
+        calculationMode: 'boxes_times_box_price',
+        commercialData: { boxPrice: 10 },
+        // sem technicalData.unitsPerBox
+      },
+      user: adminUser,
+    };
+    const res = makeRes();
+    mockClientAccess();
+    await createProduct(req, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ message: expect.stringContaining('quantidade por caixa') });
+  });
+
+  it('400 para tape com calculationMode boxes_times_units_per_box_times_unit_price sem unitPrice', async () => {
+    const req = {
+      body: {
+        clientId: 'c1', supplierId: 's1', name: 'Fita',
+        productType: 'tape', saleMode: 'box',
+        calculationMode: 'boxes_times_units_per_box_times_unit_price',
+        technicalData: { unitsPerBox: 36 },
+        commercialData: {}, // sem unitPrice
+      },
+      user: adminUser,
+    };
+    const res = makeRes();
+    mockClientAccess();
+    await createProduct(req, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ message: expect.stringContaining('valor unitário') });
+  });
+
+  it('400 para tape com calculationMode boxes_times_box_price sem boxPrice', async () => {
+    const req = {
+      body: {
+        clientId: 'c1', supplierId: 's1', name: 'Fita',
+        productType: 'tape', saleMode: 'box',
+        calculationMode: 'boxes_times_box_price',
+        technicalData: { unitsPerBox: 36 },
+        commercialData: {}, // sem boxPrice
+      },
+      user: adminUser,
+    };
+    const res = makeRes();
+    mockClientAccess();
+    await createProduct(req, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ message: expect.stringContaining('valor da caixa') });
+  });
+
+  it('400 para weight_times_price_per_kg sem basePrice', async () => {
+    const req = {
+      body: {
+        clientId: 'c1', supplierId: 's1', name: 'Stretch',
+        productType: 'stretch', saleMode: 'kg',
+        calculationMode: 'weight_times_price_per_kg',
+        commercialData: {}, // sem basePrice
+      },
+      user: adminUser,
+    };
+    const res = makeRes();
+    mockClientAccess();
+    await createProduct(req, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ message: expect.stringContaining('preço base') });
+  });
+
+  it('400 para quantity_times_unit_price sem unitPrice', async () => {
+    const req = {
+      body: {
+        clientId: 'c1', supplierId: 's1', name: 'Produto',
+        productType: 'custom', saleMode: 'unit',
+        calculationMode: 'quantity_times_unit_price',
+        commercialData: {}, // sem unitPrice
+      },
+      user: adminUser,
+    };
+    const res = makeRes();
+    mockClientAccess();
+    await createProduct(req, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ message: expect.stringContaining('valor unitário') });
+  });
+});

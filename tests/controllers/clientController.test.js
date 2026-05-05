@@ -59,11 +59,12 @@ describe('createClient', () => {
         stateRegistration: '123456789000',
         state: 'SP',
         representativeId: repUser.id,
+        active: true,
       }),
     );
   });
 
-  it('usa representativeId do body quando fornecido', async () => {
+  it('admin usa representativeId do body quando fornecido', async () => {
     const req = { body: { name: 'Empresa', representativeId: 'outroRepId' }, user: adminUser };
     const res = makeRes();
     Client.create.mockResolvedValue({ _id: 'c1' });
@@ -75,6 +76,30 @@ describe('createClient', () => {
     );
   });
 
+  it('representante ignora representativeId do body e usa seu próprio id', async () => {
+    const req = { body: { name: 'Empresa', representativeId: 'outroRepId' }, user: repUser };
+    const res = makeRes();
+    Client.create.mockResolvedValue({ _id: 'c1' });
+
+    await createClient(req, res);
+
+    expect(Client.create).toHaveBeenCalledWith(
+      expect.objectContaining({ representativeId: repUser.id }),
+    );
+  });
+
+  it('state vira string vazia quando não fornecido', async () => {
+    const req = { body: { name: 'Empresa' }, user: adminUser };
+    const res = makeRes();
+    Client.create.mockResolvedValue({ _id: 'c1' });
+
+    await createClient(req, res);
+
+    expect(Client.create).toHaveBeenCalledWith(
+      expect.objectContaining({ state: '' }),
+    );
+  });
+
   it('500 em caso de erro inesperado', async () => {
     const req = { body: { name: 'Empresa' }, user: adminUser };
     const res = makeRes();
@@ -83,6 +108,7 @@ describe('createClient', () => {
     await createClient(req, res);
 
     expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({ message: 'Falha ao criar o cliente' });
   });
 });
 
@@ -154,16 +180,20 @@ describe('getClients', () => {
     expect(Client.find).toHaveBeenCalledWith(expect.objectContaining({ active: false }));
   });
 
-  it('aplica busca por texto com $or', async () => {
+  it('aplica busca por texto com $or em name, tradeName, cnpj, city, state', async () => {
     const req = { query: { search: 'empresa' }, user: adminUser };
     const res = makeRes();
     mockFind();
 
     await getClients(req, res);
 
-    expect(Client.find).toHaveBeenCalledWith(
-      expect.objectContaining({ $or: expect.any(Array) }),
-    );
+    const callArg = Client.find.mock.calls[0][0];
+    expect(callArg.$or).toHaveLength(5);
+    expect(callArg.$or[0]).toHaveProperty('name');
+    expect(callArg.$or[1]).toHaveProperty('tradeName');
+    expect(callArg.$or[2]).toHaveProperty('cnpj');
+    expect(callArg.$or[3]).toHaveProperty('city');
+    expect(callArg.$or[4]).toHaveProperty('state');
   });
 
   it('retorna paginação correta', async () => {
@@ -180,6 +210,18 @@ describe('getClients', () => {
     );
   });
 
+  it('usa page=1 e limit=10 como padrão', async () => {
+    const req = { query: {}, user: adminUser };
+    const res = makeRes();
+    mockFind([]);
+
+    await getClients(req, res);
+
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ page: 1, limit: 10 }),
+    );
+  });
+
   it('500 em caso de erro', async () => {
     const req = { query: {}, user: adminUser };
     const res = makeRes();
@@ -188,6 +230,7 @@ describe('getClients', () => {
     await getClients(req, res);
 
     expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({ message: 'Erro ao obter clientes' });
   });
 });
 
@@ -204,6 +247,7 @@ describe('getClientById', () => {
     await getClientById(req, res);
 
     expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.json).toHaveBeenCalledWith({ message: 'Cliente não encontrado' });
   });
 
   it('admin acessa qualquer cliente', async () => {
@@ -217,7 +261,7 @@ describe('getClientById', () => {
     expect(res.json).toHaveBeenCalledWith(mockClient);
   });
 
-  it('representante acessa seu próprio cliente', async () => {
+  it('representante acessa seu próprio cliente via findOne', async () => {
     const req = { params: { id: 'c1' }, user: repUser };
     const res = makeRes();
     const mockClient = { _id: 'c1', name: 'Empresa' };
@@ -225,6 +269,7 @@ describe('getClientById', () => {
 
     await getClientById(req, res);
 
+    expect(Client.findOne).toHaveBeenCalledWith({ _id: 'c1', representativeId: repUser.id });
     expect(res.json).toHaveBeenCalledWith(mockClient);
   });
 
@@ -246,6 +291,7 @@ describe('getClientById', () => {
     await getClientById(req, res);
 
     expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({ message: 'Erro ao buscar cliente' });
   });
 });
 
@@ -279,7 +325,7 @@ describe('updateClient', () => {
     expect(res.json).toHaveBeenCalledWith({ message: 'Acesso negado.' });
   });
 
-  it('atualiza cliente com sucesso (admin)', async () => {
+  it('atualiza cliente com sucesso (admin) — normaliza campos', async () => {
     const req = {
       params: { id: 'c1' },
       body: { name: 'Novo Nome', phone: '(11) 1111-1111', state: 'rj', cnpj: '11.111.111/0001-11' },
@@ -308,6 +354,26 @@ describe('updateClient', () => {
     );
   });
 
+  it('mantém valores existentes quando campos não são enviados', async () => {
+    const req = { params: { id: 'c1' }, body: {}, user: adminUser };
+    const res = makeRes();
+    const mockClient = {
+      _id: 'c1',
+      name: 'Nome Original',
+      phone: '11999999999',
+      state: 'SP',
+      representativeId: { toString: () => 'repId' },
+      save: jest.fn().mockResolvedValue(true),
+    };
+    Client.findById.mockResolvedValue(mockClient);
+
+    await updateClient(req, res);
+
+    expect(mockClient.name).toBe('Nome Original');
+    expect(mockClient.phone).toBe('11999999999');
+    expect(mockClient.state).toBe('SP');
+  });
+
   it('representante atualiza seu próprio cliente', async () => {
     const req = {
       params: { id: 'c1' },
@@ -331,6 +397,24 @@ describe('updateClient', () => {
     );
   });
 
+  it('state permanece inalterado quando não enviado (sem chamar toUpperCase em undefined)', async () => {
+    const req = { params: { id: 'c1' }, body: { name: 'Novo' }, user: adminUser };
+    const res = makeRes();
+    const mockClient = {
+      _id: 'c1',
+      name: 'Antigo',
+      state: 'MG',
+      representativeId: { toString: () => 'repId' },
+      save: jest.fn().mockResolvedValue(true),
+    };
+    Client.findById.mockResolvedValue(mockClient);
+
+    await updateClient(req, res);
+
+    // state não foi enviado, deve manter o valor original
+    expect(mockClient.state).toBe('MG');
+  });
+
   it('500 em caso de erro', async () => {
     const req = { params: { id: 'c1' }, body: {}, user: adminUser };
     const res = makeRes();
@@ -339,6 +423,7 @@ describe('updateClient', () => {
     await updateClient(req, res);
 
     expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({ message: 'Erro ao atualizar o cliente' });
   });
 });
 
@@ -355,6 +440,7 @@ describe('deleteClient', () => {
     await deleteClient(req, res);
 
     expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.json).toHaveBeenCalledWith({ message: 'Cliente não encontrado' });
   });
 
   it('403 quando representante tenta deletar cliente de outro', async () => {
@@ -369,18 +455,21 @@ describe('deleteClient', () => {
     await deleteClient(req, res);
 
     expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith({ message: 'Acesso negado' });
   });
 
   it('deleta cliente com sucesso (admin)', async () => {
     const req = { params: { id: 'c1' }, user: adminUser };
     const res = makeRes();
-    Client.findById.mockResolvedValue({ _id: 'c1', name: 'Empresa', representativeId: { toString: () => 'repId' } });
+    Client.findById.mockResolvedValue({ _id: 'c1', name: 'Empresa ABC', representativeId: { toString: () => 'repId' } });
     Client.findByIdAndDelete.mockResolvedValue({});
 
     await deleteClient(req, res);
 
     expect(Client.findByIdAndDelete).toHaveBeenCalledWith('c1');
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('excluído') }));
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ message: expect.stringContaining('Empresa ABC') }),
+    );
   });
 
   it('representante deleta seu próprio cliente', async () => {
@@ -402,6 +491,7 @@ describe('deleteClient', () => {
     await deleteClient(req, res);
 
     expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({ message: 'Erro ao excluir cliente' });
   });
 });
 
@@ -418,6 +508,7 @@ describe('toggleClientActive', () => {
     await toggleClientActive(req, res);
 
     expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.json).toHaveBeenCalledWith({ message: 'Cliente não encontrado' });
   });
 
   it('403 quando representante tenta alterar cliente de outro', async () => {
@@ -428,9 +519,10 @@ describe('toggleClientActive', () => {
     await toggleClientActive(req, res);
 
     expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith({ message: 'Acesso negado' });
   });
 
-  it('desativa cliente ativo', async () => {
+  it('desativa cliente ativo e retorna mensagem correta', async () => {
     const req = { params: { id: 'c1' }, user: adminUser };
     const res = makeRes();
     const mockClient = { _id: 'c1', active: true, representativeId: { toString: () => 'repId' }, save: jest.fn().mockResolvedValue(true) };
@@ -442,7 +534,7 @@ describe('toggleClientActive', () => {
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: 'Cliente desativado com sucesso' }));
   });
 
-  it('reativa cliente inativo', async () => {
+  it('reativa cliente inativo e retorna mensagem correta', async () => {
     const req = { params: { id: 'c1' }, user: adminUser };
     const res = makeRes();
     const mockClient = { _id: 'c1', active: false, representativeId: { toString: () => 'repId' }, save: jest.fn().mockResolvedValue(true) };
@@ -454,6 +546,17 @@ describe('toggleClientActive', () => {
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: 'Cliente reativado com sucesso' }));
   });
 
+  it('representante pode alterar status de seu próprio cliente', async () => {
+    const req = { params: { id: 'c1' }, user: repUser };
+    const res = makeRes();
+    const mockClient = { _id: 'c1', active: true, representativeId: { toString: () => repUser.id }, save: jest.fn().mockResolvedValue(true) };
+    Client.findById.mockResolvedValue(mockClient);
+
+    await toggleClientActive(req, res);
+
+    expect(mockClient.active).toBe(false);
+  });
+
   it('500 em caso de erro', async () => {
     const req = { params: { id: 'c1' }, user: adminUser };
     const res = makeRes();
@@ -462,5 +565,6 @@ describe('toggleClientActive', () => {
     await toggleClientActive(req, res);
 
     expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({ message: 'Erro ao alterar status do cliente' });
   });
 });

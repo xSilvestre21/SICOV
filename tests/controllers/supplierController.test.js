@@ -300,7 +300,7 @@ describe('updateSupplier', () => {
     expect(res.status).toHaveBeenCalledWith(400);
   });
 
-  it('atualiza fornecedor com sucesso', async () => {
+  it('atualiza fornecedor com sucesso — normaliza state para maiúsculo', async () => {
     const req = {
       params: { id: 's1' },
       body: { name: 'Novo Nome', state: 'rj', ipi: 5 },
@@ -322,6 +322,29 @@ describe('updateSupplier', () => {
     expect(mockSupplier.name).toBe('Novo Nome');
     expect(mockSupplier.state).toBe('RJ');
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: 'Fornecedor atualizado com sucesso' }));
+  });
+
+  it('mantém state existente quando state não é enviado no body', async () => {
+    const req = {
+      params: { id: 's1' },
+      body: { name: 'Novo Nome' }, // sem state
+      user: adminUser,
+    };
+    const res = makeRes();
+    const mockSupplier = {
+      _id: 's1', name: 'Antigo', cnpj: '123', ipi: 0, state: 'MG',
+      priceTable: [], allowedRepresentatives: [],
+      save: jest.fn().mockResolvedValue(true),
+    };
+    Supplier.findById.mockResolvedValue(mockSupplier);
+    User.find.mockReturnValue({ select: jest.fn().mockResolvedValue([]) });
+    const updatedMock = { _id: 's1', name: 'Novo Nome', state: 'MG' };
+    Supplier.findById.mockResolvedValueOnce(mockSupplier).mockReturnValueOnce({ populate: jest.fn().mockResolvedValue(updatedMock) });
+
+    await updateSupplier(req, res);
+
+    // state não foi enviado, deve manter o valor original
+    expect(mockSupplier.state).toBe('MG');
   });
 
   it('500 em caso de erro', async () => {
