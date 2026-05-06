@@ -185,7 +185,7 @@ async function createQuotation(req, res) {
       total,
       attn,
       observations,
-      sellerName: sellerName || 'Valquiria Silvestre',
+      sellerName: sellerName || req.user.name,
       deliveryDate,
       paymentTerm,
     };
