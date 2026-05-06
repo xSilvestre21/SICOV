@@ -169,11 +169,11 @@ describe('generateOrderPdf', () => {
         name: 'Forn Completo',
         ipi: 5,
         logoUrl: null,
-        cnpj: '12.345.678/0001-99',
-        stateRegistration: 'IE-123',
-        phone: '(11) 1234-5678',
+        cnpj: '12345678000199',        // armazenado sem formatação
+        stateRegistration: '123456789',
+        phone: '11987654321',          // celular sem formatação
         address: 'Av. Paulista, 1000',
-        zipCode: '01310-100',
+        zipCode: '01310100',           // CEP sem formatação
         city: 'São Paulo',
         state: 'SP',
         email: 'forn@teste.com',
@@ -302,6 +302,106 @@ describe('generateOrderPdf', () => {
       supplierSnapshot: { name: 'Forn', ipi: 0, logoUrl: null },
       ipiValue: 0,
       total: 1250,
+    });
+    const { buffer } = await generateAndCollect(order);
+    expect(buffer.slice(0, 4).toString()).toBe('%PDF');
+  });
+});
+
+// ─── Formatação de campos do cliente no PDF ───────────────────────────────────
+
+describe('formatação de campos do cliente', () => {
+  it('formata CNPJ de 14 dígitos corretamente no PDF', async () => {
+    const order = makeOrder({
+      clientSnapshot: {
+        ...makeOrder().clientSnapshot,
+        cnpj: '12345678000199', // sem formatação — como está no banco
+      },
+    });
+    const { buffer } = await generateAndCollect(order);
+    // O PDF deve ser gerado sem erros
+    expect(buffer.slice(0, 4).toString()).toBe('%PDF');
+  });
+
+  it('formata CPF de 11 dígitos corretamente no PDF', async () => {
+    const order = makeOrder({
+      clientSnapshot: {
+        ...makeOrder().clientSnapshot,
+        cnpj: '12345678901', // CPF sem formatação
+      },
+    });
+    const { buffer } = await generateAndCollect(order);
+    expect(buffer.slice(0, 4).toString()).toBe('%PDF');
+  });
+
+  it('formata telefone celular (11 dígitos) corretamente', async () => {
+    const order = makeOrder({
+      clientSnapshot: {
+        ...makeOrder().clientSnapshot,
+        phone: '11987654321',
+      },
+    });
+    const { buffer } = await generateAndCollect(order);
+    expect(buffer.slice(0, 4).toString()).toBe('%PDF');
+  });
+
+  it('formata telefone fixo (10 dígitos) corretamente', async () => {
+    const order = makeOrder({
+      clientSnapshot: {
+        ...makeOrder().clientSnapshot,
+        phone: '1134567890',
+      },
+    });
+    const { buffer } = await generateAndCollect(order);
+    expect(buffer.slice(0, 4).toString()).toBe('%PDF');
+  });
+
+  it('formata CEP de 8 dígitos corretamente', async () => {
+    const order = makeOrder({
+      clientSnapshot: {
+        ...makeOrder().clientSnapshot,
+        zipCode: '01310100',
+      },
+    });
+    const { buffer } = await generateAndCollect(order);
+    expect(buffer.slice(0, 4).toString()).toBe('%PDF');
+  });
+
+  it('não quebra quando CNPJ já está formatado (com pontos e traços)', async () => {
+    const order = makeOrder({
+      clientSnapshot: {
+        ...makeOrder().clientSnapshot,
+        cnpj: '12.345.678/0001-99',
+      },
+    });
+    const { buffer } = await generateAndCollect(order);
+    expect(buffer.slice(0, 4).toString()).toBe('%PDF');
+  });
+
+  it('não quebra quando campos de formatação estão ausentes', async () => {
+    const order = makeOrder({
+      clientSnapshot: {
+        name: 'Empresa Mínima',
+        cnpj: null,
+        phone: null,
+        zipCode: null,
+        stateRegistration: null,
+      },
+    });
+    const { buffer } = await generateAndCollect(order);
+    expect(buffer.slice(0, 4).toString()).toBe('%PDF');
+  });
+
+  it('formata CNPJ do fornecedor no cabeçalho textual', async () => {
+    const order = makeOrder({
+      supplierSnapshot: {
+        name: 'Fornecedor',
+        ipi: 0,
+        logoUrl: null,
+        cnpj: '08819970000125', // sem formatação
+        phone: '1934066407',
+        zipCode: '13478733',
+      },
     });
     const { buffer } = await generateAndCollect(order);
     expect(buffer.slice(0, 4).toString()).toBe('%PDF');

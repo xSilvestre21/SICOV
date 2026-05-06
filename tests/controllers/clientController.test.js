@@ -56,7 +56,7 @@ describe('createClient', () => {
         cnpj: '12345678000199',
         phone: '11999999999',
         zipCode: '01310100',
-        stateRegistration: '123456789000',
+        stateRegistration: '123.456.789.000', // preservado como digitado, sem onlyNumbers
         state: 'SP',
         representativeId: repUser.id,
         active: true,

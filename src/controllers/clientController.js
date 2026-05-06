@@ -46,7 +46,7 @@ async function createClient(req, res) {
       district,
       zipCode: onlyNumbers(zipCode),
       cnpj: onlyNumbers(cnpj),
-      stateRegistration: onlyNumbers(stateRegistration),
+      stateRegistration: stateRegistration !== undefined ? stateRegistration : '',
       paymentTerm,
       billingAddress,
       carrier,
@@ -208,7 +208,7 @@ async function updateClient(req, res) {
     client.cnpj = cnpj !== undefined ? onlyNumbers(cnpj) : client.cnpj;
     client.stateRegistration =
       stateRegistration !== undefined
-        ? onlyNumbers(stateRegistration)
+        ? stateRegistration
         : client.stateRegistration;
     client.paymentTerm =
       paymentTerm !== undefined ? paymentTerm : client.paymentTerm;

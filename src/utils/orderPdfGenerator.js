@@ -51,6 +51,67 @@ function formatDate(value) {
   return new Date(value).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
 }
 
+/**
+ * Formata CNPJ: 14 dígitos → XX.XXX.XXX/XXXX-XX
+ * Aceita strings com ou sem formatação prévia.
+ */
+function formatCnpj(value) {
+  if (!value) return '';
+  const digits = String(value).replace(/\D/g, '');
+  if (digits.length !== 14) return value; // devolve original se não tiver 14 dígitos
+  return digits.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+}
+
+/**
+ * Formata CPF: 11 dígitos → XXX.XXX.XXX-XX
+ */
+function formatCpf(value) {
+  if (!value) return '';
+  const digits = String(value).replace(/\D/g, '');
+  if (digits.length !== 11) return value;
+  return digits.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
+}
+
+/**
+ * Formata CNPJ ou CPF automaticamente pelo número de dígitos.
+ */
+function formatCnpjCpf(value) {
+  if (!value) return '';
+  const digits = String(value).replace(/\D/g, '');
+  if (digits.length === 14) return formatCnpj(digits);
+  if (digits.length === 11) return formatCpf(digits);
+  return value; // devolve original se não reconhecer
+}
+
+/**
+ * Formata telefone brasileiro:
+ *   10 dígitos → (XX) XXXX-XXXX
+ *   11 dígitos → (XX) XXXXX-XXXX  (celular)
+ */
+function formatPhone(value) {
+  if (!value) return '';
+  const digits = String(value).replace(/\D/g, '');
+  if (digits.length === 11) {
+    return digits.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3');
+  }
+  if (digits.length === 10) {
+    return digits.replace(/^(\d{2})(\d{4})(\d{4})$/, '($1) $2-$3');
+  }
+  return value; // devolve original se não reconhecer
+}
+
+/**
+ * Formata CEP: 8 dígitos → XXXXX-XXX
+ */
+function formatZipCode(value) {
+  if (!value) return '';
+  const digits = String(value).replace(/\D/g, '');
+  if (digits.length === 8) {
+    return digits.replace(/^(\d{5})(\d{3})$/, '$1-$2');
+  }
+  return value;
+}
+
 function sanitize(text) {
   return String(text || '')
     .normalize('NFD')
@@ -135,11 +196,11 @@ function generateOrderPdf(order, res) {
       // Fallback para texto se a imagem não puder ser carregada
       doc.fontSize(12).font('Helvetica-Bold').text(s.name || '', 43, py(553, 12));
       doc.fontSize(9).font('Helvetica');
-      if (s.cnpj) doc.text(`CNPJ: ${s.cnpj}`, 43, py(539, 9), { lineBreak: false });
+      if (s.cnpj) doc.text(`CNPJ: ${formatCnpj(s.cnpj)}`, 43, py(539, 9), { lineBreak: false });
       if (s.stateRegistration) doc.text(`IE: ${s.stateRegistration}`, 159, py(539, 9), { lineBreak: false });
-      if (s.phone) doc.text(`Fone: ${s.phone}`, 248, py(539, 9), { lineBreak: false });
+      if (s.phone) doc.text(`Fone: ${formatPhone(s.phone)}`, 248, py(539, 9), { lineBreak: false });
       if (s.address) {
-        const cepPart = s.zipCode ? ` - CEP: ${s.zipCode}` : '';
+        const cepPart = s.zipCode ? ` - CEP: ${formatZipCode(s.zipCode)}` : '';
         doc.text(`Endereço: ${s.address}${cepPart}`, 43, py(527, 9), { lineBreak: false });
       }
       if (s.city || s.state) {
@@ -151,11 +212,11 @@ function generateOrderPdf(order, res) {
     // Sem logo: exibe nome e dados do fornecedor em texto
     doc.fontSize(12).font('Helvetica-Bold').text(s.name || '', 43, py(553, 12));
     doc.fontSize(9).font('Helvetica');
-    if (s.cnpj) doc.text(`CNPJ: ${s.cnpj}`, 43, py(539, 9), { lineBreak: false });
+    if (s.cnpj) doc.text(`CNPJ: ${formatCnpj(s.cnpj)}`, 43, py(539, 9), { lineBreak: false });
     if (s.stateRegistration) doc.text(`IE: ${s.stateRegistration}`, 159, py(539, 9), { lineBreak: false });
-    if (s.phone) doc.text(`Fone: ${s.phone}`, 248, py(539, 9), { lineBreak: false });
+    if (s.phone) doc.text(`Fone: ${formatPhone(s.phone)}`, 248, py(539, 9), { lineBreak: false });
     if (s.address) {
-      const cepPart = s.zipCode ? ` - CEP: ${s.zipCode}` : '';
+      const cepPart = s.zipCode ? ` - CEP: ${formatZipCode(s.zipCode)}` : '';
       doc.text(`Endereço: ${s.address}${cepPart}`, 43, py(527, 9), { lineBreak: false });
     }
     if (s.city || s.state) {
@@ -190,19 +251,19 @@ function generateOrderPdf(order, res) {
     .font('Helvetica-Bold')
     .text('DADOS DO CLIENTE', 43, py(461, 12));
 
-  field(doc, 'RAZÃO SOCIAL',  c.name,              43,  441, 305);
-  field(doc, 'CNPJ/CPF',      c.cnpj,              354, 441, 122);
-  field(doc, 'IE',            c.stateRegistration, 482, 441, 316);
+  field(doc, 'RAZÃO SOCIAL',  c.name,                    43,  441, 305);
+  field(doc, 'CNPJ/CPF',      formatCnpjCpf(c.cnpj),     354, 441, 122);
+  field(doc, 'IE',            c.stateRegistration,        482, 441, 316);
 
   field(doc, 'ENDEREÇO', c.address,  43,  409, 305);
   field(doc, 'BAIRRO',   c.district, 354, 409, 122);
 
-  field(doc, 'MUNICÍPIO', c.city,    43,  377, 305);
-  field(doc, 'UF',        c.state,   354, 377, 79);
-  field(doc, 'CEP',       c.zipCode, 439, 377, 359);
+  field(doc, 'MUNICÍPIO', c.city,               43,  377, 305);
+  field(doc, 'UF',        c.state,              354, 377, 79);
+  field(doc, 'CEP',       formatZipCode(c.zipCode), 439, 377, 359);
 
-  field(doc, 'TELEFONE',                  c.phone, 43,  345, 305);
-  field(doc, 'E-MAIL PARA ENVIO DA NF-e', c.email, 354, 345, 444);
+  field(doc, 'TELEFONE',                  formatPhone(c.phone), 43,  345, 305);
+  field(doc, 'E-MAIL PARA ENVIO DA NF-e', c.email,              354, 345, 444);
 
   field(doc, 'PRAZO PARA PAGAMENTO', order.paymentTerm,              43,  313, 305);
   field(doc, 'PRAZO PARA ENTREGA',   formatDate(order.deliveryDate), 354, 313, 444);
