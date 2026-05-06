@@ -132,7 +132,7 @@ async function createSupplier(req, res) {
       name,
       tradeName,
       cnpj: normalizedCnpj,
-      stateRegistration: onlyNumbers(stateRegistration),
+      stateRegistration: stateRegistration !== undefined ? stateRegistration : '',
       address,
       city,
       state: state ? state.toUpperCase() : '',
@@ -349,7 +349,7 @@ async function updateSupplier(req, res) {
     supplier.cnpj = normalizedCnpj;
     supplier.stateRegistration =
       stateRegistration !== undefined
-        ? onlyNumbers(stateRegistration)
+        ? stateRegistration
         : supplier.stateRegistration;
     supplier.address = address !== undefined ? address : supplier.address;
     supplier.city = city !== undefined ? city : supplier.city;

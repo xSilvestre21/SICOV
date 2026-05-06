@@ -36,6 +36,7 @@
         "eslint-plugin-node": "^11.1.0",
         "eslint-plugin-prettier": "^5.5.5",
         "eslint-plugin-react": "^7.37.5",
+        "fast-check": "^3.23.2",
         "jest": "^30.3.0",
         "mongodb-memory-server": "^11.1.0",
         "pdf-parse": "^2.4.5",

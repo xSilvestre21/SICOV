@@ -99,10 +99,31 @@ async function createProduct(adminToken, clientId, supplierId, overrides = {}) {
   return res.body.product;
 }
 
+/**
+ * Cria um orçamento via API e retorna o objeto criado.
+ * Por padrão usa save: true para persistir no banco.
+ */
+async function createQuotation(token, clientId, supplierId, productId, overrides = {}) {
+  const payload = {
+    clientId,
+    items: [{ productId, quantity: 100 }],
+    save: true,
+    ...overrides,
+  };
+
+  const res = await request(app)
+    .post('/quotations')
+    .set('Authorization', `Bearer ${token}`)
+    .send(payload);
+
+  return res.body.quotation;
+}
+
 module.exports = {
   createAdminAndLogin,
   createRepAndLogin,
   createSupplier,
   createClient,
   createProduct,
+  createQuotation,
 };
