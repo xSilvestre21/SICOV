@@ -407,3 +407,55 @@ describe('formatação de campos do cliente', () => {
     expect(buffer.slice(0, 4).toString()).toBe('%PDF');
   });
 });
+
+// ─── Quebra de página ─────────────────────────────────────────────────────────
+
+describe('quebra de página', () => {
+  function makeItem(n) {
+    return {
+      productSnapshot: {
+        supplierCode: `S${n}`,
+        clientCode: `C${n}`,
+        name: `Produto ${n}`,
+        description: `Descrição do produto número ${n}`,
+        unitLabel: 'UN',
+        saleMode: 'unit',
+      },
+      quantity: 1000 * n,
+      unitPrice: 10 + n,
+      subtotal: (10 + n) * 1000 * n,
+    };
+  }
+
+  it('gera PDF válido com 20 itens (força quebra de página)', async () => {
+    const items = Array.from({ length: 20 }, (_, i) => makeItem(i + 1));
+    const subtotal = items.reduce((s, it) => s + it.subtotal, 0);
+    const ipiValue = subtotal * 0.1;
+
+    const order = makeOrder({
+      items,
+      subtotal,
+      ipiValue,
+      total: subtotal + ipiValue,
+    });
+
+    const { buffer } = await generateAndCollect(order);
+    expect(buffer.slice(0, 4).toString()).toBe('%PDF');
+    // PDF com 20 itens deve ter conteúdo substancial
+    expect(buffer.length).toBeGreaterThan(3000);
+  });
+
+  it('gera PDF válido com 1 item (sem quebra)', async () => {
+    const order = makeOrder({ items: [makeItem(1)], subtotal: 11000, ipiValue: 1100, total: 12100 });
+    const { buffer } = await generateAndCollect(order);
+    expect(buffer.slice(0, 4).toString()).toBe('%PDF');
+  });
+
+  it('gera PDF válido com 50 itens (múltiplas quebras)', async () => {
+    const items = Array.from({ length: 50 }, (_, i) => makeItem(i + 1));
+    const subtotal = items.reduce((s, it) => s + it.subtotal, 0);
+    const order = makeOrder({ items, subtotal, ipiValue: subtotal * 0.1, total: subtotal * 1.1 });
+    const { buffer } = await generateAndCollect(order);
+    expect(buffer.slice(0, 4).toString()).toBe('%PDF');
+  });
+});

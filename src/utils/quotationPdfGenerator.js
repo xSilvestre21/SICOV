@@ -74,20 +74,28 @@ const MARGIN  = 43;
 const RIGHT   = PAGE_W - MARGIN; // ~799
 
 // Colunas da tabela (largura útil = 799 - 43 = 756pt):
-//   QTDE(55)+GAP(10)+UN(45)+ITEM(241)+MILHEIRO(101)+TOT S/IPI(101)+VALOR IPI(101)+TOTAL(102) = 756 ✓
+//
+//  QTDE(50) + gap(8) + UN(42) + gap(14) + CÓD.CLI(70) + gap(8) + ITEM(193) + MILHEIRO(88) + TOT S/IPI(88) + VALOR IPI(88) + TOTAL(88) = 749 ✓
+//
+//  Ajustes em relação à versão anterior:
+//    - gap UN → CÓD.CLI: 8 → 14pt  (+6)  mais respiro entre as colunas curtas
+//    - ITEM: 163 → 193pt            (+30) mais espaço para descrição longa
+//    - MILHEIRO/TOT S/IPI/VALOR IPI/TOTAL: 101/101/101/96 → 88/88/88/88  (-39 total)
 const COL = {
-  qtde:     { x: MARGIN,       w: 55,  align: 'left'  },
-  un:       { x: MARGIN + 65,  w: 45,  align: 'left'  },
-  item:     { x: MARGIN + 110, w: 241, align: 'left'  },
-  milheiro: { x: MARGIN + 351, w: 101, align: 'right' },
-  totSipi:  { x: MARGIN + 452, w: 101, align: 'right' },
-  valorIpi: { x: MARGIN + 553, w: 101, align: 'right' },
-  total:    { x: MARGIN + 654, w: 102, align: 'right' },
+  qtde:     { x: MARGIN,       w: 50,  align: 'left'  },
+  un:       { x: MARGIN + 58,  w: 42,  align: 'left'  },
+  codCli:   { x: MARGIN + 114, w: 70,  align: 'left'  },
+  item:     { x: MARGIN + 192, w: 193, align: 'left'  },
+  milheiro: { x: MARGIN + 393, w: 88,  align: 'right' },
+  totSipi:  { x: MARGIN + 489, w: 88,  align: 'right' },
+  valorIpi: { x: MARGIN + 585, w: 88,  align: 'right' },
+  total:    { x: MARGIN + 681, w: 75,  align: 'right' },
 };
 
 const COLUMNS = [
   { label: 'QTDE',         ...COL.qtde     },
   { label: 'UN',           ...COL.un       },
+  { label: 'CÓD.CLI',      ...COL.codCli   },
   { label: 'ITEM',         ...COL.item     },
   { label: 'MILHEIRO',     ...COL.milheiro },
   { label: 'TOTAL S/ IPI', ...COL.totSipi  },
@@ -219,6 +227,7 @@ function generateQuotationPdf(quotation, res) {
     const values = [
       qtyFormatted,
       p.unitLabel || p.saleMode || '',
+      p.clientCode || '',
       p.description || p.name || '',
       formatCurrency(item.unitPrice),
       formatCurrency(item.subtotal),

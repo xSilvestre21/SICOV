@@ -2,8 +2,19 @@ const Order = require('../models/order');
 const Product = require('../models/product');
 const Client = require('../models/client');
 const Supplier = require('../models/supplier');
+const Settings = require('../models/settings');
 const generateOrderPdf = require('../utils/orderPdfGenerator');
 const { calculateProductPrice } = require('../utils/priceCalculator');
+
+/** Busca o nome padrão da vendedora nas settings (com fallback seguro). */
+async function getDefaultSellerName() {
+  try {
+    const settings = await Settings.findOne({ singleton: true });
+    return settings?.defaultSellerName || 'Valquiria Silvestre';
+  } catch {
+    return 'Valquiria Silvestre';
+  }
+}
 
 async function createOrder(req, res) {
   try {
@@ -116,7 +127,7 @@ async function createOrder(req, res) {
       deliveryDate,
       customerPurchaseOrder,
       paymentTerm: client.paymentTerm,
-      sellerName: sellerName || 'Valquiria Silvestre',
+      sellerName: sellerName || await getDefaultSellerName(),
       representativeId: req.user.id,
       clientSnapshot: {
         name: client.name,
