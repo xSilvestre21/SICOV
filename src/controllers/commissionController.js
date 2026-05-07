@@ -1,16 +1,22 @@
+const mongoose = require('mongoose');
 const Commission = require('../models/commission');
 const Order = require('../models/order');
 
 const DEFAULT_ADMIN_PERCENTAGE = 5;
 
-/** Calcula as comissões com base na base de cálculo e nos percentuais. */
+/**
+ * Calcula as comissões usando a lógica de dois níveis:
+ * 1. pool = base × adminPercentage / 100
+ * 2. representativeCommission = pool × representativePercentage / 100
+ * 3. adminCommission = pool - representativeCommission
+ */
 function calcCommissions(base, representativePercentage, adminPercentage) {
-  return {
-    representativeCommission: parseFloat(
-      ((base * representativePercentage) / 100).toFixed(2),
-    ),
-    adminCommission: parseFloat(((base * adminPercentage) / 100).toFixed(2)),
-  };
+  const pool = parseFloat(((base * adminPercentage) / 100).toFixed(2));
+  const representativeCommission = parseFloat(
+    ((pool * representativePercentage) / 100).toFixed(2),
+  );
+  const adminCommission = parseFloat((pool - representativeCommission).toFixed(2));
+  return { pool, representativeCommission, adminCommission };
 }
 
 /** Determina o período (mês/ano) a partir de uma Date. */
@@ -25,6 +31,8 @@ function sanitizeForRepresentative(commission) {
   delete obj.realReceivedValue;
   delete obj.adminPercentage;
   delete obj.adminCommission;
+  delete obj.realPool;
+  delete obj.realAdminCommission;
   return obj;
 }
 
@@ -69,16 +77,24 @@ async function createCommission(req, res) {
     }
 
     const orderValueWithoutIpi = order.subtotal;
-    const base =
-      realReceivedValue !== undefined && realReceivedValue !== null
-        ? realReceivedValue
-        : orderValueWithoutIpi;
 
-    const { representativeCommission, adminCommission } = calcCommissions(
-      base,
+    // Cálculo baseado no valor do pedido (sempre presente)
+    const { pool, representativeCommission, adminCommission } = calcCommissions(
+      orderValueWithoutIpi,
       representativePercentage,
       adminPercentage,
     );
+
+    // Cálculo baseado no valor real recebido (apenas quando informado)
+    let realPool = null;
+    let realRepresentativeCommission = null;
+    let realAdminCommission = null;
+    if (realReceivedValue !== undefined && realReceivedValue !== null) {
+      const realCalc = calcCommissions(realReceivedValue, representativePercentage, adminPercentage);
+      realPool = realCalc.pool;
+      realRepresentativeCommission = realCalc.representativeCommission;
+      realAdminCommission = realCalc.adminCommission;
+    }
 
     const referenceDate = order.deliveryDate || order.createdAt;
     const period = periodFromDate(referenceDate);
@@ -87,11 +103,17 @@ async function createCommission(req, res) {
       orderId,
       representativeId: order.representativeId,
       orderValueWithoutIpi,
+      orderNumber: order.orderNumber ?? null,
+      customerPurchaseOrder: order.customerPurchaseOrder ?? null,
+      pool,
       realReceivedValue: realReceivedValue ?? null,
       representativePercentage,
       adminPercentage,
       representativeCommission,
       adminCommission,
+      realPool,
+      realRepresentativeCommission,
+      realAdminCommission,
       period,
       realDeliveryDate: realDeliveryDate ?? null,
       projected: false,
@@ -117,6 +139,8 @@ async function getCommissions(req, res) {
       month,
       year,
       projected,
+      orderNumber,
+      customerPurchaseOrder,
       page = 1,
       limit = 20,
     } = req.query;
@@ -135,6 +159,11 @@ async function getCommissions(req, res) {
 
     if (projected === 'true') filter.projected = true;
     if (projected === 'false') filter.projected = false;
+
+    if (orderNumber) filter.orderNumber = Number(orderNumber);
+    if (customerPurchaseOrder) {
+      filter.customerPurchaseOrder = new RegExp(customerPurchaseOrder, 'i');
+    }
 
     const pageNumber = Number(page);
     const limitNumber = Number(limit);
@@ -256,19 +285,36 @@ async function updateCommission(req, res) {
       realReceivedValue !== undefined;
 
     if (needsRecalc) {
-      const base =
-        commission.realReceivedValue !== null
-          ? commission.realReceivedValue
-          : commission.orderValueWithoutIpi;
-
-      const { representativeCommission, adminCommission } = calcCommissions(
-        base,
+      // Cálculo baseado no valor do pedido (sempre atualizado)
+      const {
+        pool,
+        representativeCommission,
+        adminCommission,
+      } = calcCommissions(
+        commission.orderValueWithoutIpi,
         commission.representativePercentage,
         commission.adminPercentage,
       );
 
+      commission.pool = pool;
       commission.representativeCommission = representativeCommission;
       commission.adminCommission = adminCommission;
+
+      // Cálculo baseado no valor real recebido (apenas quando informado)
+      if (commission.realReceivedValue !== null) {
+        const realCalc = calcCommissions(
+          commission.realReceivedValue,
+          commission.representativePercentage,
+          commission.adminPercentage,
+        );
+        commission.realPool = realCalc.pool;
+        commission.realRepresentativeCommission = realCalc.representativeCommission;
+        commission.realAdminCommission = realCalc.adminCommission;
+      } else {
+        commission.realPool = null;
+        commission.realRepresentativeCommission = null;
+        commission.realAdminCommission = null;
+      }
     }
 
     await commission.save();
@@ -374,7 +420,7 @@ async function createInstallments(req, res) {
 
       const period = periodFromDate(dueDate);
 
-      const { representativeCommission, adminCommission } = calcCommissions(
+      const { pool, representativeCommission, adminCommission } = calcCommissions(
         installmentValue,
         representativePercentage,
         adminPercentage,
@@ -384,6 +430,7 @@ async function createInstallments(req, res) {
         orderId: parentCommission.orderId,
         representativeId: parentCommission.representativeId,
         orderValueWithoutIpi: installmentValue,
+        pool,
         realReceivedValue: null,
         representativePercentage,
         adminPercentage,
@@ -410,11 +457,91 @@ async function createInstallments(req, res) {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /commissions/summary
+// ─────────────────────────────────────────────────────────────────────────────
+async function getCommissionsSummary(req, res) {
+  try {
+    const { month, year, representativeId } = req.query;
+
+    const matchStage = {};
+
+    // Representante só vê o resumo dos seus próprios registros
+    if (req.user.profile !== 'admin') {
+      matchStage.representativeId = mongoose.isValidObjectId(req.user.id)
+        ? new mongoose.Types.ObjectId(req.user.id)
+        : req.user.id;
+    } else if (representativeId) {
+      matchStage.representativeId = mongoose.isValidObjectId(representativeId)
+        ? new mongoose.Types.ObjectId(representativeId)
+        : representativeId;
+    }
+
+    if (month) matchStage['period.month'] = Number(month);
+    if (year) matchStage['period.year'] = Number(year);
+
+    const pipeline = [
+      { $match: matchStage },
+      {
+        $group: {
+          _id: {
+            period: '$period',
+            representativeId: '$representativeId',
+          },
+          totalRepresentativeCommission: { $sum: '$representativeCommission' },
+          totalAdminCommission: { $sum: '$adminCommission' },
+          totalPool: { $sum: '$pool' },
+          totalRealRepresentativeCommission: {
+            $sum: { $ifNull: ['$realRepresentativeCommission', 0] },
+          },
+          totalRealAdminCommission: {
+            $sum: { $ifNull: ['$realAdminCommission', 0] },
+          },
+          totalRealPool: {
+            $sum: { $ifNull: ['$realPool', 0] },
+          },
+          count: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          period: '$_id.period',
+          representativeId: '$_id.representativeId',
+          totalRepresentativeCommission: { $round: ['$totalRepresentativeCommission', 2] },
+          totalAdminCommission: { $round: ['$totalAdminCommission', 2] },
+          totalPool: { $round: ['$totalPool', 2] },
+          totalRealRepresentativeCommission: { $round: ['$totalRealRepresentativeCommission', 2] },
+          totalRealAdminCommission: { $round: ['$totalRealAdminCommission', 2] },
+          totalRealPool: { $round: ['$totalRealPool', 2] },
+          count: 1,
+        },
+      },
+      {
+        $sort: { 'period.year': -1, 'period.month': -1 },
+      },
+    ];
+
+    const results = await Commission.aggregate(pipeline);
+
+    // Remover campos sensíveis para Representante
+    const data =
+      req.user.profile !== 'admin'
+        ? results.map(({ totalAdminCommission, totalRealAdminCommission, ...rest }) => rest)
+        : results;
+
+    return res.json({ summary: data });
+  } catch (err) {
+    console.error('[getCommissionsSummary]', err.message);
+    return res.status(500).json({ message: 'Erro ao buscar resumo de comissões' });
+  }
+}
+
 module.exports = {
-  createCommission,
   getCommissions,
   getCommissionById,
   updateCommission,
   deleteCommission,
   createInstallments,
+  getCommissionsSummary,
 };

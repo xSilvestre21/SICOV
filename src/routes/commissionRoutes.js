@@ -2,12 +2,12 @@ const express = require('express');
 const authMiddleware = require('../middlewares/authMiddleware');
 const isAdmin = require('../middlewares/isAdmin');
 const {
-  createCommission,
   getCommissions,
   getCommissionById,
   updateCommission,
   deleteCommission,
   createInstallments,
+  getCommissionsSummary,
 } = require('../controllers/commissionController');
 
 const router = express.Router();
@@ -15,11 +15,12 @@ const router = express.Router();
 // Listagem — Admin vê todos; Representante vê apenas os seus
 router.get('/', authMiddleware, getCommissions);
 
+// Resumo por período — Admin vê todos; Representante vê apenas os seus (sem campos sensíveis)
+// DEVE ficar antes de /:id para evitar conflito de parâmetro
+router.get('/summary', authMiddleware, getCommissionsSummary);
+
 // Busca por ID — Representante só acessa os próprios
 router.get('/:id', authMiddleware, getCommissionById);
-
-// Criação — apenas Admin
-router.post('/', authMiddleware, isAdmin, createCommission);
 
 // Atualização — apenas Admin
 router.put('/:id', authMiddleware, isAdmin, updateCommission);

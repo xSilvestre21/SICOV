@@ -3,8 +3,32 @@ const Product = require('../models/product');
 const Client = require('../models/client');
 const Supplier = require('../models/supplier');
 const Settings = require('../models/settings');
+const User = require('../models/user');
+const Commission = require('../models/commission');
 const generateOrderPdf = require('../utils/orderPdfGenerator');
 const { calculateProductPrice } = require('../utils/priceCalculator');
+
+const DEFAULT_ADMIN_PERCENTAGE = 5;
+
+/**
+ * Calcula as comissões usando a lógica de dois níveis:
+ * pool = base × adminPercentage / 100
+ * representativeCommission = pool × representativePercentage / 100
+ * adminCommission = pool - representativeCommission
+ */
+function calcCommissions(base, representativePercentage, adminPercentage) {
+  const pool = parseFloat(((base * adminPercentage) / 100).toFixed(2));
+  const representativeCommission = parseFloat(
+    ((pool * representativePercentage) / 100).toFixed(2),
+  );
+  const adminCommission = parseFloat((pool - representativeCommission).toFixed(2));
+  return { pool, representativeCommission, adminCommission };
+}
+
+function periodFromDate(date) {
+  const d = new Date(date);
+  return { month: d.getUTCMonth() + 1, year: d.getUTCFullYear() };
+}
 
 /** Busca o nome padrão da vendedora nas settings (com fallback seguro). */
 async function getDefaultSellerName() {
@@ -156,6 +180,39 @@ async function createOrder(req, res) {
       total,
       notes,
     });
+
+    // Cria automaticamente o Registro_Comissao usando o percentual padrão do representante
+    try {
+      const representative = await User.findById(req.user.id).select('defaultCommissionPercentage');
+      const representativePercentage = representative?.defaultCommissionPercentage ?? 0;
+      const referenceDate = deliveryDate || order.createdAt;
+      const period = periodFromDate(referenceDate);
+      const { pool, representativeCommission, adminCommission } = calcCommissions(
+        subtotal,
+        representativePercentage,
+        DEFAULT_ADMIN_PERCENTAGE,
+      );
+
+      await Commission.create({
+        orderId: order._id,
+        representativeId: order.representativeId,
+        orderValueWithoutIpi: subtotal,
+        orderNumber: order.orderNumber,
+        customerPurchaseOrder: customerPurchaseOrder ?? null,
+        pool,
+        realReceivedValue: null,
+        representativePercentage,
+        adminPercentage: DEFAULT_ADMIN_PERCENTAGE,
+        representativeCommission,
+        adminCommission,
+        period,
+        realDeliveryDate: null,
+        projected: false,
+      });
+    } catch (commErr) {
+      // Falha na criação da comissão não deve impedir a resposta do pedido
+      console.error('[createOrder] Erro ao criar comissão automática:', commErr.message);
+    }
 
     return res.status(201).json({
       message: 'Pedido criado com sucesso',

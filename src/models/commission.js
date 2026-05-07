@@ -21,6 +21,26 @@ const commissionSchema = new mongoose.Schema(
       min: 0,
     },
 
+    // Número do pedido (snapshot para facilitar localização e filtro)
+    orderNumber: {
+      type: Number,
+      default: null,
+    },
+
+    // PC do cliente (customerPurchaseOrder — snapshot para facilitar localização e filtro)
+    customerPurchaseOrder: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+
+    // Pool de comissão (base × adminPercentage / 100)
+    pool: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
     // Valor efetivamente recebido (informado manualmente pelo Admin)
     realReceivedValue: {
       type: Number,
@@ -42,7 +62,7 @@ const commissionSchema = new mongoose.Schema(
       min: 0,
     },
 
-    // Comissões calculadas
+    // Comissões calculadas com base no valor do pedido (sempre preenchidas)
     representativeCommission: {
       type: Number,
       required: true,
@@ -52,6 +72,25 @@ const commissionSchema = new mongoose.Schema(
     adminCommission: {
       type: Number,
       required: true,
+      min: 0,
+    },
+
+    // Comissões calculadas com base no valor real recebido (preenchidas quando realReceivedValue é informado)
+    realPool: {
+      type: Number,
+      default: null,
+      min: 0,
+    },
+
+    realRepresentativeCommission: {
+      type: Number,
+      default: null,
+      min: 0,
+    },
+
+    realAdminCommission: {
+      type: Number,
+      default: null,
       min: 0,
     },
 
@@ -106,5 +145,7 @@ const commissionSchema = new mongoose.Schema(
 
 commissionSchema.index({ representativeId: 1, 'period.year': -1, 'period.month': -1 });
 commissionSchema.index({ orderId: 1 });
+commissionSchema.index({ orderNumber: 1 });
+commissionSchema.index({ customerPurchaseOrder: 1 });
 
 module.exports = mongoose.model('Commission', commissionSchema);

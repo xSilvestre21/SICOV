@@ -38,6 +38,7 @@ async function createRepresentative(req, res) {
         email: newRepresentative.email,
         profile: newRepresentative.profile,
         active: newRepresentative.active,
+        defaultCommissionPercentage: newRepresentative.defaultCommissionPercentage,
       },
     });
   } catch (err) {
@@ -60,7 +61,7 @@ async function getRepresentatives(req, res) {
     if (active === 'false') filter.active = false;
 
     const representatives = await User.find(filter).select(
-      '_id name email profile active createdAt updatedAt',
+      '_id name email profile active defaultCommissionPercentage createdAt updatedAt',
     );
 
     return res.json(representatives);
@@ -79,7 +80,7 @@ async function getRepresentativeById(req, res) {
     const representative = await User.findOne({
       _id: id,
       profile: 'representative',
-    }).select('_id name email profile active createdAt updatedAt');
+    }).select('_id name email profile active defaultCommissionPercentage createdAt updatedAt');
 
     if (!representative) {
       return res.status(404).json({
@@ -99,7 +100,7 @@ async function getRepresentativeById(req, res) {
 async function updateRepresentative(req, res) {
   try {
     const { id } = req.params;
-    const { name, email, password } = req.body;
+    const { name, email, password, defaultCommissionPercentage } = req.body;
 
     const representative = await User.findOne({
       _id: id,
@@ -137,6 +138,19 @@ async function updateRepresentative(req, res) {
       representative.password = await argon2.hash(password);
     }
 
+    if (defaultCommissionPercentage !== undefined) {
+      if (
+        typeof defaultCommissionPercentage !== 'number' ||
+        defaultCommissionPercentage < 0 ||
+        defaultCommissionPercentage > 100
+      ) {
+        return res.status(400).json({
+          message: 'defaultCommissionPercentage deve ser um número entre 0 e 100',
+        });
+      }
+      representative.defaultCommissionPercentage = defaultCommissionPercentage;
+    }
+
     await representative.save();
 
     return res.json({
@@ -147,6 +161,7 @@ async function updateRepresentative(req, res) {
         email: representative.email,
         profile: representative.profile,
         active: representative.active,
+        defaultCommissionPercentage: representative.defaultCommissionPercentage,
       },
     });
   } catch (err) {
@@ -225,6 +240,7 @@ async function toggleRepresentativeActive(req, res) {
         email: representative.email,
         profile: representative.profile,
         active: representative.active,
+        defaultCommissionPercentage: representative.defaultCommissionPercentage,
       },
     });
   } catch (err) {

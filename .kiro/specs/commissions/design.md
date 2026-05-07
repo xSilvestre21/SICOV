@@ -95,7 +95,7 @@ O arquivo `app.js` receberá o registro da nova rota `/api/commissions`.
 ```json
 {
   "orderId": "<ObjectId>",
-  "representativePercentage": 3.5,
+  "representativePercentage": 50,
   "adminPercentage": 5,          // opcional — padrão: 5
   "realReceivedValue": 1500.00,  // opcional
   "realDeliveryDate": "2026-04-10" // opcional
@@ -107,10 +107,16 @@ O arquivo `app.js` receberá o registro da nova rota `/api/commissions`.
 2. Extrai `subtotal` (= `Valor_Pedido_Sem_IPI`) e `representativeId` do pedido.
 3. Valida que `representativePercentage` foi informado e é um número ≥ 0. Retorna 400 se inválido.
 4. Determina a base de cálculo: `realReceivedValue` se informado, senão `subtotal`.
-5. Calcula `representativeCommission = base × representativePercentage / 100`.
-6. Calcula `adminCommission = base × adminPercentage / 100` (usando 5 se `adminPercentage` não foi informado).
-7. Determina o `period` a partir da `deliveryDate` do pedido.
-8. Persiste o `Registro_Comissao` com `projected: false`.
+5. Calcula o pool: `pool = base × adminPercentage / 100`.
+6. Calcula `representativeCommission = pool × representativePercentage / 100`.
+7. Calcula `adminCommission = pool − representativeCommission`.
+8. Determina o `period` a partir da `deliveryDate` do pedido.
+9. Persiste o `Registro_Comissao` com `projected: false`.
+
+**Exemplo:** pedido R$10.000, adminPercentage=5%, representativePercentage=50%
+- pool = R$500
+- representativeCommission = R$250
+- adminCommission = R$250
 
 ---
 
@@ -119,7 +125,7 @@ O arquivo `app.js` receberá o registro da nova rota `/api/commissions`.
 **Payload (todos opcionais):**
 ```json
 {
-  "representativePercentage": 4.0,
+  "representativePercentage": 60.0,
   "adminPercentage": 6.0,
   "realReceivedValue": 1400.00,
   "realDeliveryDate": "2026-04-15"
@@ -129,7 +135,11 @@ O arquivo `app.js` receberá o registro da nova rota `/api/commissions`.
 **Fluxo:**
 1. Busca o registro pelo `id`. Retorna 404 se não encontrado.
 2. Aplica os campos informados.
-3. Se qualquer um dos campos `representativePercentage`, `adminPercentage` ou `realReceivedValue` for alterado, recalcula `representativeCommission` e `adminCommission` usando a base atualizada (`realReceivedValue ?? orderValueWithoutIpi`) e os percentuais atualizados.
+3. Se qualquer um dos campos `representativePercentage`, `adminPercentage` ou `realReceivedValue` for alterado, recalcula usando a lógica de dois níveis:
+   - `base = realReceivedValue ?? orderValueWithoutIpi`
+   - `pool = base × adminPercentage / 100`
+   - `representativeCommission = pool × representativePercentage / 100`
+   - `adminCommission = pool − representativeCommission`
 4. A alteração afeta **somente este registro** — nenhum outro registro é tocado.
 5. Persiste.
 
@@ -141,7 +151,7 @@ O arquivo `app.js` receberá o registro da nova rota `/api/commissions`.
 ```json
 {
   "intervals": [28, 35, 42],
-  "representativePercentage": 3.5,  // percentual a aplicar nas parcelas
+  "representativePercentage": 50,   // percentual do representante sobre o pool
   "adminPercentage": 5              // opcional — padrão: 5
 }
 ```
@@ -159,7 +169,9 @@ O arquivo `app.js` receberá o registro da nova rota `/api/commissions`.
 5. Para cada intervalo:
    - `dueDate = deliveryDate do pedido + intervalo em dias`
    - `period = { month: dueDate.getMonth()+1, year: dueDate.getFullYear() }`
-   - Calcula `representativeCommission` e `adminCommission` sobre `valorParcela`.
+   - `pool = valorParcela × adminPercentage / 100`
+   - `representativeCommission = pool × representativePercentage / 100`
+   - `adminCommission = pool − representativeCommission`
    - Cria um `Registro_Comissao` com `projected: true`, `parentOrderId`, `installmentIndex` e `dueDate`.
 6. Retorna os registros criados.
 

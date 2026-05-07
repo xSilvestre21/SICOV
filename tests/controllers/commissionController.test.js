@@ -4,12 +4,12 @@ jest.mock("../../src/models/order");
 const Commission = require("../../src/models/commission");
 const Order = require("../../src/models/order");
 const {
-  createCommission,
   getCommissions,
   getCommissionById,
   updateCommission,
   deleteCommission,
   createInstallments,
+  getCommissionsSummary,
 } = require("../../src/controllers/commissionController");
 
 function makeRes() {
@@ -53,121 +53,6 @@ function makeCommission(overrides = {}) {
   };
   return base;
 }
-
-// ─── createCommission ────────────────────────────────────────────────────────
-describe("createCommission", () => {
-  beforeEach(() => jest.clearAllMocks());
-
-  it("400 quando orderId esta ausente", async () => {
-    const req = { body: { representativePercentage: 3 }, user: adminUser };
-    const res = makeRes();
-    await createCommission(req, res);
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ message: "orderId \u00e9 obrigat\u00f3rio" });
-  });
-
-  it("400 quando representativePercentage esta ausente", async () => {
-    const req = { body: { orderId: "orderId" }, user: adminUser };
-    const res = makeRes();
-    await createCommission(req, res);
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ message: "representativePercentage \u00e9 obrigat\u00f3rio" });
-  });
-
-  it("400 quando representativePercentage e negativo", async () => {
-    const req = { body: { orderId: "orderId", representativePercentage: -1 }, user: adminUser };
-    const res = makeRes();
-    await createCommission(req, res);
-    expect(res.status).toHaveBeenCalledWith(400);
-  });
-
-  it("400 quando adminPercentage e negativo", async () => {
-    const req = { body: { orderId: "orderId", representativePercentage: 3, adminPercentage: -1 }, user: adminUser };
-    const res = makeRes();
-    await createCommission(req, res);
-    expect(res.status).toHaveBeenCalledWith(400);
-  });
-
-  it("404 quando pedido nao existe", async () => {
-    const req = { body: { orderId: "orderId", representativePercentage: 3 }, user: adminUser };
-    const res = makeRes();
-    Order.findById.mockResolvedValue(null);
-    await createCommission(req, res);
-    expect(res.status).toHaveBeenCalledWith(404);
-    expect(res.json).toHaveBeenCalledWith({ message: "Pedido n\u00e3o encontrado" });
-  });
-
-  it("cria comissao com adminPercentage padrao de 5 quando nao informado", async () => {
-    const req = { body: { orderId: "orderId", representativePercentage: 3 }, user: adminUser };
-    const res = makeRes();
-    Order.findById.mockResolvedValue(makeOrder());
-    Commission.create.mockResolvedValue(makeCommission());
-    await createCommission(req, res);
-    expect(Commission.create).toHaveBeenCalledWith(
-      expect.objectContaining({ adminPercentage: 5 })
-    );
-    expect(res.status).toHaveBeenCalledWith(201);
-  });
-
-  it("cria comissao usando realReceivedValue como base de calculo", async () => {
-    const req = { body: { orderId: "orderId", representativePercentage: 10, realReceivedValue: 500 }, user: adminUser };
-    const res = makeRes();
-    Order.findById.mockResolvedValue(makeOrder());
-    Commission.create.mockResolvedValue(makeCommission());
-    await createCommission(req, res);
-    expect(Commission.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        representativeCommission: 50,
-        adminCommission: 25,
-        realReceivedValue: 500,
-      })
-    );
-  });
-
-  it("cria comissao usando subtotal do pedido quando realReceivedValue nao informado", async () => {
-    const req = { body: { orderId: "orderId", representativePercentage: 10, adminPercentage: 5 }, user: adminUser };
-    const res = makeRes();
-    Order.findById.mockResolvedValue(makeOrder({ subtotal: 1000 }));
-    Commission.create.mockResolvedValue(makeCommission());
-    await createCommission(req, res);
-    expect(Commission.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        representativeCommission: 100,
-        adminCommission: 50,
-      })
-    );
-  });
-
-  it("determina periodo a partir da deliveryDate do pedido", async () => {
-    const req = { body: { orderId: "orderId", representativePercentage: 3 }, user: adminUser };
-    const res = makeRes();
-    Order.findById.mockResolvedValue(makeOrder({ deliveryDate: new Date("2026-06-20T00:00:00.000Z") }));
-    Commission.create.mockResolvedValue(makeCommission());
-    await createCommission(req, res);
-    expect(Commission.create).toHaveBeenCalledWith(
-      expect.objectContaining({ period: { month: 6, year: 2026 } })
-    );
-  });
-
-  it("usa createdAt como fallback quando deliveryDate nao existe", async () => {
-    const req = { body: { orderId: "orderId", representativePercentage: 3 }, user: adminUser };
-    const res = makeRes();
-    Order.findById.mockResolvedValue(makeOrder({ deliveryDate: null, createdAt: new Date("2026-03-10T00:00:00.000Z") }));
-    Commission.create.mockResolvedValue(makeCommission());
-    await createCommission(req, res);
-    expect(Commission.create).toHaveBeenCalledWith(
-      expect.objectContaining({ period: { month: 3, year: 2026 } })
-    );
-  });
-
-  it("500 em caso de erro", async () => {
-    const req = { body: { orderId: "orderId", representativePercentage: 3 }, user: adminUser };
-    const res = makeRes();
-    Order.findById.mockRejectedValue(new Error("DB"));
-    await createCommission(req, res);
-    expect(res.status).toHaveBeenCalledWith(500);
-  });
-});
 
 // ─── getCommissions ──────────────────────────────────────────────────────────
 describe("getCommissions", () => {
@@ -241,6 +126,27 @@ describe("getCommissions", () => {
     expect(Commission.find).toHaveBeenCalledWith(
       expect.objectContaining({ projected: false })
     );
+  });
+
+  it("filtra por orderNumber", async () => {
+    const req = { query: { orderNumber: "42" }, user: adminUser };
+    const res = makeRes();
+    mockFind();
+    await getCommissions(req, res);
+    expect(Commission.find).toHaveBeenCalledWith(
+      expect.objectContaining({ orderNumber: 42 })
+    );
+  });
+
+  it("filtra por customerPurchaseOrder (regex case-insensitive)", async () => {
+    const req = { query: { customerPurchaseOrder: "PC-001" }, user: adminUser };
+    const res = makeRes();
+    mockFind();
+    await getCommissions(req, res);
+    const callArg = Commission.find.mock.calls[0][0];
+    expect(callArg.customerPurchaseOrder).toBeInstanceOf(RegExp);
+    expect(callArg.customerPurchaseOrder.source).toBe("PC-001");
+    expect(callArg.customerPurchaseOrder.flags).toContain("i");
   });
 
   it("retorna paginacao correta", async () => {
@@ -369,34 +275,49 @@ describe("updateCommission", () => {
   });
 
   it("recalcula comissoes ao alterar representativePercentage", async () => {
+    // base=1000 (realReceivedValue=null), adminPercentage=5 → pool=50; representativePercentage=10 → rep=5, admin=45
     const comm = makeCommission({ orderValueWithoutIpi: 1000, realReceivedValue: null, adminPercentage: 5 });
     const req = { params: { id: "commId" }, body: { representativePercentage: 10 }, user: adminUser };
     const res = makeRes();
     Commission.findById.mockResolvedValue(comm);
     await updateCommission(req, res);
-    expect(comm.representativeCommission).toBe(100);
-    expect(comm.adminCommission).toBe(50);
+    expect(comm.representativeCommission).toBe(5);
+    expect(comm.adminCommission).toBe(45);
     expect(comm.save).toHaveBeenCalled();
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: "Comiss\u00e3o atualizada com sucesso" }));
   });
 
   it("recalcula comissoes ao alterar realReceivedValue", async () => {
+    // pool/rep/admin continuam baseados no pedido (orderValueWithoutIpi=1000, adminPercentage=5, repPercentage=3)
+    // pool=50, rep=1.50, admin=48.50
+    // real: base=800, adminPercentage=5 → realPool=40; repPercentage=3 → realRep=1.20, realAdmin=38.80
     const comm = makeCommission({ orderValueWithoutIpi: 1000, representativePercentage: 3, adminPercentage: 5 });
     const req = { params: { id: "commId" }, body: { realReceivedValue: 800 }, user: adminUser };
     const res = makeRes();
     Commission.findById.mockResolvedValue(comm);
     await updateCommission(req, res);
-    expect(comm.representativeCommission).toBe(24);
-    expect(comm.adminCommission).toBe(40);
+    // Valores baseados no pedido não mudam
+    expect(comm.pool).toBe(50);
+    expect(comm.representativeCommission).toBeCloseTo(1.5, 2);
+    expect(comm.adminCommission).toBeCloseTo(48.5, 2);
+    // Valores reais calculados
+    expect(comm.realPool).toBe(40);
+    expect(comm.realRepresentativeCommission).toBe(1.2);
+    expect(comm.realAdminCommission).toBe(38.8);
   });
 
-  it("usa realReceivedValue como base quando definido", async () => {
+  it("usa orderValueWithoutIpi como base para pool mesmo quando realReceivedValue esta definido", async () => {
+    // orderValueWithoutIpi=1000, adminPercentage=10 → pool=100; representativePercentage=10 → rep=10, admin=90
+    // real: base=600, adminPercentage=10 → realPool=60; rep=10 → realRep=6, realAdmin=54
     const comm = makeCommission({ orderValueWithoutIpi: 1000, representativePercentage: 10, adminPercentage: 5, realReceivedValue: 600 });
     const req = { params: { id: "commId" }, body: { adminPercentage: 10 }, user: adminUser };
     const res = makeRes();
     Commission.findById.mockResolvedValue(comm);
     await updateCommission(req, res);
-    expect(comm.adminCommission).toBe(60);
+    expect(comm.pool).toBe(100);
+    expect(comm.adminCommission).toBe(90);
+    expect(comm.realPool).toBe(60);
+    expect(comm.realAdminCommission).toBe(54);
   });
 
   it("atualiza realDeliveryDate sem recalcular comissoes", async () => {
@@ -510,6 +431,7 @@ describe("createInstallments", () => {
   });
 
   it("cria parcelas projetadas com datas corretas", async () => {
+    // base=500 por parcela, adminPercentage=5 → pool=25; representativePercentage=10 → rep=2.50, admin=22.50
     const req = {
       params: { id: "commId" },
       body: { intervals: [28, 56], representativePercentage: 10, adminPercentage: 5 },
@@ -530,8 +452,9 @@ describe("createInstallments", () => {
     expect(insertArg[1].installmentIndex).toBe(2);
     expect(insertArg[0].projected).toBe(true);
     expect(insertArg[0].orderValueWithoutIpi).toBe(500);
-    expect(insertArg[0].representativeCommission).toBe(50);
-    expect(insertArg[0].adminCommission).toBe(25);
+    expect(insertArg[0].representativeCommission).toBe(2.5);
+    expect(insertArg[0].adminCommission).toBe(22.5);
+    expect(insertArg[0].pool).toBe(25);
     const dueDate1 = new Date("2026-04-15T00:00:00.000Z");
     dueDate1.setUTCDate(dueDate1.getUTCDate() + 28);
     expect(insertArg[0].dueDate.toISOString()).toBe(dueDate1.toISOString());
@@ -590,5 +513,81 @@ describe("createInstallments", () => {
     Commission.findById.mockRejectedValue(new Error("DB"));
     await createInstallments(req, res);
     expect(res.status).toHaveBeenCalledWith(500);
+  });
+});
+
+// ─── getCommissionsSummary ───────────────────────────────────────────────────
+describe("getCommissionsSummary", () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  const summaryRow = (overrides = {}) => ({
+    period: { month: 4, year: 2026 },
+    representativeId: "repId",
+    totalRepresentativeCommission: 100,
+    totalAdminCommission: 50,
+    totalPool: 150,
+    totalRealRepresentativeCommission: 80,
+    totalRealAdminCommission: 40,
+    totalRealPool: 120,
+    count: 2,
+    ...overrides,
+  });
+
+  it("admin recebe totais de todos os representantes com adminCommission", async () => {
+    const req = { query: {}, user: adminUser };
+    const res = makeRes();
+    const rows = [summaryRow(), summaryRow({ representativeId: "repId2", totalRepresentativeCommission: 200 })];
+    Commission.aggregate.mockResolvedValue(rows);
+    await getCommissionsSummary(req, res);
+    expect(res.json).toHaveBeenCalledWith({ summary: rows });
+    const returned = res.json.mock.calls[0][0].summary;
+    expect(returned[0]).toHaveProperty("totalAdminCommission");
+    expect(returned[1]).toHaveProperty("totalAdminCommission");
+  });
+
+  it("representante recebe apenas seus proprios totais sem totalAdminCommission e totalRealAdminCommission", async () => {
+    const req = { query: {}, user: repUser };
+    const res = makeRes();
+    const rows = [summaryRow({ representativeId: repUser.id })];
+    Commission.aggregate.mockResolvedValue(rows);
+    await getCommissionsSummary(req, res);
+    const returned = res.json.mock.calls[0][0].summary;
+    expect(returned[0]).not.toHaveProperty("totalAdminCommission");
+    expect(returned[0]).not.toHaveProperty("totalRealAdminCommission");
+    expect(returned[0]).toHaveProperty("totalRepresentativeCommission");
+    expect(returned[0]).toHaveProperty("totalRealRepresentativeCommission");
+    expect(returned[0]).toHaveProperty("totalPool");
+    expect(returned[0]).toHaveProperty("totalRealPool");
+    expect(returned[0]).toHaveProperty("count");
+  });
+
+  it("filtra corretamente por month e year no pipeline", async () => {
+    const req = { query: { month: "3", year: "2025" }, user: adminUser };
+    const res = makeRes();
+    Commission.aggregate.mockResolvedValue([]);
+    await getCommissionsSummary(req, res);
+    const pipeline = Commission.aggregate.mock.calls[0][0];
+    const matchStage = pipeline.find((s) => s.$match);
+    expect(matchStage.$match["period.month"]).toBe(3);
+    expect(matchStage.$match["period.year"]).toBe(2025);
+  });
+
+  it("admin pode filtrar por representativeId via query param", async () => {
+    const req = { query: { representativeId: "507f1f77bcf86cd799439011" }, user: adminUser };
+    const res = makeRes();
+    Commission.aggregate.mockResolvedValue([]);
+    await getCommissionsSummary(req, res);
+    const pipeline = Commission.aggregate.mock.calls[0][0];
+    const matchStage = pipeline.find((s) => s.$match);
+    expect(matchStage.$match.representativeId).toBeDefined();
+  });
+
+  it("500 em caso de erro", async () => {
+    const req = { query: {}, user: adminUser };
+    const res = makeRes();
+    Commission.aggregate.mockRejectedValue(new Error("DB"));
+    await getCommissionsSummary(req, res);
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({ message: "Erro ao buscar resumo de comissões" });
   });
 });

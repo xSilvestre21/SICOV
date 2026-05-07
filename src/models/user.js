@@ -28,6 +28,15 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+
+    // Percentual padrão de comissão do representante (% do pool do admin)
+    // Usado para criar automaticamente o Registro_Comissao ao criar um pedido
+    defaultCommissionPercentage: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100,
+    },
   },
   {
     timestamps: true,
