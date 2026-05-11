@@ -111,3 +111,49 @@ describe('POST /auth/login', () => {
     expect(res.status).toBe(400);
   });
 });
+
+// ─── Validação de força de senha ──────────────────────────────────────────────
+
+describe('Validação de senha — mínimo 8 caracteres', () => {
+  it('POST /auth/register-admin retorna 400 para senha com 7 caracteres', async () => {
+    const res = await request(app)
+      .post('/auth/register-admin')
+      .set('x-admin-secret', ADMIN_SECRET)
+      .send({ name: 'Admin', email: 'admin@test.com', password: '1234567' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe('A senha deve ter no mínimo 8 caracteres');
+  });
+
+  it('POST /auth/register-admin aceita senha com exatamente 8 caracteres', async () => {
+    const res = await request(app)
+      .post('/auth/register-admin')
+      .set('x-admin-secret', ADMIN_SECRET)
+      .send({ name: 'Admin', email: 'admin@test.com', password: '12345678' });
+
+    expect(res.status).toBe(201);
+  });
+});
+
+// ─── Validação de formato de email ────────────────────────────────────────────
+
+describe('Validação de email — formato inválido', () => {
+  it('POST /auth/register-admin retorna 400 para email sem @', async () => {
+    const res = await request(app)
+      .post('/auth/register-admin')
+      .set('x-admin-secret', ADMIN_SECRET)
+      .send({ name: 'Admin', email: 'nao-e-email', password: '12345678' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe('Email inválido');
+  });
+
+  it('POST /auth/register-admin aceita email válido', async () => {
+    const res = await request(app)
+      .post('/auth/register-admin')
+      .set('x-admin-secret', ADMIN_SECRET)
+      .send({ name: 'Admin', email: 'admin@empresa.com', password: '12345678' });
+
+    expect(res.status).toBe(201);
+  });
+});

@@ -203,3 +203,86 @@ describe('PATCH /users/representatives/:id/toggle-active', () => {
     expect(loginRes.status).toBe(403);
   });
 });
+
+// ─── Validação de senha — mínimo 8 caracteres ─────────────────────────────────
+
+describe('Validação de senha ao criar/atualizar representante', () => {
+  it('POST /users/create-representative retorna 400 para senha com 7 caracteres', async () => {
+    const { token } = await createAdminAndLogin();
+
+    const res = await request(app)
+      .post('/users/create-representative')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Rep', email: 'rep@test.com', password: '1234567' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe('A senha deve ter no mínimo 8 caracteres');
+  });
+
+  it('PUT /users/representatives/:id retorna 400 ao atualizar senha com menos de 8 caracteres', async () => {
+    const { token } = await createAdminAndLogin();
+    const { user: rep } = await createRepAndLogin(token);
+
+    const res = await request(app)
+      .put(`/users/representatives/${rep.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ password: '1234567' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe('A senha deve ter no mínimo 8 caracteres');
+  });
+
+  it('PUT /users/representatives/:id aceita senha com exatamente 8 caracteres', async () => {
+    const { token } = await createAdminAndLogin();
+    const { user: rep } = await createRepAndLogin(token);
+
+    const res = await request(app)
+      .put(`/users/representatives/${rep.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ password: '12345678' });
+
+    expect(res.status).toBe(200);
+  });
+});
+
+// ─── Validação de email — formato inválido ────────────────────────────────────
+
+describe('Validação de email ao criar/atualizar representante', () => {
+  it('POST /users/create-representative retorna 400 para email inválido', async () => {
+    const { token } = await createAdminAndLogin();
+
+    const res = await request(app)
+      .post('/users/create-representative')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Rep', email: 'nao-e-email', password: '12345678' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe('Email inválido');
+  });
+
+  it('PUT /users/representatives/:id retorna 400 ao atualizar com email inválido', async () => {
+    const { token } = await createAdminAndLogin();
+    const { user: rep } = await createRepAndLogin(token);
+
+    const res = await request(app)
+      .put(`/users/representatives/${rep.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ email: 'invalido' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe('Email inválido');
+  });
+
+  it('PUT /users/representatives/:id aceita email válido', async () => {
+    const { token } = await createAdminAndLogin();
+    const { user: rep } = await createRepAndLogin(token);
+
+    const res = await request(app)
+      .put(`/users/representatives/${rep.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ email: 'novo@empresa.com' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.user.email).toBe('novo@empresa.com');
+  });
+});

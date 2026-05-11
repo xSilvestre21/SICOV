@@ -161,6 +161,30 @@ describe('generateOrderPdf', () => {
     expect(buffer.slice(0, 4).toString()).toBe('%PDF');
   });
 
+  it('usa texto quando logoUrl aponta para arquivo válido mas doc.image lança erro', async () => {
+    // Cria um arquivo temporário válido para passar na verificação de existência,
+    // mas com conteúdo inválido para forçar erro no doc.image()
+    const path = require('path');
+    const fs = require('fs');
+    const tmpPath = path.join(__dirname, '..', '..', 'src', 'assets', 'logos', '_test_invalid_logo.png');
+    fs.writeFileSync(tmpPath, 'not-a-real-image');
+
+    try {
+      const order = makeOrder({
+        supplierSnapshot: {
+          name: 'Forn Logo Inválida',
+          ipi: 0,
+          logoUrl: 'src/assets/logos/_test_invalid_logo.png',
+        },
+      });
+      const { buffer } = await generateAndCollect(order);
+      // Deve gerar PDF válido usando fallback textual
+      expect(buffer.slice(0, 4).toString()).toBe('%PDF');
+    } finally {
+      try { fs.unlinkSync(tmpPath); } catch { /* ignora */ }
+    }
+  });
+
   // ── Dados do fornecedor no cabeçalho textual ──────────────────────────────
 
   it('exibe cnpj, IE, telefone, endereço, cidade/estado e email quando logoUrl é inválida', async () => {

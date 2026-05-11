@@ -33,6 +33,23 @@ describe('createClient', () => {
     expect(res.json).toHaveBeenCalledWith({ message: 'Nome é obrigatório' });
   });
 
+  it('400 quando email é inválido', async () => {
+    const req = { body: { name: 'Empresa', email: 'nao-e-email' }, user: adminUser };
+    const res = makeRes();
+    await createClient(req, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ message: 'Email inválido' });
+  });
+
+  it('409 quando CNPJ já existe', async () => {
+    const req = { body: { name: 'Empresa', cnpj: '20927468000133' }, user: adminUser };
+    const res = makeRes();
+    Client.findOne.mockResolvedValue({ _id: 'existing' });
+    await createClient(req, res);
+    expect(res.status).toHaveBeenCalledWith(409);
+    expect(res.json).toHaveBeenCalledWith({ message: 'Já existe um cliente com esse CNPJ' });
+  });
+
   it('cria cliente com sucesso, normaliza campos e retorna 201', async () => {
     const req = {
       body: {
@@ -46,6 +63,7 @@ describe('createClient', () => {
       user: repUser,
     };
     const res = makeRes();
+    Client.findOne.mockResolvedValue(null); // sem CNPJ duplicado
     Client.create.mockResolvedValue({ _id: 'c1', name: 'Empresa Teste' });
 
     await createClient(req, res);
@@ -67,6 +85,7 @@ describe('createClient', () => {
   it('admin usa representativeId do body quando fornecido', async () => {
     const req = { body: { name: 'Empresa', representativeId: 'outroRepId' }, user: adminUser };
     const res = makeRes();
+    Client.findOne.mockResolvedValue(null);
     Client.create.mockResolvedValue({ _id: 'c1' });
 
     await createClient(req, res);
@@ -79,6 +98,7 @@ describe('createClient', () => {
   it('representante ignora representativeId do body e usa seu próprio id', async () => {
     const req = { body: { name: 'Empresa', representativeId: 'outroRepId' }, user: repUser };
     const res = makeRes();
+    Client.findOne.mockResolvedValue(null);
     Client.create.mockResolvedValue({ _id: 'c1' });
 
     await createClient(req, res);
@@ -91,6 +111,7 @@ describe('createClient', () => {
   it('state vira string vazia quando não fornecido', async () => {
     const req = { body: { name: 'Empresa' }, user: adminUser };
     const res = makeRes();
+    Client.findOne.mockResolvedValue(null);
     Client.create.mockResolvedValue({ _id: 'c1' });
 
     await createClient(req, res);
@@ -103,6 +124,7 @@ describe('createClient', () => {
   it('500 em caso de erro inesperado', async () => {
     const req = { body: { name: 'Empresa' }, user: adminUser };
     const res = makeRes();
+    Client.findOne.mockResolvedValue(null);
     Client.create.mockRejectedValue(new Error('DB error'));
 
     await createClient(req, res);
@@ -325,6 +347,31 @@ describe('updateClient', () => {
     expect(res.json).toHaveBeenCalledWith({ message: 'Acesso negado.' });
   });
 
+  it('400 quando email é inválido no update', async () => {
+    const req = { params: { id: 'c1' }, body: { email: 'invalido' }, user: adminUser };
+    const res = makeRes();
+    Client.findById.mockResolvedValue({
+      _id: 'c1',
+      representativeId: { toString: () => 'repId' },
+    });
+    await updateClient(req, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ message: 'Email inválido' });
+  });
+
+  it('409 quando CNPJ já pertence a outro cliente no update', async () => {
+    const req = { params: { id: 'c1' }, body: { cnpj: '20927468000133' }, user: adminUser };
+    const res = makeRes();
+    Client.findById.mockResolvedValue({
+      _id: 'c1',
+      representativeId: { toString: () => 'repId' },
+    });
+    Client.findOne.mockResolvedValue({ _id: 'outro' });
+    await updateClient(req, res);
+    expect(res.status).toHaveBeenCalledWith(409);
+    expect(res.json).toHaveBeenCalledWith({ message: 'Já existe um cliente com esse CNPJ' });
+  });
+
   it('atualiza cliente com sucesso (admin) — normaliza campos', async () => {
     const req = {
       params: { id: 'c1' },
@@ -342,6 +389,7 @@ describe('updateClient', () => {
       save: jest.fn().mockResolvedValue(true),
     };
     Client.findById.mockResolvedValue(mockClient);
+    Client.findOne.mockResolvedValue(null); // sem CNPJ duplicado
 
     await updateClient(req, res);
 
@@ -413,6 +461,24 @@ describe('updateClient', () => {
 
     // state não foi enviado, deve manter o valor original
     expect(mockClient.state).toBe('MG');
+  });
+
+  it('state vira string vazia quando enviado como null', async () => {
+    const req = { params: { id: 'c1' }, body: { state: null }, user: adminUser };
+    const res = makeRes();
+    const mockClient = {
+      _id: 'c1',
+      state: 'SP',
+      representativeId: { toString: () => 'repId' },
+      save: jest.fn().mockResolvedValue(true),
+    };
+    Client.findById.mockResolvedValue(mockClient);
+
+    await updateClient(req, res);
+
+    // state null deve virar '' sem lançar TypeError
+    expect(mockClient.state).toBe('');
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: 'Cliente atualizado com sucesso.' }));
   });
 
   it('500 em caso de erro', async () => {

@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+@theme {
+  /* ── Paleta SICOV ─────────────────────────────────────────────────────── */
+  --color-brand-dark:    #58706d; /* verde-acinzentado escuro  */
+  --color-brand-mid:     #4b5757; /* verde-acinzentado médio   */
+  --color-brand-sage:    #7c8a6e; /* sálvia                    */
+  --color-brand-warm:    #b0b087; /* bege-esverdeado           */
+  --color-brand-light:   #e3e3d1; /* bege claro                */
+
+  /* Aliases semânticos */
+  --color-primary:       var(--color-brand-dark);
+  --color-primary-hover: var(--color-brand-mid);
+  --color-secondary:     var(--color-brand-sage);
+  --color-accent:        var(--color-brand-warm);
+  --color-surface:       var(--color-brand-light);
+  --color-bg:            #f5f5ee;
+
+  /* Tipografia */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  /* Raios */
+  --radius-card: 0.75rem;
+  --radius-btn:  0.5rem;
+}
+
+/* ── Reset / base ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-bg);
+  color: #1a1a1a;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Scrollbar fina ───────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-brand-warm); border-radius: 3px; }

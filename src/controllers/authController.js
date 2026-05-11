@@ -2,6 +2,11 @@ const argon2 = require('argon2');
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 
+/** Valida formato básico de email. */
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim());
+}
+
 // Rota protegida: só pode ser chamada se já não existir nenhum admin,
 // ou se a variável ADMIN_REGISTER_SECRET estiver definida e for enviada no header.
 async function registerAdmin(req, res) {
@@ -28,6 +33,16 @@ async function registerAdmin(req, res) {
       return res
         .status(400)
         .json({ message: 'Nome, email e senha são obrigatórios' });
+    }
+
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ message: 'Email inválido' });
+    }
+
+    if (typeof password !== 'string' || password.length < 8) {
+      return res
+        .status(400)
+        .json({ message: 'A senha deve ter no mínimo 8 caracteres' });
     }
 
     const existingUser = await User.findOne({ email });

@@ -119,6 +119,24 @@ async function createQuotation(token, clientId, supplierId, productId, overrides
   return res.body.quotation;
 }
 
+/**
+ * Cria um pedido via API e retorna o objeto criado.
+ */
+async function createOrder(adminToken, clientId, supplierId, productId, overrides = {}) {
+  const payload = {
+    clientId,
+    items: [{ productId, quantity: 100 }],
+    ...overrides,
+  };
+
+  const res = await request(app)
+    .post('/orders')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send(payload);
+
+  return res.body.order;
+}
+
 module.exports = {
   createAdminAndLogin,
   createRepAndLogin,
@@ -126,4 +144,5 @@ module.exports = {
   createClient,
   createProduct,
   createQuotation,
+  createOrder,
 };

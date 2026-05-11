@@ -1,6 +1,11 @@
 const Client = require('../models/client');
 const { onlyNumbers } = require('../utils/numberParsers');
 
+/** Valida formato básico de email. */
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim());
+}
+
 async function createClient(req, res) {
   try {
     const {
@@ -28,12 +33,25 @@ async function createClient(req, res) {
       });
     }
 
+    if (email !== undefined && email !== null && email !== '' && !isValidEmail(email)) {
+      return res.status(400).json({ message: 'Email inválido' });
+    }
+
     // Apenas admins podem criar clientes vinculados a outro representante.
     // Representantes sempre ficam vinculados a si mesmos.
     const resolvedRepresentativeId =
       req.user.profile === 'admin' && representativeId
         ? representativeId
         : req.user.id;
+
+    const normalizedCnpj = onlyNumbers(cnpj);
+
+    if (normalizedCnpj) {
+      const existing = await Client.findOne({ cnpj: normalizedCnpj });
+      if (existing) {
+        return res.status(409).json({ message: 'Já existe um cliente com esse CNPJ' });
+      }
+    }
 
     const client = await Client.create({
       name,
@@ -45,7 +63,7 @@ async function createClient(req, res) {
       state: state ? state.toUpperCase() : '',
       district,
       zipCode: onlyNumbers(zipCode),
-      cnpj: onlyNumbers(cnpj),
+      cnpj: normalizedCnpj,
       stateRegistration: stateRegistration !== undefined ? stateRegistration : '',
       paymentTerm,
       billingAddress,
@@ -197,15 +215,33 @@ async function updateClient(req, res) {
 
     client.name = name !== undefined ? name : client.name;
     client.tradeName = tradeName !== undefined ? tradeName : client.tradeName;
-    client.email = email !== undefined ? email : client.email;
+
+    if (email !== undefined) {
+      if (email !== null && email !== '' && !isValidEmail(email)) {
+        return res.status(400).json({ message: 'Email inválido' });
+      }
+      client.email = email;
+    }
+
     client.phone = phone !== undefined ? onlyNumbers(phone) : client.phone;
     client.address = address !== undefined ? address : client.address;
     client.city = city !== undefined ? city : client.city;
-    client.state = state !== undefined ? state.toUpperCase() : client.state;
+    client.state = state !== undefined ? (state ? state.toUpperCase() : '') : client.state;
     client.district = district !== undefined ? district : client.district;
     client.zipCode =
       zipCode !== undefined ? onlyNumbers(zipCode) : client.zipCode;
-    client.cnpj = cnpj !== undefined ? onlyNumbers(cnpj) : client.cnpj;
+
+    if (cnpj !== undefined) {
+      const normalizedCnpj = onlyNumbers(cnpj);
+      if (normalizedCnpj) {
+        const existing = await Client.findOne({ cnpj: normalizedCnpj, _id: { $ne: id } });
+        if (existing) {
+          return res.status(409).json({ message: 'Já existe um cliente com esse CNPJ' });
+        }
+      }
+      client.cnpj = normalizedCnpj;
+    }
+
     client.stateRegistration =
       stateRegistration !== undefined
         ? stateRegistration

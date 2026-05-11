@@ -539,3 +539,69 @@ describe('GET /orders — filtros adicionais', () => {
     expect(res.body.orders[0].sentToSupplier).toBe(true);
   });
 });
+
+// ─── Consistência de comissões ────────────────────────────────────────────────
+
+describe('Consistência de comissões ao cancelar/atualizar pedido', () => {
+  async function getCommissionForOrder(adminToken, orderId) {
+    const listRes = await request(app)
+      .get('/commissions?status=all')
+      .set('Authorization', `Bearer ${adminToken}`);
+    return listRes.body.commissions.find(
+      (c) => c.orderId === orderId || c.orderId?.toString() === orderId?.toString(),
+    );
+  }
+
+  it('cancelar pedido marca a comissão vinculada como cancelled', async () => {
+    const { token, user } = await createAdminAndLogin();
+    const { client, product } = await buildOrderFixture(token, user.id);
+
+    const orderRes = await request(app)
+      .post('/orders')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ clientId: client._id, items: [{ productId: product._id, quantity: 100 }] });
+
+    const orderId = orderRes.body.order._id;
+
+    // Verifica que a comissão foi criada como active
+    const commBefore = await getCommissionForOrder(token, orderId);
+    expect(commBefore).toBeDefined();
+    expect(commBefore.status).toBe('active');
+
+    // Cancela o pedido
+    await request(app)
+      .patch(`/orders/${orderId}/cancel`)
+      .set('Authorization', `Bearer ${token}`);
+
+    // Verifica que a comissão foi marcada como cancelled
+    const commAfter = await getCommissionForOrder(token, orderId);
+    expect(commAfter.status).toBe('cancelled');
+  });
+
+  it('atualizar itens do pedido recalcula orderValueWithoutIpi e comissões', async () => {
+    const { token, user } = await createAdminAndLogin();
+    const { client, product } = await buildOrderFixture(token, user.id);
+
+    const orderRes = await request(app)
+      .post('/orders')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ clientId: client._id, items: [{ productId: product._id, quantity: 100 }] });
+
+    const orderId = orderRes.body.order._id;
+    const commBefore = await getCommissionForOrder(token, orderId);
+    const originalValue = commBefore.orderValueWithoutIpi;
+
+    // Atualiza com quantidade diferente (dobro)
+    await request(app)
+      .put(`/orders/${orderId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ items: [{ productId: product._id, quantity: 200 }] });
+
+    const commAfter = await getCommissionForOrder(token, orderId);
+
+    // orderValueWithoutIpi deve ter dobrado
+    expect(commAfter.orderValueWithoutIpi).toBeCloseTo(originalValue * 2, 2);
+    // pool deve ter sido recalculado
+    expect(commAfter.pool).toBeCloseTo((commAfter.orderValueWithoutIpi * commAfter.adminPercentage) / 100, 2);
+  });
+});
