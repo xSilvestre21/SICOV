@@ -295,6 +295,16 @@ async function cancelOrder(req, res) {
 
     await order.save();
 
+    // Cancela a comissão vinculada (falha silenciosa para não bloquear o cancelamento)
+    try {
+      await Commission.updateMany(
+        { orderId: order._id, projected: false },
+        { $set: { status: 'cancelled' } },
+      );
+    } catch (commErr) {
+      console.error('[cancelOrder] Erro ao cancelar comissão:', commErr.message);
+    }
+
     return res.json({
       message: 'Pedido cancelado com sucesso',
       order,
@@ -555,6 +565,46 @@ async function updateOrder(req, res) {
     order.sellerName = sellerName !== undefined ? sellerName : order.sellerName;
 
     await order.save();
+
+    // Atualiza a comissão vinculada se o subtotal mudou
+    try {
+      const commission = await Commission.findOne({ orderId: order._id, projected: false });
+      if (commission && commission.orderValueWithoutIpi !== subtotal) {
+        commission.orderValueWithoutIpi = subtotal;
+        commission.customerPurchaseOrder =
+          order.customerPurchaseOrder ?? commission.customerPurchaseOrder;
+
+        // Recalcula com base no novo valor do pedido
+        const newPool = parseFloat(
+          ((subtotal * commission.adminPercentage) / 100).toFixed(2),
+        );
+        const newRepComm = parseFloat(
+          ((newPool * commission.representativePercentage) / 100).toFixed(2),
+        );
+        const newAdminComm = parseFloat((newPool - newRepComm).toFixed(2));
+
+        commission.pool = newPool;
+        commission.representativeCommission = newRepComm;
+        commission.adminCommission = newAdminComm;
+
+        // Recalcula valores reais se realReceivedValue estiver definido
+        if (commission.realReceivedValue !== null) {
+          const realPool = parseFloat(
+            ((commission.realReceivedValue * commission.adminPercentage) / 100).toFixed(2),
+          );
+          const realRepComm = parseFloat(
+            ((realPool * commission.representativePercentage) / 100).toFixed(2),
+          );
+          commission.realPool = realPool;
+          commission.realRepresentativeCommission = realRepComm;
+          commission.realAdminCommission = parseFloat((realPool - realRepComm).toFixed(2));
+        }
+
+        await commission.save();
+      }
+    } catch (commErr) {
+      console.error('[updateOrder] Erro ao atualizar comissão:', commErr.message);
+    }
 
     return res.json({
       message: 'Pedido atualizado com sucesso',

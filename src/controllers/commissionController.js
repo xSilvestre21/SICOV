@@ -48,6 +48,7 @@ async function getCommissions(req, res) {
       projected,
       orderNumber,
       customerPurchaseOrder,
+      status,
       page = 1,
       limit = 20,
     } = req.query;
@@ -70,6 +71,16 @@ async function getCommissions(req, res) {
     if (orderNumber) filter.orderNumber = Number(orderNumber);
     if (customerPurchaseOrder) {
       filter.customerPurchaseOrder = new RegExp(customerPurchaseOrder, 'i');
+    }
+
+    // Filtro por status (active | cancelled). Padrão: só ativas quando não especificado
+    if (status === 'cancelled') {
+      filter.status = 'cancelled';
+    } else if (status === 'all') {
+      // sem filtro de status — retorna todos
+    } else {
+      // padrão: só comissões ativas
+      filter.status = 'active';
     }
 
     const pageNumber = Number(page);
@@ -169,6 +180,16 @@ async function updateCommission(req, res) {
       return res
         .status(400)
         .json({ message: 'adminPercentage deve ser um número >= 0' });
+    }
+
+    if (
+      realReceivedValue !== undefined &&
+      realReceivedValue !== null &&
+      (typeof realReceivedValue !== 'number' || realReceivedValue < 0)
+    ) {
+      return res
+        .status(400)
+        .json({ message: 'realReceivedValue deve ser um número >= 0' });
     }
 
     // Aplica alterações
@@ -369,7 +390,7 @@ async function createInstallments(req, res) {
 // ─────────────────────────────────────────────────────────────────────────────
 async function getCommissionsSummary(req, res) {
   try {
-    const { month, year, representativeId } = req.query;
+    const { month, year, representativeId, page = 1, limit = 20 } = req.query;
 
     const matchStage = {};
 
@@ -386,6 +407,10 @@ async function getCommissionsSummary(req, res) {
 
     if (month) matchStage['period.month'] = Number(month);
     if (year) matchStage['period.year'] = Number(year);
+
+    const pageNumber = Number(page);
+    const limitNumber = Number(limit);
+    const skip = (pageNumber - 1) * limitNumber;
 
     const pipeline = [
       { $match: matchStage },
@@ -429,7 +454,14 @@ async function getCommissionsSummary(req, res) {
       },
     ];
 
-    const results = await Commission.aggregate(pipeline);
+    // Pipeline de contagem (sem skip/limit)
+    const countPipeline = [...pipeline, { $count: 'total' }];
+    const [results, countResult] = await Promise.all([
+      Commission.aggregate([...pipeline, { $skip: skip }, { $limit: limitNumber }]),
+      Commission.aggregate(countPipeline),
+    ]);
+
+    const total = countResult[0]?.total ?? 0;
 
     // Remover campos sensíveis para Representante
     const data =
@@ -437,7 +469,13 @@ async function getCommissionsSummary(req, res) {
         ? results.map(({ totalAdminCommission, totalRealAdminCommission, ...rest }) => rest)
         : results;
 
-    return res.json({ summary: data });
+    return res.json({
+      page: pageNumber,
+      limit: limitNumber,
+      total,
+      totalPages: Math.ceil(total / limitNumber),
+      summary: data,
+    });
   } catch (err) {
     console.error('[getCommissionsSummary]', err.message);
     return res.status(500).json({ message: 'Erro ao buscar resumo de comissões' });

@@ -76,8 +76,28 @@ describe('registerAdmin', () => {
     expect(res.status).toHaveBeenCalledWith(400);
   });
 
+  it('400 quando email é inválido', async () => {
+    const req = { body: { name: 'Admin', email: 'nao-e-email', password: '12345678' }, headers: { 'x-admin-secret': 'test-secret' } };
+    const res = makeRes();
+
+    await registerAdmin(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ message: 'Email inválido' });
+  });
+
+  it('400 quando senha tem menos de 8 caracteres', async () => {
+    const req = { body: { name: 'Admin', email: 'admin@test.com', password: '1234567' }, headers: { 'x-admin-secret': 'test-secret' } };
+    const res = makeRes();
+
+    await registerAdmin(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ message: 'A senha deve ter no mínimo 8 caracteres' });
+  });
+
   it('409 quando email já existe', async () => {
-    const req = { body: { name: 'Admin', email: 'admin@test.com', password: '123456' }, headers: { 'x-admin-secret': 'test-secret' } };
+    const req = { body: { name: 'Admin', email: 'admin@test.com', password: '12345678' }, headers: { 'x-admin-secret': 'test-secret' } };
     const res = makeRes();
 
     User.findOne.mockResolvedValue({ _id: 'existingId', email: 'admin@test.com' });
@@ -89,7 +109,7 @@ describe('registerAdmin', () => {
   });
 
   it('cria admin com sucesso e retorna 201 sem expor senha', async () => {
-    const req = { body: { name: 'Admin', email: 'admin@test.com', password: '123456' }, headers: { 'x-admin-secret': 'test-secret' } };
+    const req = { body: { name: 'Admin', email: 'admin@test.com', password: '12345678' }, headers: { 'x-admin-secret': 'test-secret' } };
     const res = makeRes();
 
     User.findOne.mockResolvedValue(null);
@@ -116,7 +136,7 @@ describe('registerAdmin', () => {
   });
 
   it('500 em caso de erro inesperado no banco', async () => {
-    const req = { body: { name: 'Admin', email: 'admin@test.com', password: '123456' }, headers: { 'x-admin-secret': 'test-secret' } };
+    const req = { body: { name: 'Admin', email: 'admin@test.com', password: '12345678' }, headers: { 'x-admin-secret': 'test-secret' } };
     const res = makeRes();
 
     User.findOne.mockRejectedValue(new Error('DB error'));

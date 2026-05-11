@@ -262,3 +262,77 @@ describe('DELETE /clients/:id', () => {
     expect(res.status).toBe(403);
   });
 });
+
+// ─── Validação de email e CNPJ duplicado ──────────────────────────────────────
+
+describe('POST /clients — validação de email e CNPJ', () => {
+  it('retorna 400 para email inválido no create', async () => {
+    const { token, user } = await createAdminAndLogin();
+
+    const res = await request(app)
+      .post('/clients')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Empresa', email: 'nao-e-email', representativeId: user.id });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe('Email inválido');
+  });
+
+  it('retorna 409 para CNPJ duplicado no create', async () => {
+    const { token, user } = await createAdminAndLogin();
+
+    await request(app)
+      .post('/clients')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Empresa 1', cnpj: '20927468000133', representativeId: user.id });
+
+    const res = await request(app)
+      .post('/clients')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Empresa 2', cnpj: '20927468000133', representativeId: user.id });
+
+    expect(res.status).toBe(409);
+    expect(res.body.message).toBe('Já existe um cliente com esse CNPJ');
+  });
+
+  it('aceita email válido no create', async () => {
+    const { token, user } = await createAdminAndLogin();
+
+    const res = await request(app)
+      .post('/clients')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Empresa', email: 'contato@empresa.com', representativeId: user.id });
+
+    expect(res.status).toBe(201);
+  });
+});
+
+describe('PUT /clients/:id — validação de email e CNPJ', () => {
+  it('retorna 400 para email inválido no update', async () => {
+    const { token, user } = await createAdminAndLogin();
+    const client = await createClient(token, user.id);
+
+    const res = await request(app)
+      .put(`/clients/${client._id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ email: 'invalido' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe('Email inválido');
+  });
+
+  it('retorna 409 para CNPJ duplicado no update', async () => {
+    const { token, user } = await createAdminAndLogin();
+
+    const client1 = await createClient(token, user.id, { cnpj: '20927468000133' });
+    const client2 = await createClient(token, user.id, { name: 'Empresa 2', cnpj: '11222333000181' });
+
+    const res = await request(app)
+      .put(`/clients/${client2._id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ cnpj: '20927468000133' });
+
+    expect(res.status).toBe(409);
+    expect(res.body.message).toBe('Já existe um cliente com esse CNPJ');
+  });
+});

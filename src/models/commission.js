@@ -139,6 +139,13 @@ const commissionSchema = new mongoose.Schema(
       default: null,
       min: 1,
     },
+
+    // Status da comissão (active | cancelled)
+    status: {
+      type: String,
+      enum: ['active', 'cancelled'],
+      default: 'active',
+    },
   },
   { timestamps: true },
 );

@@ -2,6 +2,11 @@ const argon2 = require('argon2');
 const User = require('../models/user');
 const Client = require('../models/client');
 
+/** Valida formato básico de email. */
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim());
+}
+
 async function createRepresentative(req, res) {
   try {
     const { name, email, password } = req.body;
@@ -9,6 +14,16 @@ async function createRepresentative(req, res) {
     if (!name || !email || !password) {
       return res.status(400).json({
         message: 'Nome, email e senha são obrigatórios',
+      });
+    }
+
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ message: 'Email inválido' });
+    }
+
+    if (typeof password !== 'string' || password.length < 8) {
+      return res.status(400).json({
+        message: 'A senha deve ter no mínimo 8 caracteres',
       });
     }
 
@@ -116,6 +131,10 @@ async function updateRepresentative(req, res) {
     if (email !== undefined) {
       const normalizedEmail = String(email).trim().toLowerCase();
 
+      if (!isValidEmail(normalizedEmail)) {
+        return res.status(400).json({ message: 'Email inválido' });
+      }
+
       const existingUser = await User.findOne({
         email: normalizedEmail,
         _id: { $ne: id },
@@ -135,6 +154,11 @@ async function updateRepresentative(req, res) {
     }
 
     if (password !== undefined && password !== '') {
+      if (typeof password !== 'string' || password.length < 8) {
+        return res.status(400).json({
+          message: 'A senha deve ter no mínimo 8 caracteres',
+        });
+      }
       representative.password = await argon2.hash(password);
     }
 

@@ -149,6 +149,35 @@ describe("getCommissions", () => {
     expect(callArg.customerPurchaseOrder.flags).toContain("i");
   });
 
+  it("filtra por status=cancelled", async () => {
+    const req = { query: { status: "cancelled" }, user: adminUser };
+    const res = makeRes();
+    mockFind();
+    await getCommissions(req, res);
+    expect(Commission.find).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "cancelled" })
+    );
+  });
+
+  it("filtra por status=all (sem filtro de status)", async () => {
+    const req = { query: { status: "all" }, user: adminUser };
+    const res = makeRes();
+    mockFind();
+    await getCommissions(req, res);
+    const callArg = Commission.find.mock.calls[0][0];
+    expect(callArg).not.toHaveProperty("status");
+  });
+
+  it("por padrao retorna apenas comissoes ativas quando status nao e informado", async () => {
+    const req = { query: {}, user: adminUser };
+    const res = makeRes();
+    mockFind();
+    await getCommissions(req, res);
+    expect(Commission.find).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "active" })
+    );
+  });
+
   it("retorna paginacao correta", async () => {
     const req = { query: { page: "2", limit: "5" }, user: adminUser };
     const res = makeRes();
@@ -272,6 +301,41 @@ describe("updateCommission", () => {
     Commission.findById.mockResolvedValue(makeCommission());
     await updateCommission(req, res);
     expect(res.status).toHaveBeenCalledWith(400);
+  });
+
+  it("400 quando realReceivedValue e negativo", async () => {
+    const req = { params: { id: "commId" }, body: { realReceivedValue: -100 }, user: adminUser };
+    const res = makeRes();
+    Commission.findById.mockResolvedValue(makeCommission());
+    await updateCommission(req, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ message: "realReceivedValue deve ser um número >= 0" });
+  });
+
+  it("400 quando realReceivedValue nao e numero", async () => {
+    const req = { params: { id: "commId" }, body: { realReceivedValue: "abc" }, user: adminUser };
+    const res = makeRes();
+    Commission.findById.mockResolvedValue(makeCommission());
+    await updateCommission(req, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+  });
+
+  it("aceita realReceivedValue igual a zero (pagamento zerado)", async () => {
+    const comm = makeCommission({ orderValueWithoutIpi: 1000, representativePercentage: 3, adminPercentage: 5 });
+    const req = { params: { id: "commId" }, body: { realReceivedValue: 0 }, user: adminUser };
+    const res = makeRes();
+    Commission.findById.mockResolvedValue(comm);
+    await updateCommission(req, res);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: "Comissão atualizada com sucesso" }));
+  });
+
+  it("aceita realReceivedValue null (limpar valor real)", async () => {
+    const comm = makeCommission({ realReceivedValue: 500 });
+    const req = { params: { id: "commId" }, body: { realReceivedValue: null }, user: adminUser };
+    const res = makeRes();
+    Commission.findById.mockResolvedValue(comm);
+    await updateCommission(req, res);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: "Comissão atualizada com sucesso" }));
   });
 
   it("recalcula comissoes ao alterar representativePercentage", async () => {
@@ -533,23 +597,29 @@ describe("getCommissionsSummary", () => {
     ...overrides,
   });
 
-  it("admin recebe totais de todos os representantes com adminCommission", async () => {
+  it("admin recebe totais de todos os representantes com adminCommission e paginação", async () => {
     const req = { query: {}, user: adminUser };
     const res = makeRes();
     const rows = [summaryRow(), summaryRow({ representativeId: "repId2", totalRepresentativeCommission: 200 })];
-    Commission.aggregate.mockResolvedValue(rows);
+    // Primeira chamada: dados paginados; segunda: contagem
+    Commission.aggregate
+      .mockResolvedValueOnce(rows)
+      .mockResolvedValueOnce([{ total: 2 }]);
     await getCommissionsSummary(req, res);
-    expect(res.json).toHaveBeenCalledWith({ summary: rows });
-    const returned = res.json.mock.calls[0][0].summary;
-    expect(returned[0]).toHaveProperty("totalAdminCommission");
-    expect(returned[1]).toHaveProperty("totalAdminCommission");
+    const returned = res.json.mock.calls[0][0];
+    expect(returned.summary).toHaveLength(2);
+    expect(returned.total).toBe(2);
+    expect(returned.summary[0]).toHaveProperty("totalAdminCommission");
+    expect(returned.summary[1]).toHaveProperty("totalAdminCommission");
   });
 
   it("representante recebe apenas seus proprios totais sem totalAdminCommission e totalRealAdminCommission", async () => {
     const req = { query: {}, user: repUser };
     const res = makeRes();
     const rows = [summaryRow({ representativeId: repUser.id })];
-    Commission.aggregate.mockResolvedValue(rows);
+    Commission.aggregate
+      .mockResolvedValueOnce(rows)
+      .mockResolvedValueOnce([{ total: 1 }]);
     await getCommissionsSummary(req, res);
     const returned = res.json.mock.calls[0][0].summary;
     expect(returned[0]).not.toHaveProperty("totalAdminCommission");
@@ -564,7 +634,9 @@ describe("getCommissionsSummary", () => {
   it("filtra corretamente por month e year no pipeline", async () => {
     const req = { query: { month: "3", year: "2025" }, user: adminUser };
     const res = makeRes();
-    Commission.aggregate.mockResolvedValue([]);
+    Commission.aggregate
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ total: 0 }]);
     await getCommissionsSummary(req, res);
     const pipeline = Commission.aggregate.mock.calls[0][0];
     const matchStage = pipeline.find((s) => s.$match);
@@ -575,11 +647,25 @@ describe("getCommissionsSummary", () => {
   it("admin pode filtrar por representativeId via query param", async () => {
     const req = { query: { representativeId: "507f1f77bcf86cd799439011" }, user: adminUser };
     const res = makeRes();
-    Commission.aggregate.mockResolvedValue([]);
+    Commission.aggregate
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ total: 0 }]);
     await getCommissionsSummary(req, res);
     const pipeline = Commission.aggregate.mock.calls[0][0];
     const matchStage = pipeline.find((s) => s.$match);
     expect(matchStage.$match.representativeId).toBeDefined();
+  });
+
+  it("retorna paginação correta", async () => {
+    const req = { query: { page: "2", limit: "5" }, user: adminUser };
+    const res = makeRes();
+    Commission.aggregate
+      .mockResolvedValueOnce([summaryRow()])
+      .mockResolvedValueOnce([{ total: 12 }]);
+    await getCommissionsSummary(req, res);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ page: 2, limit: 5, total: 12, totalPages: 3 }),
+    );
   });
 
   it("500 em caso de erro", async () => {

@@ -36,15 +36,15 @@ async function buildCommissionContext() {
 
 /**
  * Busca a comissão criada automaticamente para um pedido.
- * Retorna o primeiro registro encontrado para o orderId.
+ * Retorna o primeiro registro encontrado para o orderId (inclui canceladas).
  */
 async function getCommissionForOrder(adminToken, orderId) {
   const res = await request(app)
     .get(`/commissions?orderId=${orderId}`)
     .set('Authorization', `Bearer ${adminToken}`);
-  // Fallback: busca na listagem geral e filtra pelo orderId
+  // Fallback: busca na listagem geral e filtra pelo orderId (inclui todas)
   const listRes = await request(app)
-    .get('/commissions')
+    .get('/commissions?status=all')
     .set('Authorization', `Bearer ${adminToken}`);
   return listRes.body.commissions.find(
     (c) => c.orderId === orderId || c.orderId?.toString() === orderId?.toString(),
@@ -652,6 +652,11 @@ describe('GET /commissions/summary', () => {
     expect(res.body.summary).toBeDefined();
     expect(Array.isArray(res.body.summary)).toBe(true);
     expect(res.body.summary.length).toBeGreaterThanOrEqual(1);
+    // Paginação
+    expect(res.body).toHaveProperty('page');
+    expect(res.body).toHaveProperty('limit');
+    expect(res.body).toHaveProperty('total');
+    expect(res.body).toHaveProperty('totalPages');
 
     const item = res.body.summary[0];
     expect(item).toHaveProperty('period');
@@ -709,5 +714,157 @@ describe('GET /commissions/summary', () => {
   it('retorna 401 sem autenticação', async () => {
     const res = await request(app).get('/commissions/summary');
     expect(res.status).toBe(401);
+  });
+});
+
+// ─── Validação de realReceivedValue ───────────────────────────────────────────
+
+describe('PUT /commissions/:id — validação de realReceivedValue', () => {
+  it('retorna 400 quando realReceivedValue é negativo', async () => {
+    const { adminToken, order } = await buildCommissionContext();
+    const commission = await getCommissionForOrder(adminToken, order._id);
+
+    const res = await request(app)
+      .put(`/commissions/${commission._id}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ realReceivedValue: -100 });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe('realReceivedValue deve ser um número >= 0');
+  });
+
+  it('retorna 400 quando realReceivedValue não é número', async () => {
+    const { adminToken, order } = await buildCommissionContext();
+    const commission = await getCommissionForOrder(adminToken, order._id);
+
+    const res = await request(app)
+      .put(`/commissions/${commission._id}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ realReceivedValue: 'abc' });
+
+    expect(res.status).toBe(400);
+  });
+
+  it('aceita realReceivedValue igual a zero', async () => {
+    const { adminToken, order } = await buildCommissionContext();
+    const commission = await getCommissionForOrder(adminToken, order._id);
+
+    const res = await request(app)
+      .put(`/commissions/${commission._id}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ realReceivedValue: 0 });
+
+    expect(res.status).toBe(200);
+    expect(res.body.commission.realReceivedValue).toBe(0);
+  });
+
+  it('aceita realReceivedValue null para limpar o valor', async () => {
+    const { adminToken, order } = await buildCommissionContext();
+    const commission = await getCommissionForOrder(adminToken, order._id);
+
+    // Primeiro define um valor
+    await request(app)
+      .put(`/commissions/${commission._id}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ realReceivedValue: 500 });
+
+    // Depois limpa
+    const res = await request(app)
+      .put(`/commissions/${commission._id}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ realReceivedValue: null });
+
+    expect(res.status).toBe(200);
+    expect(res.body.commission.realReceivedValue).toBeNull();
+  });
+});
+
+// ─── Filtro por status ────────────────────────────────────────────────────────
+
+describe('GET /commissions — filtro por status', () => {
+  it('por padrão retorna apenas comissões ativas', async () => {
+    const { adminToken, order } = await buildCommissionContext();
+
+    // Busca a comissão antes de cancelar (ainda ativa)
+    const commBefore = await getCommissionForOrder(adminToken, order._id);
+    expect(commBefore).toBeDefined();
+    expect(commBefore.status).toBe('active');
+
+    // Cancela o pedido (marca comissão como cancelled)
+    await request(app)
+      .patch(`/orders/${order._id}/cancel`)
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    // Listagem padrão não deve retornar a comissão cancelada
+    const listRes = await request(app)
+      .get('/commissions')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    const ids = listRes.body.commissions.map((c) => c._id);
+    expect(ids).not.toContain(commBefore._id);
+  });
+
+  it('filtra por status=cancelled retorna apenas canceladas', async () => {
+    const { adminToken, order } = await buildCommissionContext();
+    const commission = await getCommissionForOrder(adminToken, order._id);
+
+    await request(app)
+      .patch(`/orders/${order._id}/cancel`)
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    const res = await request(app)
+      .get('/commissions?status=cancelled')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.total).toBe(1);
+    expect(res.body.commissions[0]._id).toBe(commission._id);
+    expect(res.body.commissions[0].status).toBe('cancelled');
+  });
+
+  it('filtra por status=all retorna ativas e canceladas', async () => {
+    const { token: adminToken, user: admin } = await createAdminAndLogin();
+    const supplier = await createSupplier(adminToken);
+    const client = await createClient(adminToken, admin.id);
+    const product = await createProduct(adminToken, client._id, supplier._id);
+
+    const order1 = await createOrder(adminToken, client._id, supplier._id, product._id);
+    const order2 = await createOrder(adminToken, client._id, supplier._id, product._id);
+
+    // Cancela o primeiro
+    await request(app)
+      .patch(`/orders/${order1._id}/cancel`)
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    const res = await request(app)
+      .get('/commissions?status=all')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.total).toBe(2);
+  });
+});
+
+// ─── Paginação do summary ─────────────────────────────────────────────────────
+
+describe('GET /commissions/summary — paginação', () => {
+  it('retorna page, limit, total e totalPages', async () => {
+    const { token: adminToken, user: admin } = await createAdminAndLogin();
+    const supplier = await createSupplier(adminToken);
+    const client = await createClient(adminToken, admin.id);
+    const product = await createProduct(adminToken, client._id, supplier._id);
+
+    await createOrder(adminToken, client._id, supplier._id, product._id, { deliveryDate: '2025-06-10' });
+
+    const res = await request(app)
+      .get('/commissions/summary?month=6&year=2025&page=1&limit=5')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('page', 1);
+    expect(res.body).toHaveProperty('limit', 5);
+    expect(res.body).toHaveProperty('total');
+    expect(res.body).toHaveProperty('totalPages');
+    expect(Array.isArray(res.body.summary)).toBe(true);
   });
 });
