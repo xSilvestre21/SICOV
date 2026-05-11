@@ -415,6 +415,24 @@ describe('updateClient', () => {
     expect(mockClient.state).toBe('MG');
   });
 
+  it('state vira string vazia quando enviado como null', async () => {
+    const req = { params: { id: 'c1' }, body: { state: null }, user: adminUser };
+    const res = makeRes();
+    const mockClient = {
+      _id: 'c1',
+      state: 'SP',
+      representativeId: { toString: () => 'repId' },
+      save: jest.fn().mockResolvedValue(true),
+    };
+    Client.findById.mockResolvedValue(mockClient);
+
+    await updateClient(req, res);
+
+    // state null deve virar '' sem lançar TypeError
+    expect(mockClient.state).toBe('');
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: 'Cliente atualizado com sucesso.' }));
+  });
+
   it('500 em caso de erro', async () => {
     const req = { params: { id: 'c1' }, body: {}, user: adminUser };
     const res = makeRes();

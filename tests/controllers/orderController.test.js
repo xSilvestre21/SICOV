@@ -91,6 +91,28 @@ describe("createOrder", () => {
     expect(res.status).toHaveBeenCalledWith(500);
   });
 
+  it("500 quando dois produtos têm fornecedores diferentes", async () => {
+    const req = {
+      body: {
+        clientId: "c1",
+        items: [
+          { productId: "p1", quantity: 10 },
+          { productId: "p2", quantity: 5 },
+        ],
+      },
+      user: repUser,
+    };
+    const res = makeRes();
+    Client.findById.mockResolvedValue({ _id: "c1", paymentTerm: "30 dias" });
+    // Primeiro produto define supplierId = "s1", segundo tem "s2"
+    Product.findById
+      .mockResolvedValueOnce({ ...makeProduct("s1"), _id: "p1" })
+      .mockResolvedValueOnce({ ...makeProduct("s2"), _id: "p2" });
+    Supplier.findById.mockResolvedValue(makeSupplier());
+    await createOrder(req, res);
+    expect(res.status).toHaveBeenCalledWith(500);
+  });
+
   it("cria pedido com sucesso e calcula IPI", async () => {
     const req = {
       body: { clientId: "c1", items: [{ productId: "p1", quantity: 100 }], notes: "Obs", sellerName: "Vendedor" },
@@ -452,6 +474,36 @@ describe("updateOrder", () => {
     Product.findById.mockResolvedValue(null);
     await updateOrder(req, res);
     expect(res.status).toHaveBeenCalledWith(500);
+  });
+
+  it("500 quando produto tem fornecedor diferente do pedido no update", async () => {
+    const supplierId = { toString: () => "s1" };
+    const mockOrder = { _id: "o1", representativeId: { toString: () => adminUser.id }, status: "active", sentToSupplier: false, supplierId };
+    const req = { params: { id: "o1" }, body: { items: [{ productId: "p1", quantity: 5 }] }, user: adminUser };
+    const res = makeRes();
+    Order.findById.mockResolvedValue(mockOrder);
+    // Produto com supplierId diferente do pedido
+    Product.findById.mockResolvedValue({ ...makeProduct("s2"), supplierId: { toString: () => "s2" } });
+    await updateOrder(req, res);
+    expect(res.status).toHaveBeenCalledWith(500);
+  });
+
+  it("404 quando fornecedor do pedido nao encontrado no update", async () => {
+    const supplierId = { toString: () => "s1" };
+    const mockOrder = {
+      _id: "o1", representativeId: { toString: () => adminUser.id },
+      status: "active", sentToSupplier: false, supplierId,
+      items: [], subtotal: 0, ipiValue: 0, total: 0,
+      save: jest.fn().mockResolvedValue(true),
+    };
+    const req = { params: { id: "o1" }, body: { items: [{ productId: "p1", quantity: 5 }] }, user: adminUser };
+    const res = makeRes();
+    Order.findById.mockResolvedValue(mockOrder);
+    Product.findById.mockResolvedValue(makeProduct("s1"));
+    Supplier.findById.mockResolvedValue(null); // fornecedor não encontrado
+    await updateOrder(req, res);
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.json).toHaveBeenCalledWith({ message: "Fornecedor do pedido n\u00e3o encontrado" });
   });
 });
 

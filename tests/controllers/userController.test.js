@@ -186,6 +186,44 @@ describe('updateRepresentative', () => {
     expect(mockRep.password).toBe('original');
   });
 
+  it('400 quando defaultCommissionPercentage é negativo', async () => {
+    const req = { params: { id: 'r1' }, body: { defaultCommissionPercentage: -1 }, user: adminUser };
+    const res = makeRes();
+    const mockRep = { _id: 'r1', save: jest.fn() };
+    User.findOne.mockResolvedValue(mockRep);
+    await updateRepresentative(req, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ message: 'defaultCommissionPercentage deve ser um número entre 0 e 100' });
+  });
+
+  it('400 quando defaultCommissionPercentage é maior que 100', async () => {
+    const req = { params: { id: 'r1' }, body: { defaultCommissionPercentage: 101 }, user: adminUser };
+    const res = makeRes();
+    const mockRep = { _id: 'r1', save: jest.fn() };
+    User.findOne.mockResolvedValue(mockRep);
+    await updateRepresentative(req, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+  });
+
+  it('400 quando defaultCommissionPercentage não é número', async () => {
+    const req = { params: { id: 'r1' }, body: { defaultCommissionPercentage: 'abc' }, user: adminUser };
+    const res = makeRes();
+    const mockRep = { _id: 'r1', save: jest.fn() };
+    User.findOne.mockResolvedValue(mockRep);
+    await updateRepresentative(req, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+  });
+
+  it('atualiza defaultCommissionPercentage válido com sucesso', async () => {
+    const req = { params: { id: 'r1' }, body: { defaultCommissionPercentage: 25 }, user: adminUser };
+    const res = makeRes();
+    const mockRep = { _id: 'r1', name: 'Rep', email: 'r@t.com', profile: 'representative', active: true, defaultCommissionPercentage: 0, save: jest.fn().mockResolvedValue(true) };
+    User.findOne.mockResolvedValue(mockRep);
+    await updateRepresentative(req, res);
+    expect(mockRep.defaultCommissionPercentage).toBe(25);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: 'Representante atualizado com sucesso' }));
+  });
+
   it('500 em caso de erro', async () => {
     const req = { params: { id: 'r1' }, body: {}, user: adminUser };
     const res = makeRes();

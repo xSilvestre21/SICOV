@@ -483,6 +483,61 @@ describe('updateProduct', () => {
     expect(res.status).toHaveBeenCalledWith(403);
   });
 
+  it('403 quando cliente está inativo no update', async () => {
+    const req = { params: { id: 'p1' }, body: {}, user: adminUser };
+    const res = makeRes();
+    Product.findById.mockResolvedValue({ _id: 'p1', clientId: 'c1', productType: 'custom', calculationMode: 'manual_price', material: null, supplierId: 's1', technicalData: {}, commercialData: {}, selectedExtras: [] });
+    Client.findById.mockResolvedValue({ _id: 'c1', active: false, representativeId: { toString: () => adminUser.id } });
+    await updateProduct(req, res);
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith({ message: 'Não é possível usar um cliente inativo' });
+  });
+
+  it('400 quando plastic_bag sem material no update', async () => {
+    const req = {
+      params: { id: 'p1' },
+      body: { productType: 'plastic_bag', material: null },
+      user: adminUser,
+    };
+    const res = makeRes();
+    Product.findById.mockResolvedValue({
+      _id: 'p1', clientId: 'c1', supplierId: 's1',
+      productType: 'custom', calculationMode: 'manual_price',
+      material: null, saleMode: 'unit', unitLabel: 'UN', description: 'D',
+      technicalData: { measurements: {} }, commercialData: { basePrice: 10 },
+      selectedExtras: [],
+      save: jest.fn(),
+    });
+    Client.findById.mockResolvedValue({ _id: 'c1', active: true, representativeId: { toString: () => adminUser.id } });
+    await updateProduct(req, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ message: 'Para sacos plásticos, o material é obrigatório' });
+  });
+
+  it('400 quando validateProductRules retorna erro no update', async () => {
+    const req = {
+      params: { id: 'p1' },
+      body: {
+        calculationMode: 'weight_times_price_per_kg',
+        commercialData: {}, // sem basePrice
+      },
+      user: adminUser,
+    };
+    const res = makeRes();
+    Product.findById.mockResolvedValue({
+      _id: 'p1', clientId: 'c1', supplierId: 's1',
+      productType: 'stretch', calculationMode: 'manual_price',
+      material: null, saleMode: 'kg', unitLabel: 'KG', description: 'D',
+      technicalData: { measurements: {} }, commercialData: { basePrice: 10 },
+      selectedExtras: [],
+      save: jest.fn(),
+    });
+    Client.findById.mockResolvedValue({ _id: 'c1', active: true, representativeId: { toString: () => adminUser.id } });
+    await updateProduct(req, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ message: expect.stringContaining('preço base') });
+  });
+
   it('atualiza produto custom com sucesso', async () => {
     const req = {
       params: { id: 'p1' },

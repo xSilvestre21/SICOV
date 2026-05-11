@@ -201,7 +201,7 @@ async function updateClient(req, res) {
     client.phone = phone !== undefined ? onlyNumbers(phone) : client.phone;
     client.address = address !== undefined ? address : client.address;
     client.city = city !== undefined ? city : client.city;
-    client.state = state !== undefined ? state.toUpperCase() : client.state;
+    client.state = state !== undefined ? (state ? state.toUpperCase() : '') : client.state;
     client.district = district !== undefined ? district : client.district;
     client.zipCode =
       zipCode !== undefined ? onlyNumbers(zipCode) : client.zipCode;
