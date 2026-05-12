@@ -7,6 +7,8 @@ import {
   Download,
   ChevronDown,
   ChevronUp,
+  Copy,
+  Edit,
 } from 'lucide-react';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -242,10 +244,15 @@ export function OrderDetailPage() {
         setOrder(data.order);
       } else if (action === 'pdf') {
         const response = await api.get(`/orders/${id}/pdf`, { responseType: 'blob' });
+        // Extrai o nome do arquivo do header Content-Disposition enviado pelo backend
+        const disposition = response.headers['content-disposition'] || '';
+        const match = disposition.match(/filename="?([^"]+)"?/);
+        const filename = match ? match[1] : `pedido-${order.orderNumber}.pdf`;
+
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
         link.href = url;
-        link.setAttribute('download', `pedido-${order.orderNumber}.pdf`);
+        link.setAttribute('download', filename);
         document.body.appendChild(link);
         link.click();
         link.remove();
@@ -290,6 +297,16 @@ export function OrderDetailPage() {
 
         {/* Ações */}
         <div className="flex flex-wrap gap-2">
+          {!isCancelled && !order.sentToSupplier && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate(`/orders/${id}/edit`)}
+            >
+              <Edit size={14} />
+              Editar
+            </Button>
+          )}
           {isAdmin && !isCancelled && (
             <Button
               variant="outline"
@@ -312,6 +329,14 @@ export function OrderDetailPage() {
               PDF
             </Button>
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate(`/orders/new?duplicate=${id}`)}
+          >
+            <Copy size={14} />
+            Duplicar
+          </Button>
           {isAdmin && !isCancelled && (
             <Button
               variant="danger"
@@ -381,6 +406,14 @@ export function OrderDetailPage() {
               <div className="flex justify-between">
                 <span className="text-gray-500">Enviado em</span>
                 <span className="font-medium text-[#4b5757]">{formatDate(order.sentToSupplierAt)}</span>
+              </div>
+            )}
+            {order.lastEditedAt && (
+              <div className="flex justify-between pt-2 border-t border-[#e3e3d1]">
+                <span className="text-gray-500">Última edição</span>
+                <span className="font-medium text-[#4b5757] text-xs">
+                  {order.lastEditedByName || '—'} em {new Date(order.lastEditedAt).toLocaleString('pt-BR')}
+                </span>
               </div>
             )}
           </CardBody>

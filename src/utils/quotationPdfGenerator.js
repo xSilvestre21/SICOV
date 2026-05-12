@@ -116,10 +116,15 @@ function generateQuotationPdf(quotation, res) {
   const c = quotation.clientSnapshot || {};
   const s = quotation.supplierSnapshot || {};
 
-  // ── Nome do arquivo ────────────────────────────────────────────────────────
-  const clientName = sanitize(c.tradeName || c.name || 'CLIENTE');
-  const dateStr    = formatDateFile(quotation.createdAt || new Date());
-  const fileName   = `ORCAMENTO-${clientName}-${dateStr}.pdf`;
+  // ── Nome do arquivo: nome do cliente - data atual ───────────────────────────
+  const clientName = String(c.tradeName || c.name || 'Cliente')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+  const dateStr    = formatDateFile(new Date());
+  const fileName   = `${clientName}-${dateStr}.pdf`;
 
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, ShoppingCart } from 'lucide-react';
+import { ArrowLeft, Download, ShoppingCart, Edit } from 'lucide-react';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { useAuth } from '../../contexts/AuthContext';
@@ -34,10 +34,14 @@ export function QuotationDetailPage() {
     setActionLoading('pdf');
     try {
       const response = await api.get(`/quotations/${id}/pdf`, { responseType: 'blob' });
+      const disposition = response.headers['content-disposition'] || '';
+      const match = disposition.match(/filename="?([^"]+)"?/);
+      const filename = match ? match[1] : `orcamento-${id}.pdf`;
+
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `orcamento-${id}.pdf`);
+      link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -73,6 +77,9 @@ export function QuotationDetailPage() {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => navigate(`/quotations/${id}/edit`)}>
+            <Edit size={14} /> Editar
+          </Button>
           <Button variant="outline" size="sm" onClick={handlePdf} loading={actionLoading === 'pdf'}><Download size={14} /> PDF</Button>
           <Button size="sm" onClick={handleConvert} loading={actionLoading === 'convert'}><ShoppingCart size={14} /> Converter em Pedido</Button>
         </div>

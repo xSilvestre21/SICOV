@@ -41,6 +41,11 @@ const quotationItemSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
+
+    hasIpi: {
+      type: Boolean,
+      default: true,
+    },
   },
   { _id: false },
 );

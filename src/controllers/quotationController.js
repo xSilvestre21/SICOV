@@ -14,7 +14,7 @@ async function processItems(items) {
   const processedItems = [];
 
   for (const item of items) {
-    const { productId, adHocProduct, quantity } = item;
+    const { productId, adHocProduct, quantity, hasIpi = true } = item;
 
     if (adHocProduct) {
       // ── Item avulso ────────────────────────────────────────────────────
@@ -52,6 +52,7 @@ async function processItems(items) {
         quantity,
         unitPrice,
         subtotal: itemSubtotal,
+        hasIpi,
       });
     } else {
       // ── Produto cadastrado ─────────────────────────────────────────────
@@ -96,6 +97,7 @@ async function processItems(items) {
         quantity,
         unitPrice,
         subtotal: itemSubtotal,
+        hasIpi,
       });
     }
   }
@@ -171,7 +173,10 @@ async function createQuotation(req, res) {
 
     // 5. Calcular totais
     const ipi = supplier.ipi || 0;
-    const ipiValue = subtotal * (ipi / 100);
+    const subtotalWithIpi = processedItems
+      .filter((i) => i.hasIpi !== false)
+      .reduce((sum, i) => sum + i.subtotal, 0);
+    const ipiValue = subtotalWithIpi * (ipi / 100);
     const total = subtotal + ipiValue;
 
     const quotationData = {
@@ -275,7 +280,10 @@ async function updateQuotation(req, res) {
       if (!supplier) return res.status(404).json({ message: 'Fornecedor não encontrado' });
 
       const ipi = supplier.ipi || 0;
-      const ipiValue = subtotal * (ipi / 100);
+      const subtotalWithIpi = processedItems
+        .filter((i) => i.hasIpi !== false)
+        .reduce((sum, i) => sum + i.subtotal, 0);
+      const ipiValue = subtotalWithIpi * (ipi / 100);
 
       quotation.supplierId = supplierId;
       quotation.supplierSnapshot = {
@@ -559,11 +567,15 @@ async function convertToOrder(req, res) {
         quantity:  item.quantity,
         unitPrice,
         subtotal:  itemSubtotal,
+        hasIpi: item.hasIpi !== false,
       });
     }
 
     const ipi      = updatedSupplier.ipi || 0;
-    const ipiValue = subtotal * (ipi / 100);
+    const subtotalWithIpi = orderItems
+      .filter((i) => i.hasIpi !== false)
+      .reduce((sum, i) => sum + i.subtotal, 0);
+    const ipiValue = subtotalWithIpi * (ipi / 100);
     const total    = subtotal + ipiValue;
 
     // 8. Criar o pedido

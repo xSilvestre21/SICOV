@@ -85,7 +85,7 @@ function sanitize(text) {
 function formatDateFile(value) {
   if (!value) return '';
   const d = new Date(value);
-  return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+  return `${String(d.getUTCDate()).padStart(2, '0')}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${d.getUTCFullYear()}`;
 }
 
 // ─── Layout ──────────────────────────────────────────────────────────────────
@@ -303,9 +303,9 @@ function drawTableHeader(doc, y) {
 }
 
 /**
- * Desenha os totais (subtotal, IPI, total) e a assinatura.
+ * Desenha os totais (subtotal, IPI, total).
  */
-function drawTotalsAndSignature(doc, order, y) {
+function drawTotals(doc, order, y) {
   const s = order.supplierSnapshot || {};
 
   hline(doc, y, 0.25);
@@ -327,13 +327,17 @@ function drawTotalsAndSignature(doc, order, y) {
   doc.fontSize(11).font('Helvetica-Bold');
   doc.text('TOTAL GERAL:', LABEL_X, y, { lineBreak: false });
   doc.text(formatCurrency(order.total), VALUE_X, y, { width: VALUE_W, align: 'right', lineBreak: false });
-  y += 20;
-
-  // Assinatura
-  doc.fontSize(9).font('Helvetica')
-    .text(order.sellerName || '', MARGIN, y, { lineBreak: false });
 
   return y;
+}
+
+/**
+ * Desenha o nome da vendedora fixo no rodapé da página.
+ */
+function drawSellerFooter(doc, order) {
+  const footerY = PAGE_H - MARGIN - 10;
+  doc.fontSize(9).font('Helvetica')
+    .text(order.sellerName || '', MARGIN, footerY, { lineBreak: false });
 }
 
 // ─── Gerador principal ────────────────────────────────────────────────────────
@@ -346,10 +350,10 @@ function generateOrderPdf(order, res) {
     autoFirstPage: true,
   });
 
-  // Nome do arquivo
+  // Nome do arquivo: nº pedido - empresa - PC-xxx (se tiver) - data de entrega
   const companyName = sanitize(order.clientSnapshot?.tradeName || order.clientSnapshot?.name || '');
-  let purchaseOrder = order.customerPurchaseOrder ? `PC-${sanitize(order.customerPurchaseOrder)}` : '';
-  const date = formatDateFile(order.createdAt);
+  const purchaseOrder = order.customerPurchaseOrder ? `PC-${sanitize(order.customerPurchaseOrder)}` : '';
+  const date = formatDateFile(order.deliveryDate || order.createdAt);
   let fileName = `${order.orderNumber}-${companyName}`;
   if (purchaseOrder) fileName += `-${purchaseOrder}`;
   fileName += `-${date}.pdf`;
@@ -422,7 +426,10 @@ function generateOrderPdf(order, res) {
     y += 8;
   }
 
-  drawTotalsAndSignature(doc, order, y);
+  drawTotals(doc, order, y);
+
+  // Nome da vendedora fixo no rodapé da página
+  drawSellerFooter(doc, order);
 
   doc.end();
 }

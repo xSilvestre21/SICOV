@@ -38,6 +38,11 @@ const orderItemSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
+
+    hasIpi: {
+      type: Boolean,
+      default: true,
+    },
   },
   { _id: false },
 );
@@ -167,6 +172,23 @@ const orderSchema = new mongoose.Schema(
     notes: {
       type: String,
       trim: true,
+    },
+
+    lastEditedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+
+    lastEditedAt: {
+      type: Date,
+      default: null,
+    },
+
+    lastEditedByName: {
+      type: String,
+      trim: true,
+      default: null,
     },
   },
   { timestamps: true },

@@ -73,7 +73,7 @@ async function createOrder(req, res) {
 
     await Promise.all(
       items.map(async (item) => {
-        const { productId, quantity } = item;
+        const { productId, quantity, hasIpi = true } = item;
 
         if (!productId || !quantity) {
           throw new Error('Produto e quantidade são obrigatórios');
@@ -119,6 +119,7 @@ async function createOrder(req, res) {
           quantity,
           unitPrice,
           subtotal: itemSubtotal,
+          hasIpi,
         });
       }),
     );
@@ -140,7 +141,10 @@ async function createOrder(req, res) {
     const orderNumber = supplier.currentOrderNumber;
 
     const ipi = supplier.ipi || 0;
-    const ipiValue = subtotal * (ipi / 100);
+    const subtotalWithIpi = processedItems
+      .filter((i) => i.hasIpi !== false)
+      .reduce((sum, i) => sum + i.subtotal, 0);
+    const ipiValue = subtotalWithIpi * (ipi / 100);
 
     const total = subtotal + ipiValue;
 
@@ -480,7 +484,7 @@ async function updateOrder(req, res) {
 
     await Promise.all(
       items.map(async (item) => {
-        const { productId, quantity } = item;
+        const { productId, quantity, hasIpi = true } = item;
 
         if (!productId || !quantity) {
           throw new Error('Produto e quantidade são obrigatórios');
@@ -524,6 +528,7 @@ async function updateOrder(req, res) {
           quantity,
           unitPrice,
           subtotal: itemSubtotal,
+          hasIpi,
         });
       }),
     );
@@ -537,7 +542,10 @@ async function updateOrder(req, res) {
     }
 
     const ipi = supplier.ipi || 0;
-    const ipiValue = subtotal * (ipi / 100);
+    const subtotalWithIpi = processedItems
+      .filter((i) => i.hasIpi !== false)
+      .reduce((sum, i) => sum + i.subtotal, 0);
+    const ipiValue = subtotalWithIpi * (ipi / 100);
     const total = subtotal + ipiValue;
 
     order.items = processedItems;
@@ -563,6 +571,11 @@ async function updateOrder(req, res) {
     };
 
     order.sellerName = sellerName !== undefined ? sellerName : order.sellerName;
+
+    // Registra quem editou e quando
+    order.lastEditedBy = req.user.id;
+    order.lastEditedAt = new Date();
+    order.lastEditedByName = req.user.name || req.user.email;
 
     await order.save();
 

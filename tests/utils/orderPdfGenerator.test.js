@@ -100,10 +100,10 @@ describe('generateOrderPdf', () => {
     expect(headers['content-type']).toBe('application/pdf');
   });
 
-  it('define Content-Disposition com nome de arquivo no formato correto', async () => {
-    const order = makeOrder({ orderNumber: 42, createdAt: new Date('2026-05-05T12:00:00Z') });
+  it('define Content-Disposition com nome de arquivo no formato correto (usa deliveryDate)', async () => {
+    const order = makeOrder({ orderNumber: 42, deliveryDate: new Date('2026-06-15T00:00:00Z') });
     const { headers } = await generateAndCollect(order);
-    expect(headers['content-disposition']).toMatch(/^attachment; filename="42-TESTE-05-05-2026\.pdf"$/);
+    expect(headers['content-disposition']).toMatch(/^attachment; filename="42-TESTE-15-06-2026\.pdf"$/);
   });
 
   it('inclui customerPurchaseOrder no nome do arquivo quando fornecido', async () => {

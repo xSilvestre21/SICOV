@@ -7,6 +7,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { OrdersListPage } from './pages/orders/OrdersListPage';
 import { NewOrderPage } from './pages/orders/NewOrderPage';
 import { OrderDetailPage } from './pages/orders/OrderDetailPage';
+import { EditOrderPage } from './pages/orders/EditOrderPage';
 import { ClientsListPage } from './pages/clients/ClientsListPage';
 import { ClientFormPage } from './pages/clients/ClientFormPage';
 import { ClientDetailPage } from './pages/clients/ClientDetailPage';
@@ -17,6 +18,7 @@ import { CommissionsListPage } from './pages/commissions/CommissionsListPage';
 import { QuotationsListPage } from './pages/quotations/QuotationsListPage';
 import { NewQuotationPage } from './pages/quotations/NewQuotationPage';
 import { QuotationDetailPage } from './pages/quotations/QuotationDetailPage';
+import { EditQuotationPage } from './pages/quotations/EditQuotationPage';
 import { SuppliersListPage } from './pages/suppliers/SuppliersListPage';
 import { SupplierFormPage } from './pages/suppliers/SupplierFormPage';
 import { SupplierDetailPage } from './pages/suppliers/SupplierDetailPage';
@@ -41,11 +43,13 @@ function AppRoutes() {
         <Route path="orders" element={<OrdersListPage />} />
         <Route path="orders/new" element={<NewOrderPage />} />
         <Route path="orders/:id" element={<OrderDetailPage />} />
+        <Route path="orders/:id/edit" element={<EditOrderPage />} />
 
         {/* Orçamentos */}
         <Route path="quotations" element={<QuotationsListPage />} />
         <Route path="quotations/new" element={<NewQuotationPage />} />
         <Route path="quotations/:id" element={<QuotationDetailPage />} />
+        <Route path="quotations/:id/edit" element={<EditQuotationPage />} />
 
         {/* Comissões */}
         <Route path="commissions" element={<CommissionsListPage />} />
