@@ -1,10 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, ChevronLeft, ChevronRight, DollarSign, TrendingUp } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, DollarSign } from 'lucide-react';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { useAuth } from '../../contexts/AuthContext';
+import { CommissionDetailModal } from './CommissionDetailModal';
 import api from '../../lib/api';
 
 function formatCurrency(v) {
@@ -20,12 +21,15 @@ export function CommissionsListPage() {
   const [totalPages, setTotalPages] = useState(0);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [selectedCommission, setSelectedCommission] = useState(null);
+  const [suppliers, setSuppliers] = useState([]);
 
   const page = Number(searchParams.get('page') || 1);
   const month = searchParams.get('month') || '';
   const year = searchParams.get('year') || '';
   const status = searchParams.get('status') || '';
   const orderNumber = searchParams.get('orderNumber') || '';
+  const supplierId = searchParams.get('supplierId') || '';
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -35,24 +39,46 @@ export function CommissionsListPage() {
       if (year) params.year = year;
       if (status) params.status = status;
       if (orderNumber) params.orderNumber = orderNumber;
+      if (supplierId) params.supplierId = supplierId;
 
       const [listRes, summaryRes] = await Promise.all([
         api.get('/commissions', { params }),
-        api.get('/commissions/summary', { params: { month, year } }),
+        api.get('/commissions/summary', { params: { month, year, supplierId } }),
       ]);
 
       setCommissions(listRes.data.commissions);
       setTotal(listRes.data.total);
       setTotalPages(listRes.data.totalPages);
-      setSummary(summaryRes.data.summary?.[0] ?? null);
+      setSummary(() => {
+        const items = summaryRes.data.summary || [];
+        if (items.length === 0) return null;
+        // Soma todos os grupos (pode haver vários representantes)
+        return items.reduce((acc, item) => ({
+          totalOrderValue: (acc.totalOrderValue || 0) + (item.totalOrderValue || 0),
+          totalPool: (acc.totalPool || 0) + (item.totalPool || 0),
+          totalAdminCommission: (acc.totalAdminCommission || 0) + (item.totalAdminCommission || 0),
+          totalRepresentativeCommission: (acc.totalRepresentativeCommission || 0) + (item.totalRepresentativeCommission || 0),
+          totalRealPool: (acc.totalRealPool || 0) + (item.totalRealPool || 0),
+          totalRealAdminCommission: (acc.totalRealAdminCommission || 0) + (item.totalRealAdminCommission || 0),
+          totalRealRepresentativeCommission: (acc.totalRealRepresentativeCommission || 0) + (item.totalRealRepresentativeCommission || 0),
+          count: (acc.count || 0) + (item.count || 0),
+        }), {});
+      });
     } catch {
       // silencioso
     } finally {
       setLoading(false);
     }
-  }, [page, month, year, status, orderNumber]);
+  }, [page, month, year, status, orderNumber, supplierId]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Carrega fornecedores para o filtro
+  useEffect(() => {
+    api.get('/suppliers', { params: { active: 'true', limit: 100 } })
+      .then(({ data }) => setSuppliers(data.suppliers || []))
+      .catch(() => {});
+  }, []);
 
   const setPage = (p) => {
     const params = new URLSearchParams(searchParams);
@@ -67,9 +93,11 @@ export function CommissionsListPage() {
     const m = formData.get('month');
     const y = formData.get('year');
     const on = formData.get('orderNumber');
+    const sid = formData.get('supplierId');
     if (m) params.set('month', m);
     if (y) params.set('year', y);
     if (on) params.set('orderNumber', on);
+    if (sid) params.set('supplierId', sid);
     if (status) params.set('status', status);
     params.set('page', '1');
     setSearchParams(params);
@@ -83,9 +111,6 @@ export function CommissionsListPage() {
     setSearchParams(params);
   };
 
-  const currentMonth = new Date().getMonth() + 1;
-  const currentYear = new Date().getFullYear();
-
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -94,44 +119,48 @@ export function CommissionsListPage() {
         <p className="text-sm text-[#7c8a6e]">{total} registro{total !== 1 ? 's' : ''}</p>
       </div>
 
-      {/* Summary cards */}
-      {summary && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      {/* Summary cards — só aparecem quando mês está filtrado */}
+      {summary && month && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Valor total dos pedidos */}
           <Card>
-            <CardBody className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#58706d] flex items-center justify-center">
-                <DollarSign size={18} className="text-white" />
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">Pool (pedido)</p>
-                <p className="text-lg font-bold text-[#4b5757]">{formatCurrency(summary.totalPool)}</p>
-              </div>
+            <CardBody className="space-y-3">
+              <p className="text-xs font-medium text-[#7c8a6e] uppercase tracking-wide">Valor Total dos Pedidos (s/ IPI)</p>
+              <p className="text-2xl font-bold text-[#4b5757]">{formatCurrency(summary.totalOrderValue)}</p>
+              {(summary.totalRealPool || 0) > 0 && (
+                <div className="pt-2 border-t border-[#e3e3d1]">
+                  <p className="text-xs text-gray-400">Total Real Recebido</p>
+                  <p className="text-lg font-bold text-[#4b5757]">{formatCurrency((summary.totalRealPool || 0) / (summary.totalPool > 0 ? summary.totalPool / summary.totalOrderValue : 0.05))}</p>
+                </div>
+              )}
             </CardBody>
           </Card>
+
+          {/* Comissão Admin */}
           <Card>
-            <CardBody className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#7c8a6e] flex items-center justify-center">
-                <TrendingUp size={18} className="text-white" />
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">Comissão Representante</p>
-                <p className="text-lg font-bold text-[#4b5757]">{formatCurrency(summary.totalRepresentativeCommission)}</p>
-              </div>
-            </CardBody>
-          </Card>
-          {summary.totalRealPool > 0 && (
-            <Card>
-              <CardBody className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#b0b087] flex items-center justify-center">
-                  <DollarSign size={18} className="text-white" />
+            <CardBody className="space-y-3">
+              <p className="text-xs font-medium text-[#7c8a6e] uppercase tracking-wide">Comissão</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-gray-400">Base Pedido</p>
+                  <p className="text-xl font-bold text-[#4b5757]">{formatCurrency(summary.totalAdminCommission)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500">Pool (real recebido)</p>
-                  <p className="text-lg font-bold text-[#4b5757]">{formatCurrency(summary.totalRealPool)}</p>
+                  <p className="text-xs text-gray-400">Base Real</p>
+                  <p className="text-xl font-bold text-[#4b5757]">{formatCurrency(summary.totalRealAdminCommission || 0)}</p>
                 </div>
-              </CardBody>
-            </Card>
-          )}
+              </div>
+              {summary.totalAdminCommission > 0 && (summary.totalRealAdminCommission || 0) > 0 && (
+                <div className="pt-2 border-t border-[#e3e3d1]">
+                  <p className="text-xs text-gray-400">Diferença</p>
+                  <p className={`text-sm font-semibold ${(summary.totalRealAdminCommission - summary.totalAdminCommission) >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                    {(summary.totalRealAdminCommission - summary.totalAdminCommission) >= 0 ? '+' : ''}
+                    {formatCurrency(summary.totalRealAdminCommission - summary.totalAdminCommission)}
+                  </p>
+                </div>
+              )}
+            </CardBody>
+          </Card>
         </div>
       )}
 
@@ -143,7 +172,7 @@ export function CommissionsListPage() {
             type="number"
             min="1"
             max="12"
-            defaultValue={month || currentMonth}
+            defaultValue={month}
             placeholder="Mês"
             className="w-20 px-3 py-2 text-sm rounded-lg border border-[#b0b087] focus:border-[#58706d] focus:ring-1 focus:ring-[#58706d] outline-none"
           />
@@ -152,7 +181,7 @@ export function CommissionsListPage() {
             type="number"
             min="2020"
             max="2030"
-            defaultValue={year || currentYear}
+            defaultValue={year}
             placeholder="Ano"
             className="w-24 px-3 py-2 text-sm rounded-lg border border-[#b0b087] focus:border-[#58706d] focus:ring-1 focus:ring-[#58706d] outline-none"
           />
@@ -163,6 +192,14 @@ export function CommissionsListPage() {
             placeholder="Nº Pedido"
             className="w-28 px-3 py-2 text-sm rounded-lg border border-[#b0b087] focus:border-[#58706d] focus:ring-1 focus:ring-[#58706d] outline-none"
           />
+          <select
+            name="supplierId"
+            defaultValue={supplierId}
+            className="px-3 py-2 text-sm rounded-lg border border-[#b0b087] focus:border-[#58706d] focus:ring-1 focus:ring-[#58706d] outline-none"
+          >
+            <option value="">Todos fornecedores</option>
+            {suppliers.map((s) => <option key={s._id} value={s._id}>{s.tradeName || s.name}</option>)}
+          </select>
           <Button type="submit" variant="secondary" size="md">
             <Search size={14} />
             Filtrar
@@ -196,7 +233,7 @@ export function CommissionsListPage() {
         ) : (
           <div className="divide-y divide-[#e3e3d1]">
             {commissions.map((c) => (
-              <div key={c._id} className="px-4 md:px-6 py-4 hover:bg-[#f5f5ee] transition-colors">
+              <div key={c._id} className="px-4 md:px-6 py-4 hover:bg-[#f5f5ee] transition-colors cursor-pointer" onClick={() => setSelectedCommission(c)}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-9 h-9 rounded-lg bg-[#e3e3d1] flex items-center justify-center shrink-0">
@@ -213,23 +250,32 @@ export function CommissionsListPage() {
                         {c.status === 'cancelled' && <Badge variant="cancelled">Cancelada</Badge>}
                       </div>
                       <p className="text-xs text-gray-400 mt-0.5">
+                        {c.supplierName ? `${c.supplierName} · ` : ''}
                         {c.customerPurchaseOrder ? `PC: ${c.customerPurchaseOrder} · ` : ''}
                         {c.period?.month}/{c.period?.year}
-                        {c.representativePercentage !== undefined ? ` · ${c.representativePercentage}%` : ''}
+                        {isAdmin
+                          ? (c.adminPercentage !== undefined ? ` · ${c.adminPercentage}%` : '')
+                          : (c.representativePercentage !== undefined ? ` · ${c.representativePercentage}%` : '')
+                        }
                       </p>
                     </div>
                   </div>
 
                   <div className="flex flex-col items-end gap-0.5 shrink-0 ml-3">
                     <span className="text-sm font-semibold text-[#4b5757]">
-                      {formatCurrency(c.representativeCommission)}
+                      {formatCurrency(c.adminCommission)}
                     </span>
                     <span className="text-xs text-gray-400">
                       de {formatCurrency(c.orderValueWithoutIpi)}
                     </span>
-                    {c.realRepresentativeCommission != null && (
+                    {c.realAdminCommission != null && c.realAdminCommission > 0 && (
                       <span className="text-xs text-[#7c8a6e]">
-                        Real: {formatCurrency(c.realRepresentativeCommission)}
+                        Real: {formatCurrency(c.realAdminCommission)}
+                      </span>
+                    )}
+                    {c.representativeCommission > 0 && (
+                      <span className="text-xs text-gray-300">
+                        Rep: {formatCurrency(c.representativeCommission)}
                       </span>
                     )}
                   </div>
@@ -251,6 +297,19 @@ export function CommissionsListPage() {
             <ChevronRight size={16} />
           </Button>
         </div>
+      )}
+
+      {/* Modal de detalhes/edição */}
+      {selectedCommission && (
+        <CommissionDetailModal
+          commission={selectedCommission}
+          onClose={() => setSelectedCommission(null)}
+          onUpdated={(updated) => {
+            setCommissions((prev) => prev.map((c) => c._id === updated._id ? updated : c));
+            setSelectedCommission(null);
+            fetchData();
+          }}
+        />
       )}
     </div>
   );

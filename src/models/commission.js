@@ -27,6 +27,19 @@ const commissionSchema = new mongoose.Schema(
       default: null,
     },
 
+    // Fornecedor (snapshot para filtro)
+    supplierId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Supplier',
+      default: null,
+    },
+
+    supplierName: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+
     // PC do cliente (customerPurchaseOrder — snapshot para facilitar localização e filtro)
     customerPurchaseOrder: {
       type: String,

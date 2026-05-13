@@ -4,6 +4,7 @@ import { ArrowLeft, Plus, Trash2, ShoppingCart, Search, X } from 'lucide-react';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { ProductSearch } from '../../components/ui/ProductSearch';
 import api from '../../lib/api';
 
 function formatCurrency(v) {
@@ -177,11 +178,13 @@ export function NewOrderPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const duplicateId = searchParams.get('duplicate');
+  const fromQuotationId = searchParams.get('fromQuotation');
 
   // State
   const [clients, setClients] = useState([]);
   const [products, setProducts] = useState([]);
   const [selectedClient, setSelectedClient] = useState('');
+  const [supplierIpi, setSupplierIpi] = useState(0);
   const [items, setItems] = useState([]);
   const [notes, setNotes] = useState('');
   const [deliveryDate, setDeliveryDate] = useState('');
@@ -205,13 +208,27 @@ export function NewOrderPage() {
       .then(({ data }) => {
         setSelectedClient(data.clientId);
         setNotes(data.notes || '');
-        // Items serão preenchidos após os produtos carregarem
-        // Guardamos temporariamente
         window.__sicov_duplicate_items = data.items || [];
         setDuplicateLoaded(true);
       })
       .catch(() => {});
   }, [duplicateId, duplicateLoaded]);
+
+  // Carrega dados do orçamento para converter em pedido
+  useEffect(() => {
+    if (!fromQuotationId || duplicateLoaded) return;
+    api.get(`/quotations/${fromQuotationId}`)
+      .then(({ data }) => {
+        if (data.clientId) setSelectedClient(data.clientId);
+        setNotes(data.observations || '');
+        // Itens serão preenchidos após os produtos carregarem
+        window.__sicov_duplicate_items = (data.items || [])
+          .filter((i) => i.productId) // só itens cadastrados
+          .map((i) => ({ productId: i.productId, quantity: i.quantity, hasIpi: i.hasIpi !== false }));
+        setDuplicateLoaded(true);
+      })
+      .catch(() => {});
+  }, [fromQuotationId, duplicateLoaded]);
 
   // Carrega clientes ao montar
   useEffect(() => {
@@ -237,6 +254,17 @@ export function NewOrderPage() {
       .then(([productsRes, clientRes]) => {
         const loadedProducts = productsRes.data.products || [];
         setProducts(loadedProducts);
+
+        // Pega o IPI do fornecedor
+        if (loadedProducts.length > 0) {
+          const sup = loadedProducts[0].supplierId;
+          const supId = typeof sup === 'object' && sup !== null ? sup._id : sup;
+          if (supId) {
+            api.get(`/suppliers/${supId}`).then(({ data }) => {
+              setSupplierIpi(data.ipi ?? 0);
+            }).catch(() => {});
+          }
+        }
 
         // Se estamos duplicando, preenche os itens do pedido original
         if (window.__sicov_duplicate_items && window.__sicov_duplicate_items.length > 0) {
@@ -333,9 +361,9 @@ export function NewOrderPage() {
           <ArrowLeft size={20} />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-[#4b5757]">{duplicateId ? 'Duplicar Pedido' : 'Novo Pedido'}</h1>
+          <h1 className="text-2xl font-bold text-[#4b5757]">{fromQuotationId ? 'Converter Orçamento em Pedido' : duplicateId ? 'Duplicar Pedido' : 'Novo Pedido'}</h1>
           <p className="text-sm text-[#7c8a6e]">
-            {duplicateId ? 'Pedido duplicado — preencha a data e o PC' : 'Preencha os dados do pedido'}
+            {fromQuotationId ? 'Preencha a data de entrega e o PC para finalizar' : duplicateId ? 'Pedido duplicado — preencha a data e o PC' : 'Preencha os dados do pedido'}
           </p>
         </div>
       </div>
@@ -410,23 +438,14 @@ export function NewOrderPage() {
               return (
                 <div key={index} className="flex flex-col sm:flex-row gap-3 p-3 bg-[#f5f5ee] rounded-lg">
                   <div className="flex-1">
-                    <select
-                      value={item.productId}
-                      onChange={(e) => updateItem(index, 'productId', e.target.value)}
-                      className="w-full rounded-lg border border-[#b0b087] px-3 py-2 text-sm outline-none focus:border-[#58706d] focus:ring-1 focus:ring-[#58706d]"
-                    >
-                      <option value="">Selecione um produto...</option>
-                      {products.map((p) => (
-                        <option key={p._id} value={p._id}>
-                          {p.name} {p.description ? `— ${p.description}` : ''} ({p.unitLabel || p.saleMode})
-                        </option>
-                      ))}
-                    </select>
-                    {product && (
+                    <ProductSearch
+                      products={products}
+                      selectedProductId={item.productId}
+                      onSelect={(id) => updateItem(index, 'productId', id)}
+                    />
+                    {product && unitPrice > 0 && (
                       <p className="text-xs text-gray-400 mt-1">
-                        {product.supplierCode ? `Cód. Forn: ${product.supplierCode}` : ''}
-                        {product.clientCode ? ` · Cód. Cli: ${product.clientCode}` : ''}
-                        {unitPrice > 0 ? ` · Preço un.: ${formatCurrency(unitPrice)}` : ''}
+                        Preço un.: {formatCurrency(unitPrice)}
                       </p>
                     )}
                   </div>
@@ -468,9 +487,36 @@ export function NewOrderPage() {
 
             {items.length > 0 && (
               <div className="flex justify-end pt-2 border-t border-[#e3e3d1]">
-                <div className="text-right">
-                  <p className="text-xs text-gray-400">Subtotal estimado (s/ IPI)</p>
-                  <p className="text-lg font-bold text-[#4b5757]">{formatCurrency(estimatedTotal)}</p>
+                <div className="text-right space-y-1">
+                  <div>
+                    <p className="text-xs text-gray-400">Subtotal (s/ IPI)</p>
+                    <p className="text-base font-semibold text-[#4b5757]">{formatCurrency(estimatedTotal)}</p>
+                  </div>
+                  {supplierIpi > 0 && (() => {
+                    const subtotalComIpi = items.reduce((sum, item) => {
+                      if (item.hasIpi === false) return sum;
+                      return sum + getItemSubtotal(item);
+                    }, 0);
+                    const ipiValue = subtotalComIpi * (supplierIpi / 100);
+                    return (
+                      <>
+                        <div>
+                          <p className="text-xs text-gray-400">IPI ({supplierIpi}%)</p>
+                          <p className="text-sm text-[#4b5757]">{formatCurrency(ipiValue)}</p>
+                        </div>
+                        <div className="pt-1 border-t border-[#e3e3d1]">
+                          <p className="text-xs text-gray-400">Total estimado</p>
+                          <p className="text-lg font-bold text-[#4b5757]">{formatCurrency(estimatedTotal + ipiValue)}</p>
+                        </div>
+                      </>
+                    );
+                  })()}
+                  {supplierIpi === 0 && (
+                    <div>
+                      <p className="text-xs text-gray-400">Total estimado</p>
+                      <p className="text-lg font-bold text-[#4b5757]">{formatCurrency(estimatedTotal)}</p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

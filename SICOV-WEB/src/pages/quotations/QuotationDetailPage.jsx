@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, ShoppingCart, Edit } from 'lucide-react';
+import { ArrowLeft, Download, ShoppingCart, Edit, ChevronDown, ChevronUp } from 'lucide-react';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
+import { Badge } from '../../components/ui/Badge';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
 
@@ -13,6 +14,113 @@ function formatCurrency(v) {
 function formatDate(v) {
   if (!v) return '—';
   return new Date(v).toLocaleDateString('pt-BR');
+}
+
+function formatNumber(v) {
+  if (v === null || v === undefined) return null;
+  return Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 6 });
+}
+
+const typeLabels = {
+  plastic_bag: 'Saco Plástico', tape: 'Fita', stretch: 'Stretch',
+  shrink: 'Shrink', bobbin: 'Bobina', custom: 'Personalizado',
+};
+
+const modeLabels = {
+  kg: 'Kg', thousand: 'Milheiro', unit: 'Unidade',
+  box: 'Caixa', linear_meter: 'Metro Linear', manual: 'Manual',
+};
+
+function ItemDetail({ item, ipiRate, orderSubtotal, orderIpiValue }) {
+  const [expanded, setExpanded] = useState(false);
+  const p = item.productSnapshot || {};
+  const m = p.technicalData?.measurements || {};
+  const cd = p.commercialData || {};
+
+  const itemIpi = (item.hasIpi !== false && orderSubtotal > 0)
+    ? (item.subtotal / orderSubtotal) * orderIpiValue
+    : 0;
+  const itemTotal = item.subtotal + itemIpi;
+
+  const hasDetails = p.productType || cd.factorKg || cd.density || cd.basePrice || m.width || m.length || m.thickness || (p.selectedExtras?.length > 0);
+
+  return (
+    <div className="border-b border-[#e3e3d1] last:border-b-0">
+      <div
+        className={`flex items-center justify-between px-4 md:px-6 py-3 ${hasDetails ? 'cursor-pointer hover:bg-[#f5f5ee]' : ''} transition-colors`}
+        onClick={() => hasDetails && setExpanded(!expanded)}
+      >
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          {hasDetails && (
+            <span className="text-gray-400 shrink-0">
+              {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </span>
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-[#4b5757] truncate">
+              {p.description || p.name || '—'}
+            </p>
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+              {p.supplierCode && <span className="text-xs text-gray-400">Forn: {p.supplierCode}</span>}
+              {p.clientCode && <span className="text-xs text-gray-400">· Cli: {p.clientCode}</span>}
+              {p.productType && <span className="text-xs text-[#7c8a6e]">· {typeLabels[p.productType] || p.productType}</span>}
+              {item.hasIpi === false && <Badge variant="default">Sem IPI</Badge>}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4 shrink-0 text-sm">
+          <div className="text-right hidden sm:block">
+            <p className="text-xs text-gray-400">Qtd</p>
+            <p className="font-medium text-[#4b5757]">{Number(item.quantity).toLocaleString('pt-BR')} {p.unitLabel || p.saleMode || ''}</p>
+          </div>
+          <div className="text-right hidden md:block">
+            <p className="text-xs text-gray-400">Unitário</p>
+            <p className="text-gray-600">{formatCurrency(item.unitPrice)}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-gray-400">Subtotal</p>
+            <p className="font-semibold text-[#4b5757]">{formatCurrency(item.subtotal)}</p>
+          </div>
+        </div>
+      </div>
+
+      {expanded && (
+        <div className="px-4 md:px-6 pb-4 pt-1 ml-7 bg-[#f9f9f4] border-t border-[#e3e3d1]">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-6 gap-y-3 text-sm">
+            {cd.factorKg != null && <div><p className="text-xs text-gray-400">Fator Kg (R$/kg)</p><p className="font-medium text-[#4b5757]">{formatCurrency(cd.factorKg)}</p></div>}
+            {cd.basePrice != null && <div><p className="text-xs text-gray-400">Preço Base</p><p className="font-medium text-[#4b5757]">{formatCurrency(cd.basePrice)}</p></div>}
+            {cd.unitPrice != null && <div><p className="text-xs text-gray-400">Preço Unitário</p><p className="font-medium text-[#4b5757]">{formatCurrency(cd.unitPrice)}</p></div>}
+            {cd.boxPrice != null && <div><p className="text-xs text-gray-400">Preço Caixa</p><p className="font-medium text-[#4b5757]">{formatCurrency(cd.boxPrice)}</p></div>}
+            {cd.density != null && <div><p className="text-xs text-gray-400">Densidade</p><p className="font-medium text-[#4b5757]">{formatNumber(cd.density)}</p></div>}
+            {m.width != null && <div><p className="text-xs text-gray-400">Largura</p><p className="font-medium text-[#4b5757]">{formatNumber(m.width)}</p></div>}
+            {m.length != null && <div><p className="text-xs text-gray-400">Comprimento</p><p className="font-medium text-[#4b5757]">{formatNumber(m.length)}</p></div>}
+            {m.thickness != null && <div><p className="text-xs text-gray-400">Espessura</p><p className="font-medium text-[#4b5757]">{formatNumber(m.thickness)}</p></div>}
+            {m.gusset != null && <div><p className="text-xs text-gray-400">Sanfona</p><p className="font-medium text-[#4b5757]">{formatNumber(m.gusset)}</p></div>}
+            {m.weight != null && <div><p className="text-xs text-gray-400">Peso</p><p className="font-medium text-[#4b5757]">{formatNumber(m.weight)}</p></div>}
+            {p.material && <div><p className="text-xs text-gray-400">Material</p><p className="font-medium text-[#4b5757]">{p.material}</p></div>}
+            {p.saleMode && <div><p className="text-xs text-gray-400">Modo de Venda</p><p className="font-medium text-[#4b5757]">{modeLabels[p.saleMode] || p.saleMode}</p></div>}
+            {p.calculationMode && <div><p className="text-xs text-gray-400">Modo de Cálculo</p><p className="font-medium text-[#4b5757] text-xs">{p.calculationMode.replace(/_/g, ' ')}</p></div>}
+            <div><p className="text-xs text-gray-400">IPI do Item</p><p className="font-medium text-[#4b5757]">{formatCurrency(itemIpi)}</p></div>
+            <div><p className="text-xs text-gray-400">Total c/ IPI</p><p className="font-bold text-[#4b5757]">{formatCurrency(itemTotal)}</p></div>
+          </div>
+
+          {p.selectedExtras?.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-[#e3e3d1]">
+              <p className="text-xs text-gray-400 mb-1">Extras aplicados:</p>
+              <div className="flex flex-wrap gap-2">
+                {p.selectedExtras.map((extra, i) => (
+                  <span key={i} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-[#e3e3d1] text-[#4b5757]">
+                    {extra.name}: {formatCurrency(extra.value)} ({extra.chargeType?.replace(/_/g, ' ')})
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function QuotationDetailPage() {
@@ -50,14 +158,8 @@ export function QuotationDetailPage() {
     finally { setActionLoading(''); }
   };
 
-  const handleConvert = async () => {
-    if (!confirm('Converter este orçamento em pedido?')) return;
-    setActionLoading('convert');
-    try {
-      const { data } = await api.post(`/quotations/${id}/convert-to-order`);
-      navigate(`/orders/${data.order._id}`);
-    } catch (err) { alert(err.response?.data?.message || 'Erro ao converter.'); }
-    finally { setActionLoading(''); }
+  const handleConvert = () => {
+    navigate(`/orders/new?fromQuotation=${id}`);
   };
 
   if (loading) return <div className="text-center py-12 text-gray-400">Carregando...</div>;
@@ -67,7 +169,7 @@ export function QuotationDetailPage() {
   const supplier = quotation.supplierSnapshot || {};
 
   return (
-    <div className="space-y-4 max-w-4xl mx-auto">
+    <div className="space-y-4 max-w-5xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate('/quotations')} className="text-[#58706d] hover:text-[#4b5757]"><ArrowLeft size={20} /></button>
@@ -76,12 +178,14 @@ export function QuotationDetailPage() {
             <p className="text-sm text-[#7c8a6e]">{client.tradeName || client.name} · {formatDate(quotation.createdAt)}</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => navigate(`/quotations/${id}/edit`)}>
             <Edit size={14} /> Editar
           </Button>
           <Button variant="outline" size="sm" onClick={handlePdf} loading={actionLoading === 'pdf'}><Download size={14} /> PDF</Button>
-          <Button size="sm" onClick={handleConvert} loading={actionLoading === 'convert'}><ShoppingCart size={14} /> Converter em Pedido</Button>
+          <Button size="sm" onClick={handleConvert} disabled={!quotation.clientId || quotation.items?.some((i) => !i.productId)}>
+            <ShoppingCart size={14} /> Converter em Pedido
+          </Button>
         </div>
       </div>
 
@@ -90,6 +194,7 @@ export function QuotationDetailPage() {
           <CardHeader><h2 className="text-sm font-semibold text-[#4b5757]">Cliente</h2></CardHeader>
           <CardBody className="text-sm space-y-1">
             <p className="font-medium text-[#4b5757]">{client.tradeName || client.name}</p>
+            {quotation.attn && <p className="text-[#7c8a6e]">A/C: {quotation.attn}</p>}
             {client.cnpj && <p className="text-gray-500">CNPJ: {client.cnpj}</p>}
             {client.city && <p className="text-gray-500">{client.city}/{client.state}</p>}
           </CardBody>
@@ -103,46 +208,66 @@ export function QuotationDetailPage() {
         </Card>
       </div>
 
+      {/* Itens expandíveis */}
       <Card>
-        <CardHeader><h2 className="text-sm font-semibold text-[#4b5757]">Itens ({quotation.items?.length || 0})</h2></CardHeader>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-[#f5f5ee] border-b border-[#e3e3d1]">
-              <tr>
-                <th className="text-left px-4 py-2 font-medium text-[#4b5757]">Produto</th>
-                <th className="text-right px-4 py-2 font-medium text-[#4b5757]">Qtd</th>
-                <th className="text-right px-4 py-2 font-medium text-[#4b5757]">Unitário</th>
-                <th className="text-right px-4 py-2 font-medium text-[#4b5757]">Subtotal</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#e3e3d1]">
-              {(quotation.items || []).map((item, i) => {
-                const p = item.productSnapshot || {};
-                return (
-                  <tr key={i}>
-                    <td className="px-4 py-2 text-[#4b5757]">{p.description || p.name || '—'}</td>
-                    <td className="px-4 py-2 text-right">{Number(item.quantity).toLocaleString('pt-BR')}</td>
-                    <td className="px-4 py-2 text-right text-gray-500">{formatCurrency(item.unitPrice)}</td>
-                    <td className="px-4 py-2 text-right font-semibold text-[#4b5757]">{formatCurrency(item.subtotal)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-[#4b5757]">Itens ({quotation.items?.length || 0})</h2>
+            <p className="text-xs text-gray-400">Clique em um item para ver detalhes</p>
+          </div>
+        </CardHeader>
+        <div>
+          {(quotation.items || []).map((item, i) => (
+            <ItemDetail
+              key={i}
+              item={item}
+              ipiRate={supplier.ipi || 0}
+              orderSubtotal={quotation.subtotal}
+              orderIpiValue={quotation.ipiValue}
+            />
+          ))}
         </div>
-        <div className="border-t border-[#e3e3d1] px-4 py-3 flex justify-end">
-          <div className="text-right text-sm space-y-1">
-            <div className="flex gap-6"><span className="text-gray-500">Subtotal</span><span className="font-medium w-28 text-right">{formatCurrency(quotation.subtotal)}</span></div>
-            <div className="flex gap-6"><span className="text-gray-500">IPI</span><span className="font-medium w-28 text-right">{formatCurrency(quotation.ipiValue)}</span></div>
-            <div className="flex gap-6 pt-1 border-t border-[#e3e3d1]"><span className="font-semibold">Total</span><span className="font-bold text-lg w-28 text-right">{formatCurrency(quotation.total)}</span></div>
+
+        {/* Totais */}
+        <div className="border-t border-[#e3e3d1] px-4 md:px-6 py-4">
+          <div className="flex flex-col items-end gap-1 text-sm">
+            <div className="flex gap-8">
+              <span className="text-gray-500">Subtotal s/ IPI</span>
+              <span className="font-medium text-[#4b5757] w-28 text-right">{formatCurrency(quotation.subtotal)}</span>
+            </div>
+            <div className="flex gap-8">
+              <span className="text-gray-500">IPI ({supplier.ipi || 0}%)</span>
+              <span className="font-medium text-[#4b5757] w-28 text-right">{formatCurrency(quotation.ipiValue)}</span>
+            </div>
+            <div className="flex gap-8 pt-2 border-t border-[#e3e3d1]">
+              <span className="font-semibold text-[#4b5757]">Total Geral</span>
+              <span className="font-bold text-lg text-[#4b5757] w-28 text-right">{formatCurrency(quotation.total)}</span>
+            </div>
           </div>
         </div>
       </Card>
 
+      {/* Observações */}
       {quotation.observations && (
         <Card>
           <CardHeader><h2 className="text-sm font-semibold text-[#4b5757]">Observações</h2></CardHeader>
           <CardBody><p className="text-sm text-gray-600 whitespace-pre-wrap">{quotation.observations}</p></CardBody>
+        </Card>
+      )}
+
+      {/* Histórico de edições */}
+      {quotation.editHistory?.length > 0 && (
+        <Card>
+          <CardHeader><h2 className="text-sm font-semibold text-[#4b5757]">Histórico de Edições</h2></CardHeader>
+          <CardBody>
+            <div className="space-y-2">
+              {quotation.editHistory.map((edit, i) => (
+                <div key={i} className="text-xs text-gray-500">
+                  {new Date(edit.editedAt).toLocaleString('pt-BR')} — {edit.changes || 'Atualizado'}
+                </div>
+              ))}
+            </div>
+          </CardBody>
         </Card>
       )}
     </div>

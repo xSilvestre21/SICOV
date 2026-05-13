@@ -202,6 +202,8 @@ async function createOrder(req, res) {
         representativeId: order.representativeId,
         orderValueWithoutIpi: subtotal,
         orderNumber: order.orderNumber,
+        supplierId: supplierId,
+        supplierName: supplier.tradeName || supplier.name,
         customerPurchaseOrder: customerPurchaseOrder ?? null,
         pool,
         realReceivedValue: null,
@@ -579,41 +581,59 @@ async function updateOrder(req, res) {
 
     await order.save();
 
-    // Atualiza a comissão vinculada se o subtotal mudou
+    // Atualiza a comissão vinculada quando o pedido é editado
     try {
       const commission = await Commission.findOne({ orderId: order._id, projected: false });
-      if (commission && commission.orderValueWithoutIpi !== subtotal) {
-        commission.orderValueWithoutIpi = subtotal;
-        commission.customerPurchaseOrder =
-          order.customerPurchaseOrder ?? commission.customerPurchaseOrder;
+      if (commission) {
+        let needsSave = false;
 
-        // Recalcula com base no novo valor do pedido
-        const newPool = parseFloat(
-          ((subtotal * commission.adminPercentage) / 100).toFixed(2),
-        );
-        const newRepComm = parseFloat(
-          ((newPool * commission.representativePercentage) / 100).toFixed(2),
-        );
-        const newAdminComm = parseFloat((newPool - newRepComm).toFixed(2));
-
-        commission.pool = newPool;
-        commission.representativeCommission = newRepComm;
-        commission.adminCommission = newAdminComm;
-
-        // Recalcula valores reais se realReceivedValue estiver definido
-        if (commission.realReceivedValue !== null) {
-          const realPool = parseFloat(
-            ((commission.realReceivedValue * commission.adminPercentage) / 100).toFixed(2),
-          );
-          const realRepComm = parseFloat(
-            ((realPool * commission.representativePercentage) / 100).toFixed(2),
-          );
-          commission.realPool = realPool;
-          commission.realRepresentativeCommission = realRepComm;
-          commission.realAdminCommission = parseFloat((realPool - realRepComm).toFixed(2));
+        // Atualiza period se deliveryDate mudou
+        const referenceDate = order.deliveryDate || order.createdAt;
+        const newPeriod = periodFromDate(referenceDate);
+        if (commission.period.month !== newPeriod.month || commission.period.year !== newPeriod.year) {
+          commission.period = newPeriod;
+          needsSave = true;
         }
 
-        await commission.save();
+        // Atualiza customerPurchaseOrder
+        if (order.customerPurchaseOrder !== commission.customerPurchaseOrder) {
+          commission.customerPurchaseOrder = order.customerPurchaseOrder ?? null;
+          needsSave = true;
+        }
+
+        // Recalcula se subtotal mudou
+        if (commission.orderValueWithoutIpi !== subtotal) {
+          commission.orderValueWithoutIpi = subtotal;
+
+          const newPool = parseFloat(
+            ((subtotal * commission.adminPercentage) / 100).toFixed(2),
+          );
+          const newRepComm = parseFloat(
+            ((newPool * commission.representativePercentage) / 100).toFixed(2),
+          );
+          const newAdminComm = parseFloat((newPool - newRepComm).toFixed(2));
+
+          commission.pool = newPool;
+          commission.representativeCommission = newRepComm;
+          commission.adminCommission = newAdminComm;
+
+          // Recalcula valores reais se realReceivedValue estiver definido
+          if (commission.realReceivedValue !== null) {
+            const realPool = parseFloat(
+              ((commission.realReceivedValue * commission.adminPercentage) / 100).toFixed(2),
+            );
+            const realRepComm = parseFloat(
+              ((realPool * commission.representativePercentage) / 100).toFixed(2),
+            );
+            commission.realPool = realPool;
+            commission.realRepresentativeCommission = realRepComm;
+            commission.realAdminCommission = parseFloat((realPool - realRepComm).toFixed(2));
+          }
+
+          needsSave = true;
+        }
+
+        if (needsSave) await commission.save();
       }
     } catch (commErr) {
       console.error('[updateOrder] Erro ao atualizar comissão:', commErr.message);

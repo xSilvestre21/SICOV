@@ -53,7 +53,9 @@ function ItemDetail({ item, ipiRate, orderSubtotal, orderIpiValue }) {
   const m = p.technicalData?.measurements || {};
   const cd = p.commercialData || {};
 
-  const itemIpi = orderSubtotal > 0 ? (item.subtotal / orderSubtotal) * orderIpiValue : 0;
+  const itemIpi = (item.hasIpi !== false && orderSubtotal > 0)
+    ? (item.subtotal / orderSubtotal) * orderIpiValue
+    : 0;
   const itemTotal = item.subtotal + itemIpi;
 
   const hasDetails = p.productType || cd.factorKg || cd.density || cd.basePrice || m.width || m.length || m.thickness || (p.selectedExtras?.length > 0);
@@ -79,6 +81,7 @@ function ItemDetail({ item, ipiRate, orderSubtotal, orderIpiValue }) {
               {p.supplierCode && <span className="text-xs text-gray-400">Forn: {p.supplierCode}</span>}
               {p.clientCode && <span className="text-xs text-gray-400">· Cli: {p.clientCode}</span>}
               {p.productType && <span className="text-xs text-[#7c8a6e]">· {typeLabels[p.productType] || p.productType}</span>}
+              {item.hasIpi === false && <Badge variant="default">Sem IPI</Badge>}
             </div>
           </div>
         </div>

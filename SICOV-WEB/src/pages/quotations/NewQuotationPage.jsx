@@ -4,6 +4,7 @@ import { ArrowLeft, Plus, Trash2, FileText, Search, X } from 'lucide-react';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { ProductSearch } from '../../components/ui/ProductSearch';
 import api from '../../lib/api';
 
 function formatCnpj(v) {
@@ -158,6 +159,7 @@ export function NewQuotationPage() {
   const [selectedClient, setSelectedClient] = useState('');
   const [adHocClient, setAdHocClient] = useState(null);
   const [supplierId, setSupplierId] = useState('');
+  const [supplierIpi, setSupplierIpi] = useState(0);
   const [items, setItems] = useState([]);
   const [attn, setAttn] = useState('');
   const [observations, setObservations] = useState('');
@@ -184,17 +186,31 @@ export function NewQuotationPage() {
 
   // Carrega produtos quando cliente existente é selecionado
   useEffect(() => {
-    if (!selectedClient) { setProducts([]); return; }
+    if (!selectedClient) { setProducts([]); setSupplierIpi(0); return; }
     setLoadingProducts(true);
     api.get('/quotations/client-products', { params: { clientId: selectedClient } })
-      .then(({ data }) => setProducts(data || []))
+      .then(({ data }) => {
+        setProducts(data || []);
+        // Busca IPI do fornecedor a partir do primeiro produto
+        if (data && data.length > 0) {
+          const supId = typeof data[0].supplierId === 'object' ? data[0].supplierId._id : data[0].supplierId;
+          if (supId) api.get(`/suppliers/${supId}`).then(({ data: s }) => setSupplierIpi(s.ipi ?? 0)).catch(() => {});
+        }
+      })
       .catch(() => setProducts([]))
       .finally(() => setLoadingProducts(false));
   }, [selectedClient]);
 
-  const addItem = () => setItems((prev) => [...prev, { productId: '', quantity: '' }]);
+  const addItem = () => setItems((prev) => [...prev, { productId: '', quantity: '', hasIpi: true }]);
   const removeItem = (i) => setItems((prev) => prev.filter((_, idx) => idx !== i));
   const updateItem = (i, field, value) => setItems((prev) => prev.map((item, idx) => idx === i ? { ...item, [field]: value } : item));
+
+  // Atualiza IPI quando fornecedor ad-hoc muda
+  useEffect(() => {
+    if (!supplierId) { if (!selectedClient) setSupplierIpi(0); return; }
+    // Busca direto da API para garantir que pega o IPI correto
+    api.get(`/suppliers/${supplierId}`).then(({ data }) => setSupplierIpi(data.ipi ?? 0)).catch(() => setSupplierIpi(0));
+  }, [supplierId, selectedClient]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -289,6 +305,19 @@ export function NewQuotationPage() {
           </CardBody>
         </Card>
 
+        {/* Fornecedor (obrigatório para itens ad-hoc — antes dos itens para ter IPI) */}
+        {!selectedClient && adHocClient?.name && (
+          <Card>
+            <CardHeader><h2 className="text-sm font-semibold text-[#4b5757]">Fornecedor</h2></CardHeader>
+            <CardBody>
+              <select value={supplierId} onChange={(e) => setSupplierId(e.target.value)} className="w-full rounded-lg border border-[#b0b087] px-3 py-2 text-sm outline-none focus:border-[#58706d] focus:ring-1 focus:ring-[#58706d]">
+                <option value="">Selecione o fornecedor...</option>
+                {suppliers.map((s) => <option key={s._id} value={s._id}>{s.tradeName || s.name} (IPI {s.ipi}%)</option>)}
+              </select>
+            </CardBody>
+          </Card>
+        )}
+
         {/* Itens */}
         <Card>
           <CardHeader className="flex items-center justify-between">
@@ -327,10 +356,11 @@ export function NewQuotationPage() {
               return (
                 <div key={i} className="flex flex-col sm:flex-row gap-3 p-3 bg-[#f5f5ee] rounded-lg">
                   <div className="flex-1">
-                    <select value={item.productId} onChange={(e) => updateItem(i, 'productId', e.target.value)} className="w-full rounded-lg border border-[#b0b087] px-3 py-2 text-sm outline-none focus:border-[#58706d]">
-                      <option value="">Selecione...</option>
-                      {products.map((p) => <option key={p._id} value={p._id}>{p.name} {p.description ? `— ${p.description}` : ''}</option>)}
-                    </select>
+                    <ProductSearch
+                      products={products}
+                      selectedProductId={item.productId}
+                      onSelect={(id) => updateItem(i, 'productId', id)}
+                    />
                     {product && unitPrice > 0 && (
                       <p className="text-xs text-gray-400 mt-1">Preço un.: {formatCurrency(unitPrice)}</p>
                     )}
@@ -428,8 +458,14 @@ export function NewQuotationPage() {
 
                   {/* Resultado do cálculo */}
                   <div className="flex items-center justify-between pt-2 border-t border-[#e3e3d1]">
-                    <div className="text-xs text-gray-400">
-                      {calcUnitPrice > 0 ? `Preço unitário: ${formatCurrency(calcUnitPrice)}` : 'Preencha os campos para calcular'}
+                    <div className="flex items-center gap-3">
+                      <div className="text-xs text-gray-400">
+                        {calcUnitPrice > 0 ? `Preço unitário: ${formatCurrency(calcUnitPrice)}` : 'Preencha os campos para calcular'}
+                      </div>
+                      <label className="flex items-center gap-1 text-xs text-[#4b5757] cursor-pointer" title="Incide IPI?">
+                        <input type="checkbox" checked={item.hasIpi !== false} onChange={(e) => updateItem(i, 'hasIpi', e.target.checked)} className="rounded border-[#b0b087] text-[#58706d] focus:ring-[#58706d]" />
+                        IPI
+                      </label>
                     </div>
                     <div className="flex items-center gap-3">
                       {subtotal > 0 && <span className="text-sm font-semibold text-[#4b5757]">{formatCurrency(subtotal)}</span>}
@@ -443,6 +479,7 @@ export function NewQuotationPage() {
             {/* Subtotal estimado dentro do card */}
             {items.length > 0 && (() => {
               let totalEstimado = 0;
+              let subtotalComIpi = 0;
               if (selectedClient) {
                 totalEstimado = items.reduce((sum, item) => {
                   const product = products.find((p) => p._id === item.productId);
@@ -455,35 +492,49 @@ export function NewQuotationPage() {
                     unitPrice: product.commercialData?.unitPrice, boxPrice: product.commercialData?.boxPrice,
                     unitsPerBox: product.technicalData?.unitsPerBox,
                   });
-                  return sum + up * (Number(String(item.quantity).replace(',', '.')) || 0);
+                  const sub = up * (Number(String(item.quantity).replace(',', '.')) || 0);
+                  if (item.hasIpi !== false) subtotalComIpi += sub;
+                  return sum + sub;
                 }, 0);
               } else {
-                totalEstimado = items.reduce((sum, item) => sum + calcAdHocUnitPrice(item) * (Number(String(item.quantity || '').replace(',', '.')) || 0), 0);
+                totalEstimado = items.reduce((sum, item) => {
+                  const sub = calcAdHocUnitPrice(item) * (Number(String(item.quantity || '').replace(',', '.')) || 0);
+                  if (item.hasIpi !== false) subtotalComIpi += sub;
+                  return sum + sub;
+                }, 0);
               }
+              const ipiVal = subtotalComIpi * (supplierIpi / 100);
               return totalEstimado > 0 ? (
                 <div className="flex justify-end pt-2 border-t border-[#e3e3d1]">
-                  <div className="text-right">
-                    <p className="text-xs text-gray-400">Subtotal estimado (s/ IPI)</p>
-                    <p className="text-lg font-bold text-[#4b5757]">{formatCurrency(totalEstimado)}</p>
+                  <div className="text-right space-y-1">
+                    <div>
+                      <p className="text-xs text-gray-400">Subtotal (s/ IPI)</p>
+                      <p className="text-base font-semibold text-[#4b5757]">{formatCurrency(totalEstimado)}</p>
+                    </div>
+                    {supplierIpi > 0 && (
+                      <>
+                        <div>
+                          <p className="text-xs text-gray-400">IPI ({supplierIpi}%)</p>
+                          <p className="text-sm text-[#4b5757]">{formatCurrency(ipiVal)}</p>
+                        </div>
+                        <div className="pt-1 border-t border-[#e3e3d1]">
+                          <p className="text-xs text-gray-400">Total estimado</p>
+                          <p className="text-lg font-bold text-[#4b5757]">{formatCurrency(totalEstimado + ipiVal)}</p>
+                        </div>
+                      </>
+                    )}
+                    {supplierIpi === 0 && (
+                      <div>
+                        <p className="text-xs text-gray-400">Total estimado</p>
+                        <p className="text-lg font-bold text-[#4b5757]">{formatCurrency(totalEstimado)}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : null;
             })()}
           </CardBody>
         </Card>
-
-        {/* Fornecedor (obrigatório para itens ad-hoc) */}
-        {!selectedClient && adHocClient?.name && items.length > 0 && (
-          <Card>
-            <CardHeader><h2 className="text-sm font-semibold text-[#4b5757]">Fornecedor</h2></CardHeader>
-            <CardBody>
-              <select value={supplierId} onChange={(e) => setSupplierId(e.target.value)} className="w-full rounded-lg border border-[#b0b087] px-3 py-2 text-sm outline-none focus:border-[#58706d] focus:ring-1 focus:ring-[#58706d]">
-                <option value="">Selecione o fornecedor...</option>
-                {suppliers.map((s) => <option key={s._id} value={s._id}>{s.tradeName || s.name} (IPI {s.ipi}%)</option>)}
-              </select>
-            </CardBody>
-          </Card>
-        )}
 
         {/* Observações */}
         <Card>

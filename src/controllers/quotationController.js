@@ -475,7 +475,7 @@ async function convertToOrder(req, res) {
       notes,
       paymentTerm,
       sellerName,
-    } = req.body;
+    } = req.body || {};
 
     // 1. Buscar cotação
     const quotation = await Quotation.findById(id);

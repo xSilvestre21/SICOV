@@ -48,6 +48,7 @@ async function getCommissions(req, res) {
       projected,
       orderNumber,
       customerPurchaseOrder,
+      supplierId,
       status,
       page = 1,
       limit = 20,
@@ -72,15 +73,16 @@ async function getCommissions(req, res) {
     if (customerPurchaseOrder) {
       filter.customerPurchaseOrder = new RegExp(customerPurchaseOrder, 'i');
     }
+    if (supplierId) filter.supplierId = supplierId;
 
-    // Filtro por status (active | cancelled). Padrão: só ativas quando não especificado
+    // Filtro por status (active | cancelled). Padrão: exclui canceladas
     if (status === 'cancelled') {
       filter.status = 'cancelled';
     } else if (status === 'all') {
       // sem filtro de status — retorna todos
     } else {
-      // padrão: só comissões ativas
-      filter.status = 'active';
+      // padrão: exclui canceladas (inclui 'active' e documentos sem o campo status)
+      filter.status = { $ne: 'cancelled' };
     }
 
     const pageNumber = Number(page);
@@ -423,6 +425,7 @@ async function getCommissionsSummary(req, res) {
           totalRepresentativeCommission: { $sum: '$representativeCommission' },
           totalAdminCommission: { $sum: '$adminCommission' },
           totalPool: { $sum: '$pool' },
+          totalOrderValue: { $sum: '$orderValueWithoutIpi' },
           totalRealRepresentativeCommission: {
             $sum: { $ifNull: ['$realRepresentativeCommission', 0] },
           },
@@ -443,6 +446,7 @@ async function getCommissionsSummary(req, res) {
           totalRepresentativeCommission: { $round: ['$totalRepresentativeCommission', 2] },
           totalAdminCommission: { $round: ['$totalAdminCommission', 2] },
           totalPool: { $round: ['$totalPool', 2] },
+          totalOrderValue: { $round: ['$totalOrderValue', 2] },
           totalRealRepresentativeCommission: { $round: ['$totalRealRepresentativeCommission', 2] },
           totalRealAdminCommission: { $round: ['$totalRealAdminCommission', 2] },
           totalRealPool: { $round: ['$totalRealPool', 2] },
