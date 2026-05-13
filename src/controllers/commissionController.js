@@ -6,9 +6,9 @@ const DEFAULT_ADMIN_PERCENTAGE = 5;
 
 /**
  * Calcula as comissões usando a lógica de dois níveis:
- * 1. pool = base × adminPercentage / 100
- * 2. representativeCommission = pool × representativePercentage / 100
- * 3. adminCommission = pool - representativeCommission
+ * 1. comissão total = base × adminPercentage / 100
+ * 2. representativeCommission = comissão total × representativePercentage / 100
+ * 3. adminCommission = comissão total - representativeCommission
  */
 function calcCommissions(base, representativePercentage, adminPercentage) {
   const pool = parseFloat(((base * adminPercentage) / 100).toFixed(2));
@@ -367,6 +367,7 @@ async function createInstallments(req, res) {
         representativeCommission,
         adminCommission,
         period,
+        deliveryDate: order.deliveryDate || null,
         realDeliveryDate: null,
         projected: true,
         dueDate,
@@ -395,6 +396,9 @@ async function getCommissionsSummary(req, res) {
     const { month, year, representativeId, page = 1, limit = 20 } = req.query;
 
     const matchStage = {};
+
+    // Exclui canceladas do cálculo de resumo
+    matchStage.status = { $ne: 'cancelled' };
 
     // Representante só vê o resumo dos seus próprios registros
     if (req.user.profile !== 'admin') {

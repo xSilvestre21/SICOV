@@ -12,9 +12,9 @@ const DEFAULT_ADMIN_PERCENTAGE = 5;
 
 /**
  * Calcula as comissões usando a lógica de dois níveis:
- * pool = base × adminPercentage / 100
- * representativeCommission = pool × representativePercentage / 100
- * adminCommission = pool - representativeCommission
+ * comissão total = base × adminPercentage / 100
+ * representativeCommission = comissão total × representativePercentage / 100
+ * adminCommission = comissão total - representativeCommission
  */
 function calcCommissions(base, representativePercentage, adminPercentage) {
   const pool = parseFloat(((base * adminPercentage) / 100).toFixed(2));
@@ -205,6 +205,7 @@ async function createOrder(req, res) {
         supplierId: supplierId,
         supplierName: supplier.tradeName || supplier.name,
         customerPurchaseOrder: customerPurchaseOrder ?? null,
+        deliveryDate: deliveryDate || null,
         pool,
         realReceivedValue: null,
         representativePercentage,
@@ -598,6 +599,14 @@ async function updateOrder(req, res) {
         // Atualiza customerPurchaseOrder
         if (order.customerPurchaseOrder !== commission.customerPurchaseOrder) {
           commission.customerPurchaseOrder = order.customerPurchaseOrder ?? null;
+          needsSave = true;
+        }
+
+        // Atualiza deliveryDate
+        const orderDeliveryDate = order.deliveryDate ? order.deliveryDate.toISOString() : null;
+        const commDeliveryDate = commission.deliveryDate ? commission.deliveryDate.toISOString() : null;
+        if (orderDeliveryDate !== commDeliveryDate) {
+          commission.deliveryDate = order.deliveryDate || null;
           needsSave = true;
         }
 

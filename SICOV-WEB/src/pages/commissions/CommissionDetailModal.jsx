@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { X, Save } from 'lucide-react';
+import { X, Save, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
 
 function formatCurrency(v) {
@@ -9,6 +10,7 @@ function formatCurrency(v) {
 }
 
 export function CommissionDetailModal({ commission, onClose, onUpdated }) {
+  const { isAdmin } = useAuth();
   const [form, setForm] = useState({
     representativePercentage: commission.representativePercentage ?? '',
     adminPercentage: commission.adminPercentage ?? 5,
@@ -100,7 +102,7 @@ export function CommissionDetailModal({ commission, onClose, onUpdated }) {
           {/* Percentuais */}
           <div className="grid grid-cols-2 gap-4">
             <Input
-              label="% Admin (pool)"
+              label="% Admin (comissão total)"
               type="number"
               step="0.1"
               min="0"
@@ -121,7 +123,7 @@ export function CommissionDetailModal({ commission, onClose, onUpdated }) {
           <div className="bg-[#f5f5ee] rounded-lg p-3 space-y-1">
             <p className="text-xs font-medium text-[#7c8a6e]">Cálculo (base pedido)</p>
             <div className="grid grid-cols-3 gap-2 text-sm">
-              <div><p className="text-xs text-gray-400">Pool</p><p className="font-medium text-[#4b5757]">{formatCurrency(poolOrder)}</p></div>
+              <div><p className="text-xs text-gray-400">Comissão Total</p><p className="font-medium text-[#4b5757]">{formatCurrency(poolOrder)}</p></div>
               <div><p className="text-xs text-gray-400">Representante</p><p className="font-medium text-[#4b5757]">{formatCurrency(repCommOrder)}</p></div>
               <div><p className="text-xs text-gray-400">Admin</p><p className="font-medium text-[#4b5757]">{formatCurrency(adminCommOrder)}</p></div>
             </div>
@@ -145,16 +147,22 @@ export function CommissionDetailModal({ commission, onClose, onUpdated }) {
             <div className="bg-[#f5f5ee] rounded-lg p-3 space-y-1">
               <p className="text-xs font-medium text-[#7c8a6e]">Cálculo (base real recebido)</p>
               <div className="grid grid-cols-3 gap-2 text-sm">
-                <div><p className="text-xs text-gray-400">Pool</p><p className="font-medium text-[#4b5757]">{formatCurrency(poolReal)}</p></div>
+                <div><p className="text-xs text-gray-400">Comissão Total</p><p className="font-medium text-[#4b5757]">{formatCurrency(poolReal)}</p></div>
                 <div><p className="text-xs text-gray-400">Representante</p><p className="font-medium text-[#4b5757]">{formatCurrency(repCommReal)}</p></div>
                 <div><p className="text-xs text-gray-400">Admin</p><p className="font-medium text-[#4b5757]">{formatCurrency(adminCommReal)}</p></div>
               </div>
               {/* Diferença */}
               <div className="pt-2 border-t border-[#e3e3d1] mt-2">
                 <p className="text-xs text-gray-400">Diferença (pedido vs real)</p>
-                <p className={`text-sm font-semibold ${repCommReal - repCommOrder >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                  {repCommReal - repCommOrder >= 0 ? '+' : ''}{formatCurrency(repCommReal - repCommOrder)} representante
-                </p>
+                {isAdmin ? (
+                  <p className={`text-sm font-semibold ${adminCommReal - adminCommOrder >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                    {adminCommReal - adminCommOrder >= 0 ? '+' : ''}{formatCurrency(adminCommReal - adminCommOrder)} admin
+                  </p>
+                ) : (
+                  <p className={`text-sm font-semibold ${repCommReal - repCommOrder >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                    {repCommReal - repCommOrder >= 0 ? '+' : ''}{formatCurrency(repCommReal - repCommOrder)} representante
+                  </p>
+                )}
               </div>
             </div>
           )}
@@ -166,6 +174,36 @@ export function CommissionDetailModal({ commission, onClose, onUpdated }) {
             value={form.realDeliveryDate}
             onChange={set('realDeliveryDate')}
           />
+
+          {/* Indicador de atraso/adiantamento */}
+          {form.realDeliveryDate && (commission.deliveryDate || commission.dueDate) && (() => {
+            const expected = new Date(commission.dueDate || commission.deliveryDate);
+            const actual = new Date(form.realDeliveryDate);
+            const diffDays = Math.round((actual - expected) / (1000 * 60 * 60 * 24));
+
+            if (diffDays === 0) {
+              return (
+                <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-lg">
+                  <CheckCircle size={16} className="text-emerald-600" />
+                  <span className="text-sm font-medium text-emerald-700">Entregue na data prevista</span>
+                </div>
+              );
+            } else if (diffDays > 0) {
+              return (
+                <div className="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg">
+                  <AlertTriangle size={16} className="text-red-500" />
+                  <span className="text-sm font-medium text-red-600">{diffDays} dia{diffDays !== 1 ? 's' : ''} de atraso</span>
+                </div>
+              );
+            } else {
+              return (
+                <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg">
+                  <Clock size={16} className="text-blue-500" />
+                  <span className="text-sm font-medium text-blue-600">{Math.abs(diffDays)} dia{Math.abs(diffDays) !== 1 ? 's' : ''} adiantado</span>
+                </div>
+              );
+            }
+          })()}
 
           {error && <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2"><p className="text-sm text-red-600">{error}</p></div>}
           {success && <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2"><p className="text-sm text-emerald-600">{success}</p></div>}

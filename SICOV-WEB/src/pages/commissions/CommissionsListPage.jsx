@@ -27,7 +27,7 @@ export function CommissionsListPage() {
   const page = Number(searchParams.get('page') || 1);
   const month = searchParams.get('month') || '';
   const year = searchParams.get('year') || '';
-  const status = searchParams.get('status') || '';
+  const status = searchParams.get('status') || 'all';
   const orderNumber = searchParams.get('orderNumber') || '';
   const supplierId = searchParams.get('supplierId') || '';
 
@@ -105,8 +105,11 @@ export function CommissionsListPage() {
 
   const handleStatusFilter = (s) => {
     const params = new URLSearchParams(searchParams);
-    if (s) params.set('status', s);
-    else params.delete('status');
+    if (s === 'all') {
+      params.delete('status');
+    } else {
+      params.set('status', s);
+    }
     params.set('page', '1');
     setSearchParams(params);
   };
@@ -166,47 +169,49 @@ export function CommissionsListPage() {
 
       {/* Filtros */}
       <Card className="p-4">
-        <form onSubmit={handleFilter} className="flex flex-col sm:flex-row gap-3">
-          <input
-            name="month"
-            type="number"
-            min="1"
-            max="12"
-            defaultValue={month}
-            placeholder="Mês"
-            className="w-20 px-3 py-2 text-sm rounded-lg border border-[#b0b087] focus:border-[#58706d] focus:ring-1 focus:ring-[#58706d] outline-none"
-          />
-          <input
-            name="year"
-            type="number"
-            min="2020"
-            max="2030"
-            defaultValue={year}
-            placeholder="Ano"
-            className="w-24 px-3 py-2 text-sm rounded-lg border border-[#b0b087] focus:border-[#58706d] focus:ring-1 focus:ring-[#58706d] outline-none"
-          />
-          <input
-            name="orderNumber"
-            type="text"
-            defaultValue={orderNumber}
-            placeholder="Nº Pedido"
-            className="w-28 px-3 py-2 text-sm rounded-lg border border-[#b0b087] focus:border-[#58706d] focus:ring-1 focus:ring-[#58706d] outline-none"
-          />
-          <select
-            name="supplierId"
-            defaultValue={supplierId}
-            className="px-3 py-2 text-sm rounded-lg border border-[#b0b087] focus:border-[#58706d] focus:ring-1 focus:ring-[#58706d] outline-none"
-          >
-            <option value="">Todos fornecedores</option>
-            {suppliers.map((s) => <option key={s._id} value={s._id}>{s.tradeName || s.name}</option>)}
-          </select>
-          <Button type="submit" variant="secondary" size="md">
-            <Search size={14} />
-            Filtrar
-          </Button>
+        <form onSubmit={handleFilter} className="flex flex-col gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+            <input
+              name="month"
+              type="number"
+              min="1"
+              max="12"
+              defaultValue={month}
+              placeholder="Mês"
+              className="w-full px-3 py-2 text-sm rounded-lg border border-[#b0b087] focus:border-[#58706d] focus:ring-1 focus:ring-[#58706d] outline-none"
+            />
+            <input
+              name="year"
+              type="number"
+              min="2020"
+              max="2030"
+              defaultValue={year}
+              placeholder="Ano"
+              className="w-full px-3 py-2 text-sm rounded-lg border border-[#b0b087] focus:border-[#58706d] focus:ring-1 focus:ring-[#58706d] outline-none"
+            />
+            <input
+              name="orderNumber"
+              type="text"
+              defaultValue={orderNumber}
+              placeholder="Nº Pedido"
+              className="w-full px-3 py-2 text-sm rounded-lg border border-[#b0b087] focus:border-[#58706d] focus:ring-1 focus:ring-[#58706d] outline-none"
+            />
+            <select
+              name="supplierId"
+              defaultValue={supplierId}
+              className="w-full px-3 py-2 text-sm text-gray-500 rounded-lg border border-[#b0b087] focus:border-[#58706d] focus:ring-1 focus:ring-[#58706d] outline-none"
+            >
+              <option value="">Todos fornecedores</option>
+              {suppliers.map((s) => <option key={s._id} value={s._id}>{s.tradeName || s.name}</option>)}
+            </select>
+            <Button type="submit" variant="secondary" size="md" className="col-span-2 sm:col-span-1">
+              <Search size={14} />
+              Filtrar
+            </Button>
+          </div>
 
-          <div className="flex gap-2 sm:ml-auto">
-            {['', 'cancelled', 'all'].map((s) => (
+          <div className="flex flex-wrap gap-2">
+            {['all', 'active', 'cancelled'].map((s) => (
               <button
                 key={s}
                 type="button"
@@ -217,7 +222,7 @@ export function CommissionsListPage() {
                     : 'bg-white text-[#4b5757] border-[#e3e3d1] hover:border-[#58706d]'
                 }`}
               >
-                {s === '' ? 'Ativas' : s === 'cancelled' ? 'Canceladas' : 'Todas'}
+                {s === 'all' ? 'Todas' : s === 'active' ? 'Ativas' : 'Canceladas'}
               </button>
             ))}
           </div>
@@ -233,13 +238,28 @@ export function CommissionsListPage() {
         ) : (
           <div className="divide-y divide-[#e3e3d1]">
             {commissions.map((c) => (
-              <div key={c._id} className="px-4 md:px-6 py-4 hover:bg-[#f5f5ee] transition-colors cursor-pointer" onClick={() => setSelectedCommission(c)}>
+              <div
+                key={c._id}
+                className={`px-4 md:px-6 py-4 transition-colors ${
+                  c.status === 'cancelled'
+                    ? 'bg-red-50/70 cursor-default'
+                    : 'hover:bg-[#f5f5ee] cursor-pointer'
+                }`}
+                onClick={() => c.status !== 'cancelled' && setSelectedCommission(c)}
+              >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-lg bg-[#e3e3d1] flex items-center justify-center shrink-0">
+                    <div className="relative w-9 h-9 rounded-lg bg-[#e3e3d1] flex items-center justify-center shrink-0">
                       <span className="text-xs font-bold text-[#4b5757]">
                         #{c.orderNumber ?? '—'}
                       </span>
+                      {c.realDeliveryDate && (c.deliveryDate || c.dueDate) && (() => {
+                        const expected = new Date(c.dueDate || c.deliveryDate);
+                        const actual = new Date(c.realDeliveryDate);
+                        const diff = Math.round((actual - expected) / (1000 * 60 * 60 * 24));
+                        const color = diff === 0 ? 'bg-emerald-400' : diff > 0 ? 'bg-red-400' : 'bg-blue-400';
+                        return <span className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${color} border-2 border-white`} />;
+                      })()}
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
@@ -252,7 +272,7 @@ export function CommissionsListPage() {
                       <p className="text-xs text-gray-400 mt-0.5">
                         {c.supplierName ? `${c.supplierName} · ` : ''}
                         {c.customerPurchaseOrder ? `PC: ${c.customerPurchaseOrder} · ` : ''}
-                        {c.period?.month}/{c.period?.year}
+                        {c.deliveryDate ? new Date(c.deliveryDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : `${c.period?.month}/${c.period?.year}`}
                         {isAdmin
                           ? (c.adminPercentage !== undefined ? ` · ${c.adminPercentage}%` : '')
                           : (c.representativePercentage !== undefined ? ` · ${c.representativePercentage}%` : '')
@@ -261,7 +281,7 @@ export function CommissionsListPage() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col items-end gap-0.5 shrink-0 ml-3">
+                  <div className={`flex flex-col items-end gap-0.5 shrink-0 ml-3 ${c.status === 'cancelled' ? 'opacity-50' : ''}`}>
                     <span className="text-sm font-semibold text-[#4b5757]">
                       {formatCurrency(c.adminCommission)}
                     </span>

@@ -93,7 +93,7 @@ export function DashboardPage() {
         />
         <StatCard
           icon={DollarSign}
-          label="Pool de Comissões"
+          label="Comissão Total"
           value={loading ? '...' : formatCurrency(stats?.totalPool)}
           color="bg-[#7c8a6e]"
           to="/commissions"

@@ -47,7 +47,13 @@ const commissionSchema = new mongoose.Schema(
       default: null,
     },
 
-    // Pool de comissão (base × adminPercentage / 100)
+    // Data de entrega do pedido (snapshot)
+    deliveryDate: {
+      type: Date,
+      default: null,
+    },
+
+    // Comissão total (base × adminPercentage / 100)
     pool: {
       type: Number,
       required: true,

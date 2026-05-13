@@ -12,7 +12,7 @@ function formatCurrency(v) {
 
 function formatDate(v) {
   if (!v) return '—';
-  return new Date(v).toLocaleDateString('pt-BR');
+  return new Date(v).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
 }
 
 export function QuotationsListPage() {
