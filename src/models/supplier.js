@@ -7,12 +7,11 @@ const priceTableItemSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-    price: {
+    density: {
       type: Number,
-      required: true,
       min: 0,
     },
-    density: {
+    factorKg: {
       type: Number,
       min: 0,
     },

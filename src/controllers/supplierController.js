@@ -18,7 +18,6 @@ function normalizePriceTable(priceTable) {
   return priceTable
     .map((item) => {
       const material = normalizeMaterialName(item.material);
-      const price = parseBrazilianNumber(item.price);
 
       let density;
       if (
@@ -29,20 +28,31 @@ function normalizePriceTable(priceTable) {
         density = parseBrazilianNumber(item.density);
       }
 
+      let factorKg;
+      if (
+        item.factorKg !== undefined &&
+        item.factorKg !== null &&
+        item.factorKg !== ''
+      ) {
+        factorKg = parseBrazilianNumber(item.factorKg);
+      }
+
       return {
         material,
-        price,
         density,
+        factorKg,
       };
     })
     .filter((item) => {
       const hasValidMaterial = !!item.material;
-      const hasValidPrice = item.price !== null && item.price >= 0;
       const hasValidDensity =
         item.density === undefined ||
-        (item.density !== null && item.density > 0);
+        (item.density !== null && item.density >= 0);
+      const hasValidFactorKg =
+        item.factorKg === undefined ||
+        (item.factorKg !== null && item.factorKg >= 0);
 
-      return hasValidMaterial && hasValidPrice && hasValidDensity;
+      return hasValidMaterial && hasValidDensity && hasValidFactorKg;
     });
 }
 

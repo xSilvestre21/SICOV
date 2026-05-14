@@ -7,6 +7,32 @@ import { Input } from '../../components/ui/Input';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
 
+function maskCnpj(value) {
+  const digits = value.replace(/\D/g, '').slice(0, 14);
+  return digits
+    .replace(/^(\d{2})(\d)/, '$1.$2')
+    .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+    .replace(/\.(\d{3})(\d)/, '.$1/$2')
+    .replace(/(\d{4})(\d)/, '$1-$2');
+}
+
+function maskPhone(value) {
+  const digits = value.replace(/\D/g, '').slice(0, 11);
+  if (digits.length <= 10) {
+    return digits
+      .replace(/^(\d{2})(\d)/, '($1) $2')
+      .replace(/(\d{4})(\d)/, '$1-$2');
+  }
+  return digits
+    .replace(/^(\d{2})(\d)/, '($1) $2')
+    .replace(/(\d{5})(\d)/, '$1-$2');
+}
+
+function maskZipCode(value) {
+  const digits = value.replace(/\D/g, '').slice(0, 8);
+  return digits.replace(/^(\d{5})(\d)/, '$1-$2');
+}
+
 export function ClientFormPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -60,6 +86,7 @@ export function ClientFormPage() {
   }, [id, isEdit, navigate]);
 
   const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
+  const setMasked = (field, maskFn) => (e) => setForm((f) => ({ ...f, [field]: maskFn(e.target.value) }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -100,10 +127,10 @@ export function ClientFormPage() {
           <CardBody className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input label="Razão Social *" value={form.name} onChange={set('name')} required />
             <Input label="Nome Fantasia" value={form.tradeName} onChange={set('tradeName')} />
-            <Input label="CNPJ" value={form.cnpj} onChange={set('cnpj')} placeholder="00.000.000/0000-00" />
+            <Input label="CNPJ" value={form.cnpj} onChange={setMasked('cnpj', maskCnpj)} placeholder="00.000.000/0000-00" />
             <Input label="Inscrição Estadual" value={form.stateRegistration} onChange={set('stateRegistration')} />
             <Input label="Email" type="email" value={form.email} onChange={set('email')} />
-            <Input label="Telefone" value={form.phone} onChange={set('phone')} placeholder="(00) 00000-0000" />
+            <Input label="Telefone" value={form.phone} onChange={setMasked('phone', maskPhone)} placeholder="(00) 00000-0000" />
           </CardBody>
         </Card>
 
@@ -116,7 +143,7 @@ export function ClientFormPage() {
             <Input label="Bairro" value={form.district} onChange={set('district')} />
             <Input label="Cidade" value={form.city} onChange={set('city')} />
             <Input label="UF" value={form.state} onChange={set('state')} maxLength={2} className="uppercase" />
-            <Input label="CEP" value={form.zipCode} onChange={set('zipCode')} placeholder="00000-000" />
+            <Input label="CEP" value={form.zipCode} onChange={setMasked('zipCode', maskZipCode)} placeholder="00000-000" />
           </CardBody>
         </Card>
 

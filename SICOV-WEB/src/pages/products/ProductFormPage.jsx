@@ -99,6 +99,57 @@ export function ProductFormPage() {
 
   const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
 
+  const selectedSupplier = suppliers.find((s) => s._id === form.supplierId);
+
+  const setMaterial = (e) => {
+    const material = e.target.value;
+    setForm((f) => {
+      const updated = { ...f, material };
+      // Preenche densidade automaticamente a partir da tabela do fornecedor
+      if (selectedSupplier?.priceTable?.length && material) {
+        const match = selectedSupplier.priceTable.find(
+          (item) => item.material.toLowerCase() === material.toLowerCase()
+        );
+        if (match?.density && !f.density) {
+          updated.density = match.density;
+        }
+      }
+      return updated;
+    });
+  };
+
+  // Obtém dicas de fator kg da tabela de preços do fornecedor selecionado
+  const supplierHint = (() => {
+    if (!selectedSupplier?.priceTable?.length || !form.material) return {};
+    const match = selectedSupplier.priceTable.find(
+      (item) => item.material.toLowerCase() === form.material.toLowerCase()
+    );
+    if (!match) return {};
+    return {
+      density: match.density,
+      factorKg: match.factorKg,
+    };
+  })();
+
+  // Gera o nome do produto automaticamente: LARGURAxCOMPRIMENTOxESPESSURA SF SANFONA MATERIAL
+  useEffect(() => {
+    if (form.calculationMode !== 'dimensions_density_factor' && form.productType !== 'plastic_bag') return;
+    const fmt = (v) => String(v).replace('.', ',');
+    const parts = [];
+    if (form.width && form.length && form.thickness) {
+      parts.push(`${fmt(form.width)}x${fmt(form.length)}x${fmt(form.thickness)}`);
+    }
+    if (form.gusset) {
+      parts.push(`SF ${fmt(form.gusset)}`);
+    }
+    if (form.material) {
+      parts.push(form.material.toUpperCase());
+    }
+    if (parts.length > 0) {
+      setForm((f) => ({ ...f, name: parts.join(' ') }));
+    }
+  }, [form.width, form.length, form.thickness, form.gusset, form.material, form.calculationMode, form.productType]);
+
   const addExtra = () => setForm((f) => ({ ...f, selectedExtras: [...f.selectedExtras, { name: '', chargeType: 'per_kg', value: '', source: 'manual', notes: '' }] }));
   const removeExtra = (i) => setForm((f) => ({ ...f, selectedExtras: f.selectedExtras.filter((_, idx) => idx !== i) }));
   const updateExtra = (i, field, value) => setForm((f) => ({ ...f, selectedExtras: f.selectedExtras.map((ex, idx) => idx === i ? { ...ex, [field]: value } : ex) }));
@@ -196,7 +247,6 @@ export function ProductFormPage() {
                 {productTypes.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
             </div>
-            {showPlasticBag && <Input label="Material *" value={form.material} onChange={set('material')} placeholder="Ex: PEMD" />}
             <div>
               <label className="text-sm font-medium text-[#4b5757] mb-1 block">Modo de Venda</label>
               <select value={form.saleMode} onChange={set('saleMode')} className="w-full rounded-lg border border-[#b0b087] px-3 py-2 text-sm outline-none focus:border-[#58706d] focus:ring-1 focus:ring-[#58706d]">
@@ -209,6 +259,21 @@ export function ProductFormPage() {
                 {calculationModes.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
               </select>
             </div>
+            {(showPlasticBag || form.calculationMode === 'dimensions_density_factor') && (
+              selectedSupplier?.priceTable?.length > 0 ? (
+                <div>
+                  <label className="text-sm font-medium text-[#4b5757] mb-1 block">Material *</label>
+                  <select value={form.material} onChange={setMaterial} className="w-full rounded-lg border border-[#b0b087] px-3 py-2 text-sm outline-none focus:border-[#58706d] focus:ring-1 focus:ring-[#58706d]">
+                    <option value="">Selecione o material...</option>
+                    {selectedSupplier.priceTable.map((item, idx) => (
+                      <option key={idx} value={item.material}>{item.material}</option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <Input label="Material *" value={form.material} onChange={setMaterial} placeholder="Ex: PEAD, PEBD" />
+              )
+            )}
             <Input label="Unidade (label)" value={form.unitLabel} onChange={set('unitLabel')} placeholder="Ex: KG, UN, CX" />
             <Input label="Cód. Fornecedor" value={form.supplierCode} onChange={set('supplierCode')} />
             <Input label="Cód. Cliente" value={form.clientCode} onChange={set('clientCode')} />
@@ -216,7 +281,7 @@ export function ProductFormPage() {
         </Card>
 
         {/* Medidas */}
-        {(showPlasticBag || showTape || form.productType === 'bobbin') && (
+        {(showPlasticBag || showTape || form.productType === 'bobbin' || form.calculationMode === 'dimensions_density_factor') && (
           <Card>
             <CardHeader><h2 className="text-sm font-semibold text-[#4b5757]">Medidas</h2></CardHeader>
             <CardBody className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -253,9 +318,59 @@ export function ProductFormPage() {
             )}
             {form.calculationMode === 'dimensions_density_factor' && (
               <>
-                <Input label="Preço Base (R$/kg)" type="number" step="any" value={form.basePrice} onChange={set('basePrice')} />
-                <Input label="Densidade" type="number" step="any" value={form.density} onChange={set('density')} />
-                <Input label="Fator Kg" type="number" step="any" value={form.factorKg} onChange={set('factorKg')} />
+                <div>
+                  <label className="text-sm font-medium text-[#4b5757] mb-1 block">Preço Base (R$/kg)</label>
+                  <input
+                    type="text"
+                    value={form._basePriceFocused
+                      ? (form._basePriceRaw ?? '')
+                      : (form.basePrice !== '' ? Number(form.basePrice).toLocaleString('pt-BR') : '')
+                    }
+                    onFocus={() => setForm((f) => ({ ...f, _basePriceFocused: true, _basePriceRaw: f.basePrice !== '' ? Number(f.basePrice).toLocaleString('pt-BR') : '' }))}
+                    onBlur={() => setForm((f) => {
+                      const raw = (f._basePriceRaw || '');
+                      const cleaned = raw.replace(/\./g, '').replace(',', '.');
+                      const num = parseFloat(cleaned);
+                      return { ...f, _basePriceFocused: false, _basePriceRaw: undefined, basePrice: isNaN(num) ? '' : num };
+                    })}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      const cleaned = raw.replace(/\./g, '').replace(',', '.');
+                      const num = parseFloat(cleaned);
+                      const basePrice = isNaN(num) ? '' : num;
+                      setForm((f) => {
+                        const updated = { ...f, _basePriceRaw: raw, basePrice };
+                        const w = Number(f.width) || 0;
+                        const l = Number(f.length) || 0;
+                        const t = Number(f.thickness) || 0;
+                        const d = Number(f.density) || 0;
+                        const bp = Number(basePrice) || 0;
+                        if (w && l && t && d && bp) {
+                          updated.factorKg = parseFloat((bp / (w * l * t * d)).toFixed(6));
+                        }
+                        return updated;
+                      });
+                    }}
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-[#b0b087] focus:border-[#58706d] focus:ring-1 focus:ring-[#58706d] outline-none"
+                    placeholder="0"
+                  />
+                </div>
+                <Input label="Densidade" type="number" step="any" value={form.density} onChange={set('density')} placeholder={supplierHint.density ? `Fornecedor: ${supplierHint.density}` : ''} />
+                <Input label="Fator Kg" type="number" step="any" value={form.factorKg} onChange={(e) => {
+                  const factorKg = e.target.value;
+                  setForm((f) => {
+                    const updated = { ...f, factorKg };
+                    const w = Number(f.width) || 0;
+                    const l = Number(f.length) || 0;
+                    const t = Number(f.thickness) || 0;
+                    const d = Number(f.density) || 0;
+                    const fk = Number(factorKg) || 0;
+                    if (w && l && t && d && fk) {
+                      updated.basePrice = parseFloat((w * l * t * d * fk).toFixed(4));
+                    }
+                    return updated;
+                  });
+                }} placeholder={supplierHint.factorKg ? `Fornecedor: ${supplierHint.factorKg}` : ''} />
               </>
             )}
             {form.calculationMode === 'manual_price' && (
