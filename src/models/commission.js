@@ -14,6 +14,12 @@ const commissionSchema = new mongoose.Schema(
       required: true,
     },
 
+    representativeName: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+
     // Snapshot do Valor_Pedido_Sem_IPI no momento da criação
     orderValueWithoutIpi: {
       type: Number,

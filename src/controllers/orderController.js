@@ -187,7 +187,8 @@ async function createOrder(req, res) {
 
     // Cria automaticamente o Registro_Comissao usando o percentual padrão do representante
     try {
-      const representative = await User.findById(req.user.id).select('defaultCommissionPercentage');
+      const repId = order.representativeId;
+      const representative = await User.findById(repId).select('defaultCommissionPercentage name');
       const representativePercentage = representative?.defaultCommissionPercentage ?? 0;
       const referenceDate = deliveryDate || order.createdAt;
       const period = periodFromDate(referenceDate);
@@ -199,7 +200,8 @@ async function createOrder(req, res) {
 
       await Commission.create({
         orderId: order._id,
-        representativeId: order.representativeId,
+        representativeId: repId,
+        representativeName: representative?.name || null,
         orderValueWithoutIpi: subtotal,
         orderNumber: order.orderNumber,
         supplierId: supplierId,

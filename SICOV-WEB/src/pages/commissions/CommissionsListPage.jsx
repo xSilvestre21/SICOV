@@ -20,6 +20,7 @@ export function CommissionsListPage() {
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [summary, setSummary] = useState(null);
+  const [repSummary, setRepSummary] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCommission, setSelectedCommission] = useState(null);
   const [suppliers, setSuppliers] = useState([]);
@@ -64,6 +65,8 @@ export function CommissionsListPage() {
           count: (acc.count || 0) + (item.count || 0),
         }), {});
       });
+      // Guarda resumo por representante
+      setRepSummary(summaryRes.data.summary || []);
     } catch {
       // silencioso
     } finally {
@@ -139,32 +142,52 @@ export function CommissionsListPage() {
             </CardBody>
           </Card>
 
-          {/* Comissão Admin */}
+          {/* Comissão */}
           <Card>
             <CardBody className="space-y-3">
-              <p className="text-xs font-medium text-[#7c8a6e] uppercase tracking-wide">Comissão</p>
+              <p className="text-xs font-medium text-[#7c8a6e] uppercase tracking-wide">
+                {isAdmin ? 'Sua Comissão' : 'Sua Comissão'}
+              </p>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-xs text-gray-400">Base Pedido</p>
-                  <p className="text-xl font-bold text-[#4b5757]">{formatCurrency(summary.totalAdminCommission)}</p>
+                  <p className="text-xl font-bold text-[#4b5757]">
+                    {formatCurrency(isAdmin ? summary.totalAdminCommission : summary.totalRepresentativeCommission)}
+                  </p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-400">Base Real</p>
-                  <p className="text-xl font-bold text-[#4b5757]">{formatCurrency(summary.totalRealAdminCommission || 0)}</p>
-                </div>
-              </div>
-              {summary.totalAdminCommission > 0 && (summary.totalRealAdminCommission || 0) > 0 && (
-                <div className="pt-2 border-t border-[#e3e3d1]">
-                  <p className="text-xs text-gray-400">Diferença</p>
-                  <p className={`text-sm font-semibold ${(summary.totalRealAdminCommission - summary.totalAdminCommission) >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                    {(summary.totalRealAdminCommission - summary.totalAdminCommission) >= 0 ? '+' : ''}
-                    {formatCurrency(summary.totalRealAdminCommission - summary.totalAdminCommission)}
+                  <p className="text-xl font-bold text-[#4b5757]">
+                    {formatCurrency(isAdmin ? (summary.totalRealAdminCommission || 0) : (summary.totalRealRepresentativeCommission || 0))}
                   </p>
                 </div>
-              )}
+              </div>
             </CardBody>
           </Card>
         </div>
+      )}
+
+      {/* Resumo por representante — só aparece com mês filtrado e mais de 1 representante */}
+      {isAdmin && month && repSummary.length > 1 && (
+        <Card>
+          <CardBody>
+            <p className="text-xs font-medium text-[#7c8a6e] uppercase tracking-wide mb-3">Por Representante</p>
+            <div className="divide-y divide-[#e3e3d1]">
+              {repSummary.map((rep, i) => (
+                <div key={i} className="flex items-center justify-between py-2">
+                  <div>
+                    <p className="text-sm font-medium text-[#4b5757]">{rep.representativeName || 'Sem representante'}</p>
+                    <p className="text-xs text-gray-400">{rep.count} pedido{rep.count !== 1 ? 's' : ''} · Total: {formatCurrency(rep.totalOrderValue)}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-[#4b5757]">{formatCurrency(rep.totalRepresentativeCommission)}</p>
+                    <p className="text-xs text-gray-400">entrega p/ admin: {formatCurrency(rep.totalAdminCommission)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardBody>
+        </Card>
       )}
 
       {/* Filtros */}
@@ -270,9 +293,10 @@ export function CommissionsListPage() {
                         {c.status === 'cancelled' && <Badge variant="cancelled">Cancelada</Badge>}
                       </div>
                       <p className="text-xs text-gray-400 mt-0.5">
-                        {c.supplierName ? `${c.supplierName} · ` : ''}
-                        {c.customerPurchaseOrder ? `PC: ${c.customerPurchaseOrder} · ` : ''}
-                        {c.deliveryDate ? new Date(c.deliveryDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : `${c.period?.month}/${c.period?.year}`}
+                        {c.supplierName ? `${c.supplierName}` : ''}
+                        {c.representativeName ? ` · Rep: ${c.representativeName}` : ''}
+                        {c.customerPurchaseOrder ? ` · PC: ${c.customerPurchaseOrder}` : ''}
+                        {' · '}{c.deliveryDate ? new Date(c.deliveryDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : `${c.period?.month}/${c.period?.year}`}
                         {isAdmin
                           ? (c.adminPercentage !== undefined ? ` · ${c.adminPercentage}%` : '')
                           : (c.representativePercentage !== undefined ? ` · ${c.representativePercentage}%` : '')
@@ -283,14 +307,19 @@ export function CommissionsListPage() {
 
                   <div className={`flex flex-col items-end gap-0.5 shrink-0 ml-3 ${c.status === 'cancelled' ? 'opacity-50' : ''}`}>
                     <span className="text-sm font-semibold text-[#4b5757]">
-                      {formatCurrency(c.adminCommission)}
+                      {formatCurrency(isAdmin ? c.adminCommission : c.representativeCommission)}
                     </span>
                     <span className="text-xs text-gray-400">
                       de {formatCurrency(c.orderValueWithoutIpi)}
                     </span>
-                    {c.realAdminCommission != null && c.realAdminCommission > 0 && (
+                    {isAdmin && c.realAdminCommission != null && c.realAdminCommission > 0 && (
                       <span className="text-xs text-[#7c8a6e]">
                         Real: {formatCurrency(c.realAdminCommission)}
+                      </span>
+                    )}
+                    {!isAdmin && c.realRepresentativeCommission != null && c.realRepresentativeCommission > 0 && (
+                      <span className="text-xs text-[#7c8a6e]">
+                        Real: {formatCurrency(c.realRepresentativeCommission)}
                       </span>
                     )}
                     {c.representativeCommission > 0 && (

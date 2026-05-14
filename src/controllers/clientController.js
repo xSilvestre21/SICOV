@@ -211,6 +211,7 @@ async function updateClient(req, res) {
       billingAddress,
       carrier,
       notes,
+      representativeId,
     } = req.body;
 
     client.name = name !== undefined ? name : client.name;
@@ -252,6 +253,11 @@ async function updateClient(req, res) {
       billingAddress !== undefined ? billingAddress : client.billingAddress;
     client.carrier = carrier !== undefined ? carrier : client.carrier;
     client.notes = notes !== undefined ? notes : client.notes;
+
+    // Apenas admin pode trocar o representante
+    if (representativeId !== undefined && req.user.profile === 'admin') {
+      client.representativeId = representativeId;
+    }
 
     await client.save();
 

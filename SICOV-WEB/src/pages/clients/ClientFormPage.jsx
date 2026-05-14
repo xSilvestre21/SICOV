@@ -128,7 +128,7 @@ export function ClientFormPage() {
             <div className="sm:col-span-2">
               <Input label="Endereço de Cobrança" value={form.billingAddress} onChange={set('billingAddress')} />
             </div>
-            {isAdmin && !isEdit && (
+            {isAdmin && (
               <div className="sm:col-span-2">
                 <label className="text-sm font-medium text-[#4b5757] mb-1 block">Representante</label>
                 <select
