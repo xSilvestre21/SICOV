@@ -153,7 +153,7 @@ export function OrdersListPage() {
                     className="flex items-center justify-between px-4 md:px-6 py-4 hover:bg-[#f5f5ee] transition-colors"
                   >
                     <div className="flex items-center gap-4 min-w-0">
-                      <div className="w-10 h-10 rounded-lg bg-[#e3e3d1] flex items-center justify-center shrink-0">
+                      <div className="w-auto min-w-10 h-10 px-2 rounded-lg bg-[#e3e3d1] flex items-center justify-center shrink-0">
                         <span className="text-xs font-bold text-[#4b5757]">#{order.orderNumber}</span>
                       </div>
                       <div className="min-w-0">

@@ -158,7 +158,7 @@ export function DashboardPage() {
                     className="flex items-center justify-between px-6 py-3 hover:bg-[#f5f5ee] transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-[#e3e3d1] flex items-center justify-center">
+                      <div className="w-auto min-w-8 h-8 px-2 rounded-lg bg-[#e3e3d1] flex items-center justify-center">
                         <span className="text-xs font-bold text-[#4b5757]">
                           #{order.orderNumber}
                         </span>

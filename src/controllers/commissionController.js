@@ -91,7 +91,7 @@ async function getCommissions(req, res) {
 
     const [commissions, total] = await Promise.all([
       Commission.find(filter)
-        .sort({ 'period.year': -1, 'period.month': -1, createdAt: -1 })
+        .sort({ orderNumber: -1, createdAt: -1 })
         .skip(skip)
         .limit(limitNumber),
       Commission.countDocuments(filter),

@@ -233,14 +233,33 @@ export function ProductFormPage() {
         <Card>
           <CardHeader><h2 className="text-sm font-semibold text-[#4b5757]">Dados Comerciais</h2></CardHeader>
           <CardBody className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <Input label="Preço Base (R$/kg)" type="number" step="any" value={form.basePrice} onChange={set('basePrice')} />
-            <Input label="Preço Unitário" type="number" step="any" value={form.unitPrice} onChange={set('unitPrice')} />
-            <Input label="Preço Caixa" type="number" step="any" value={form.boxPrice} onChange={set('boxPrice')} />
-            {showPlasticBag && (
+            {form.calculationMode === 'weight_times_price_per_kg' && (
+              <Input label="Preço Base (R$/kg)" type="number" step="any" value={form.basePrice} onChange={set('basePrice')} />
+            )}
+            {form.calculationMode === 'quantity_times_unit_price' && (
+              <Input label="Preço Unitário" type="number" step="any" value={form.unitPrice} onChange={set('unitPrice')} />
+            )}
+            {form.calculationMode === 'boxes_times_box_price' && (
               <>
+                <Input label="Preço Caixa" type="number" step="any" value={form.boxPrice} onChange={set('boxPrice')} />
+                <Input label="Un/Caixa" type="number" step="1" value={form.unitsPerBox} onChange={set('unitsPerBox')} />
+              </>
+            )}
+            {form.calculationMode === 'boxes_times_units_per_box_times_unit_price' && (
+              <>
+                <Input label="Preço Unitário" type="number" step="any" value={form.unitPrice} onChange={set('unitPrice')} />
+                <Input label="Un/Caixa" type="number" step="1" value={form.unitsPerBox} onChange={set('unitsPerBox')} />
+              </>
+            )}
+            {form.calculationMode === 'dimensions_density_factor' && (
+              <>
+                <Input label="Preço Base (R$/kg)" type="number" step="any" value={form.basePrice} onChange={set('basePrice')} />
                 <Input label="Densidade" type="number" step="any" value={form.density} onChange={set('density')} />
                 <Input label="Fator Kg" type="number" step="any" value={form.factorKg} onChange={set('factorKg')} />
               </>
+            )}
+            {form.calculationMode === 'manual_price' && (
+              <Input label="Preço Manual" type="number" step="any" value={form.unitPrice} onChange={set('unitPrice')} />
             )}
           </CardBody>
         </Card>

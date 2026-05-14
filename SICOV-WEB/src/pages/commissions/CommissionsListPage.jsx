@@ -24,6 +24,7 @@ export function CommissionsListPage() {
   const [loading, setLoading] = useState(true);
   const [selectedCommission, setSelectedCommission] = useState(null);
   const [suppliers, setSuppliers] = useState([]);
+  const [representatives, setRepresentatives] = useState([]);
 
   const page = Number(searchParams.get('page') || 1);
   const month = searchParams.get('month') || '';
@@ -31,6 +32,7 @@ export function CommissionsListPage() {
   const status = searchParams.get('status') || 'all';
   const orderNumber = searchParams.get('orderNumber') || '';
   const supplierId = searchParams.get('supplierId') || '';
+  const representativeId = searchParams.get('representativeId') || '';
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -41,10 +43,11 @@ export function CommissionsListPage() {
       if (status) params.status = status;
       if (orderNumber) params.orderNumber = orderNumber;
       if (supplierId) params.supplierId = supplierId;
+      if (representativeId) params.representativeId = representativeId;
 
       const [listRes, summaryRes] = await Promise.all([
         api.get('/commissions', { params }),
-        api.get('/commissions/summary', { params: { month, year, supplierId } }),
+        api.get('/commissions/summary', { params: { month, year, supplierId, representativeId } }),
       ]);
 
       setCommissions(listRes.data.commissions);
@@ -72,14 +75,17 @@ export function CommissionsListPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, month, year, status, orderNumber, supplierId]);
+  }, [page, month, year, status, orderNumber, supplierId, representativeId]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Carrega fornecedores para o filtro
+  // Carrega fornecedores e representantes para os filtros
   useEffect(() => {
     api.get('/suppliers', { params: { active: 'true', limit: 100 } })
       .then(({ data }) => setSuppliers(data.suppliers || []))
+      .catch(() => {});
+    api.get('/users/representatives')
+      .then(({ data }) => setRepresentatives(data || []))
       .catch(() => {});
   }, []);
 
@@ -97,10 +103,12 @@ export function CommissionsListPage() {
     const y = formData.get('year');
     const on = formData.get('orderNumber');
     const sid = formData.get('supplierId');
+    const rid = formData.get('representativeId');
     if (m) params.set('month', m);
     if (y) params.set('year', y);
     if (on) params.set('orderNumber', on);
     if (sid) params.set('supplierId', sid);
+    if (rid) params.set('representativeId', rid);
     if (status) params.set('status', status);
     params.set('page', '1');
     setSearchParams(params);
@@ -162,38 +170,62 @@ export function CommissionsListPage() {
                   </p>
                 </div>
               </div>
+              {(() => {
+                const base = isAdmin ? summary.totalAdminCommission : summary.totalRepresentativeCommission;
+                const real = isAdmin ? (summary.totalRealAdminCommission || 0) : (summary.totalRealRepresentativeCommission || 0);
+                const diff = real - base;
+                if (real === 0) return null;
+                return (
+                  <div className="pt-2 border-t border-[#e3e3d1]">
+                    <p className="text-xs text-gray-400">Diferença (real - pedido)</p>
+                    <p className={`text-sm font-semibold ${diff >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                      {diff >= 0 ? '+' : ''}{formatCurrency(diff)}
+                    </p>
+                  </div>
+                );
+              })()}
             </CardBody>
           </Card>
         </div>
       )}
 
-      {/* Resumo por representante — só aparece com mês filtrado e mais de 1 representante */}
-      {isAdmin && month && repSummary.length > 1 && (
-        <Card>
-          <CardBody>
-            <p className="text-xs font-medium text-[#7c8a6e] uppercase tracking-wide mb-3">Por Representante</p>
-            <div className="divide-y divide-[#e3e3d1]">
-              {repSummary.map((rep, i) => (
-                <div key={i} className="flex items-center justify-between py-2">
-                  <div>
-                    <p className="text-sm font-medium text-[#4b5757]">{rep.representativeName || 'Sem representante'}</p>
-                    <p className="text-xs text-gray-400">{rep.count} pedido{rep.count !== 1 ? 's' : ''} · Total: {formatCurrency(rep.totalOrderValue)}</p>
+      {/* Resumo por representante — só aparece com mês filtrado e representantes existentes */}
+      {isAdmin && month && (() => {
+        const repOnly = repSummary.filter((rep) =>
+          representatives.some((r) => r._id === rep.representativeId?.toString() || r._id === rep.representativeId)
+        );
+        return repOnly.length > 0 ? (
+          <Card>
+            <CardBody>
+              <p className="text-xs font-medium text-[#7c8a6e] uppercase tracking-wide mb-3">Por Representante</p>
+              <div className="divide-y divide-[#e3e3d1]">
+                {repOnly.map((rep, i) => (
+                  <div key={i} className="flex items-center justify-between py-2">
+                    <div>
+                      <p className="text-sm font-medium text-[#4b5757]">{rep.representativeName || 'Sem representante'}</p>
+                      <p className="text-xs text-gray-400">{rep.count} pedido{rep.count !== 1 ? 's' : ''} · Total: {formatCurrency(rep.totalOrderValue)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-[#4b5757]">{formatCurrency(rep.totalRepresentativeCommission)}</p>
+                      {(rep.totalRealRepresentativeCommission || 0) > 0 && (
+                        <p className={`text-xs font-medium ${(rep.totalRealRepresentativeCommission - rep.totalRepresentativeCommission) >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                          Real: {formatCurrency(rep.totalRealRepresentativeCommission)} ({(rep.totalRealRepresentativeCommission - rep.totalRepresentativeCommission) >= 0 ? '+' : ''}{formatCurrency(rep.totalRealRepresentativeCommission - rep.totalRepresentativeCommission)})
+                        </p>
+                      )}
+                      <p className="text-xs text-gray-400">entrega p/ admin: {formatCurrency(rep.totalAdminCommission)}</p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm font-semibold text-[#4b5757]">{formatCurrency(rep.totalRepresentativeCommission)}</p>
-                    <p className="text-xs text-gray-400">entrega p/ admin: {formatCurrency(rep.totalAdminCommission)}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardBody>
-        </Card>
-      )}
+                ))}
+              </div>
+            </CardBody>
+          </Card>
+        ) : null;
+      })()}
 
       {/* Filtros */}
       <Card className="p-4">
         <form onSubmit={handleFilter} className="flex flex-col gap-3">
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             <input
               name="month"
               type="number"
@@ -227,6 +259,16 @@ export function CommissionsListPage() {
               <option value="">Todos fornecedores</option>
               {suppliers.map((s) => <option key={s._id} value={s._id}>{s.tradeName || s.name}</option>)}
             </select>
+            {isAdmin && (
+              <select
+                name="representativeId"
+                defaultValue={representativeId}
+                className="w-full px-3 py-2 text-sm text-gray-500 rounded-lg border border-[#b0b087] focus:border-[#58706d] focus:ring-1 focus:ring-[#58706d] outline-none"
+              >
+                <option value="">Todos representantes</option>
+                {representatives.map((r) => <option key={r._id} value={r._id}>{r.name}</option>)}
+              </select>
+            )}
             <Button type="submit" variant="secondary" size="md" className="col-span-2 sm:col-span-1">
               <Search size={14} />
               Filtrar
@@ -272,29 +314,40 @@ export function CommissionsListPage() {
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="relative w-9 h-9 rounded-lg bg-[#e3e3d1] flex items-center justify-center shrink-0">
-                      <span className="text-xs font-bold text-[#4b5757]">
-                        #{c.orderNumber ?? '—'}
-                      </span>
-                      {c.realDeliveryDate && (c.deliveryDate || c.dueDate) && (() => {
+                    <div className={`relative w-auto min-w-9 h-9 px-2 rounded-lg flex items-center justify-center shrink-0 ${
+                      c.realDeliveryDate && (c.deliveryDate || c.dueDate) ? (() => {
                         const expected = new Date(c.dueDate || c.deliveryDate);
                         const actual = new Date(c.realDeliveryDate);
                         const diff = Math.round((actual - expected) / (1000 * 60 * 60 * 24));
-                        const color = diff === 0 ? 'bg-emerald-400' : diff > 0 ? 'bg-red-400' : 'bg-blue-400';
-                        return <span className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${color} border-2 border-white`} />;
-                      })()}
+                        return diff === 0 ? 'bg-emerald-200' : diff > 0 ? 'bg-red-200' : 'bg-blue-200';
+                      })() : 'bg-[#e3e3d1]'
+                    }`}>
+                      <span className={`text-xs font-bold ${
+                        c.realDeliveryDate && (c.deliveryDate || c.dueDate) ? (() => {
+                          const expected = new Date(c.dueDate || c.deliveryDate);
+                          const actual = new Date(c.realDeliveryDate);
+                          const diff = Math.round((actual - expected) / (1000 * 60 * 60 * 24));
+                          return diff === 0 ? 'text-emerald-700' : diff > 0 ? 'text-red-700' : 'text-blue-700';
+                        })() : 'text-[#4b5757]'
+                      }`}>
+                        #{c.orderNumber ?? '—'}
+                      </span>
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-medium text-[#4b5757]">
                           Pedido #{c.orderNumber ?? '—'}
                         </p>
+                        {isAdmin && c.representativeName && (
+                          <span className="text-sm font-semibold text-[#58706d]">
+                            — {c.representativeName}
+                          </span>
+                        )}
                         {c.projected && <Badge variant="pending">Projetada</Badge>}
                         {c.status === 'cancelled' && <Badge variant="cancelled">Cancelada</Badge>}
                       </div>
                       <p className="text-xs text-gray-400 mt-0.5">
                         {c.supplierName ? `${c.supplierName}` : ''}
-                        {c.representativeName ? ` · Rep: ${c.representativeName}` : ''}
                         {c.customerPurchaseOrder ? ` · PC: ${c.customerPurchaseOrder}` : ''}
                         {' · '}{c.deliveryDate ? new Date(c.deliveryDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : `${c.period?.month}/${c.period?.year}`}
                         {isAdmin
