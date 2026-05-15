@@ -355,7 +355,7 @@ export function ProductFormPage() {
                     placeholder="0"
                   />
                 </div>
-                <Input label="Densidade" type="number" step="any" value={form.density} onChange={set('density')} placeholder={supplierHint.density ? `Fornecedor: ${supplierHint.density}` : ''} />
+                <Input label="Densidade" type="number" step="any" value={form.density} onChange={set('density')} placeholder={supplierHint.density ? `Fornecedor: ${Number(supplierHint.density).toLocaleString('pt-BR', { maximumFractionDigits: 4 })}` : ''} />
                 <Input label="Fator Kg" type="number" step="any" value={form.factorKg} onChange={(e) => {
                   const factorKg = e.target.value;
                   setForm((f) => {
@@ -370,7 +370,7 @@ export function ProductFormPage() {
                     }
                     return updated;
                   });
-                }} placeholder={supplierHint.factorKg ? `Fornecedor: ${supplierHint.factorKg}` : ''} />
+                }} placeholder={supplierHint.factorKg ? `Fornecedor: R$ ${Number(supplierHint.factorKg).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : ''} />
               </>
             )}
             {form.calculationMode === 'manual_price' && (

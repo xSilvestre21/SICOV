@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, ChevronLeft, ChevronRight, DollarSign } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, DollarSign, Eye, EyeOff } from 'lucide-react';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -11,6 +11,8 @@ import api from '../../lib/api';
 function formatCurrency(v) {
   return Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
+
+const blurClass = (hidden) => hidden ? 'blur-md select-none' : '';
 
 export function CommissionsListPage() {
   const { isAdmin } = useAuth();
@@ -24,6 +26,7 @@ export function CommissionsListPage() {
   const [loading, setLoading] = useState(true);
   const [selectedCommission, setSelectedCommission] = useState(null);
   const [suppliers, setSuppliers] = useState([]);
+  const [valuesHidden, setValuesHidden] = useState(true);
   const [representatives, setRepresentatives] = useState([]);
 
   const page = Number(searchParams.get('page') || 1);
@@ -128,9 +131,18 @@ export function CommissionsListPage() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-[#4b5757]">Comissões</h1>
-        <p className="text-sm text-[#7c8a6e]">{total} registro{total !== 1 ? 's' : ''}</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-[#4b5757]">Comissões</h1>
+          <p className="text-sm text-[#7c8a6e]">{total} registro{total !== 1 ? 's' : ''}</p>
+        </div>
+        <button
+          onClick={() => setValuesHidden(!valuesHidden)}
+          className="p-2 text-[#7c8a6e] hover:text-[#4b5757] hover:bg-[#e3e3d1] rounded-lg transition-colors"
+          title={valuesHidden ? 'Mostrar valores' : 'Ocultar valores'}
+        >
+          {valuesHidden ? <EyeOff size={20} /> : <Eye size={20} />}
+        </button>
       </div>
 
       {/* Summary cards — só aparecem quando mês está filtrado */}
@@ -140,11 +152,11 @@ export function CommissionsListPage() {
           <Card>
             <CardBody className="space-y-3">
               <p className="text-xs font-medium text-[#7c8a6e] uppercase tracking-wide">Valor Total dos Pedidos (s/ IPI)</p>
-              <p className="text-2xl font-bold text-[#4b5757]">{formatCurrency(summary.totalOrderValue)}</p>
+              <p className={`text-2xl font-bold text-[#4b5757] ${blurClass(valuesHidden)}`}>{formatCurrency(summary.totalOrderValue)}</p>
               {(summary.totalRealPool || 0) > 0 && (
                 <div className="pt-2 border-t border-[#e3e3d1]">
                   <p className="text-xs text-gray-400">Total Real Recebido</p>
-                  <p className="text-lg font-bold text-[#4b5757]">{formatCurrency((summary.totalRealPool || 0) / (summary.totalPool > 0 ? summary.totalPool / summary.totalOrderValue : 0.05))}</p>
+                  <p className={`text-lg font-bold text-[#4b5757] ${blurClass(valuesHidden)}`}>{formatCurrency((summary.totalRealPool || 0) / (summary.totalPool > 0 ? summary.totalPool / summary.totalOrderValue : 0.05))}</p>
                 </div>
               )}
             </CardBody>
@@ -159,13 +171,13 @@ export function CommissionsListPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-xs text-gray-400">Base Pedido</p>
-                  <p className="text-xl font-bold text-[#4b5757]">
+                  <p className={`text-xl font-bold text-[#4b5757] ${blurClass(valuesHidden)}`}>
                     {formatCurrency(isAdmin ? summary.totalAdminCommission : summary.totalRepresentativeCommission)}
                   </p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-400">Base Real</p>
-                  <p className="text-xl font-bold text-[#4b5757]">
+                  <p className={`text-xl font-bold text-[#4b5757] ${blurClass(valuesHidden)}`}>
                     {formatCurrency(isAdmin ? (summary.totalRealAdminCommission || 0) : (summary.totalRealRepresentativeCommission || 0))}
                   </p>
                 </div>
@@ -178,7 +190,7 @@ export function CommissionsListPage() {
                 return (
                   <div className="pt-2 border-t border-[#e3e3d1]">
                     <p className="text-xs text-gray-400">Diferença (real - pedido)</p>
-                    <p className={`text-sm font-semibold ${diff >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                    <p className={`text-sm font-semibold ${diff >= 0 ? 'text-emerald-600' : 'text-red-500'} ${blurClass(valuesHidden)}`}>
                       {diff >= 0 ? '+' : ''}{formatCurrency(diff)}
                     </p>
                   </div>
@@ -203,16 +215,16 @@ export function CommissionsListPage() {
                   <div key={i} className="flex items-center justify-between py-2">
                     <div>
                       <p className="text-sm font-medium text-[#4b5757]">{rep.representativeName || 'Sem representante'}</p>
-                      <p className="text-xs text-gray-400">{rep.count} pedido{rep.count !== 1 ? 's' : ''} · Total: {formatCurrency(rep.totalOrderValue)}</p>
+                      <p className={`text-xs text-gray-400 ${blurClass(valuesHidden)}`}>{rep.count} pedido{rep.count !== 1 ? 's' : ''} · Total: {formatCurrency(rep.totalOrderValue)}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-semibold text-[#4b5757]">{formatCurrency(rep.totalRepresentativeCommission)}</p>
+                      <p className={`text-sm font-semibold text-[#4b5757] ${blurClass(valuesHidden)}`}>{formatCurrency(rep.totalRepresentativeCommission)}</p>
                       {(rep.totalRealRepresentativeCommission || 0) > 0 && (
-                        <p className={`text-xs font-medium ${(rep.totalRealRepresentativeCommission - rep.totalRepresentativeCommission) >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                        <p className={`text-xs font-medium ${(rep.totalRealRepresentativeCommission - rep.totalRepresentativeCommission) >= 0 ? 'text-emerald-600' : 'text-red-500'} ${blurClass(valuesHidden)}`}>
                           Real: {formatCurrency(rep.totalRealRepresentativeCommission)} ({(rep.totalRealRepresentativeCommission - rep.totalRepresentativeCommission) >= 0 ? '+' : ''}{formatCurrency(rep.totalRealRepresentativeCommission - rep.totalRepresentativeCommission)})
                         </p>
                       )}
-                      <p className="text-xs text-gray-400">entrega p/ admin: {formatCurrency(rep.totalAdminCommission)}</p>
+                      <p className={`text-xs text-gray-400 ${blurClass(valuesHidden)}`}>entrega p/ admin: {formatCurrency(rep.totalAdminCommission)}</p>
                     </div>
                   </div>
                 ))}
@@ -359,24 +371,24 @@ export function CommissionsListPage() {
                   </div>
 
                   <div className={`flex flex-col items-end gap-0.5 shrink-0 ml-3 ${c.status === 'cancelled' ? 'opacity-50' : ''}`}>
-                    <span className="text-sm font-semibold text-[#4b5757]">
+                    <span className={`text-sm font-semibold text-[#4b5757] ${blurClass(valuesHidden)}`}>
                       {formatCurrency(isAdmin ? c.adminCommission : c.representativeCommission)}
                     </span>
-                    <span className="text-xs text-gray-400">
+                    <span className={`text-xs text-gray-400 ${blurClass(valuesHidden)}`}>
                       de {formatCurrency(c.orderValueWithoutIpi)}
                     </span>
                     {isAdmin && c.realAdminCommission != null && c.realAdminCommission > 0 && (
-                      <span className="text-xs text-[#7c8a6e]">
+                      <span className={`text-xs text-[#7c8a6e] ${blurClass(valuesHidden)}`}>
                         Real: {formatCurrency(c.realAdminCommission)}
                       </span>
                     )}
                     {!isAdmin && c.realRepresentativeCommission != null && c.realRepresentativeCommission > 0 && (
-                      <span className="text-xs text-[#7c8a6e]">
+                      <span className={`text-xs text-[#7c8a6e] ${blurClass(valuesHidden)}`}>
                         Real: {formatCurrency(c.realRepresentativeCommission)}
                       </span>
                     )}
                     {c.representativeCommission > 0 && (
-                      <span className="text-xs text-gray-300">
+                      <span className={`text-xs text-gray-300 ${blurClass(valuesHidden)}`}>
                         Rep: {formatCurrency(c.representativeCommission)}
                       </span>
                     )}

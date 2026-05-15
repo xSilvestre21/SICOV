@@ -177,6 +177,19 @@ async function updateRepresentative(req, res) {
 
     await representative.save();
 
+    // Atualiza o nome nas comissões vinculadas
+    if (name !== undefined) {
+      try {
+        const Commission = require('../models/commission');
+        await Commission.updateMany(
+          { representativeId: id },
+          { $set: { representativeName: representative.name } },
+        );
+      } catch (commErr) {
+        console.error('[updateRepresentative] Erro ao atualizar comissões:', commErr.message);
+      }
+    }
+
     return res.json({
       message: 'Representante atualizado com sucesso',
       user: {

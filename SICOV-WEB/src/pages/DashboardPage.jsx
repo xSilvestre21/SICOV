@@ -9,13 +9,15 @@ import {
   Clock,
   CheckCircle,
   XCircle,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { Card, CardBody } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../lib/api';
 
-function StatCard({ icon: Icon, label, value, color, to }) {
+function StatCard({ icon: Icon, label, value, color, to, hidden }) {
   const content = (
     <CardBody className="flex items-center gap-4">
       <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${color}`}>
@@ -23,7 +25,7 @@ function StatCard({ icon: Icon, label, value, color, to }) {
       </div>
       <div>
         <p className="text-sm text-gray-500">{label}</p>
-        <p className="text-2xl font-bold text-[#4b5757]">{value ?? '—'}</p>
+        <p className={`text-2xl font-bold text-[#4b5757] ${hidden ? 'blur-md select-none' : ''}`}>{value ?? '—'}</p>
       </div>
     </CardBody>
   );
@@ -44,6 +46,7 @@ export function DashboardPage() {
   const [stats, setStats] = useState(null);
   const [recentOrders, setRecentOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [valuesHidden, setValuesHidden] = useState(true);
 
   useEffect(() => {
     async function load() {
@@ -77,9 +80,18 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-[#4b5757]">Dashboard</h1>
-        <p className="text-sm text-[#7c8a6e] mt-1">Visão geral do sistema</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-[#4b5757]">Dashboard</h1>
+          <p className="text-sm text-[#7c8a6e] mt-1">Visão geral do sistema</p>
+        </div>
+        <button
+          onClick={() => setValuesHidden(!valuesHidden)}
+          className="p-2 text-[#7c8a6e] hover:text-[#4b5757] hover:bg-[#e3e3d1] rounded-lg transition-colors"
+          title={valuesHidden ? 'Mostrar valores' : 'Ocultar valores'}
+        >
+          {valuesHidden ? <EyeOff size={20} /> : <Eye size={20} />}
+        </button>
       </div>
 
       {/* Stats */}
@@ -90,6 +102,7 @@ export function DashboardPage() {
           value={loading ? '...' : stats?.totalOrders}
           color="bg-[#58706d]"
           to="/orders"
+          hidden={valuesHidden}
         />
         <StatCard
           icon={DollarSign}
@@ -97,6 +110,7 @@ export function DashboardPage() {
           value={loading ? '...' : formatCurrency(stats?.totalPool)}
           color="bg-[#7c8a6e]"
           to="/commissions"
+          hidden={valuesHidden}
         />
         <StatCard
           icon={TrendingUp}
@@ -104,6 +118,7 @@ export function DashboardPage() {
           value={loading ? '...' : formatCurrency(stats?.totalRepComm)}
           color="bg-[#b0b087]"
           to="/commissions"
+          hidden={valuesHidden}
         />
       </div>
 
@@ -173,7 +188,7 @@ export function DashboardPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-semibold text-[#4b5757]">
+                      <span className={`text-sm font-semibold text-[#4b5757] ${valuesHidden ? 'blur-sm select-none' : ''}`}>
                         {formatCurrency(order.total)}
                       </span>
                       <Badge variant={s.variant}>{s.label}</Badge>

@@ -80,6 +80,7 @@ async function createSupplier(req, res) {
       currentOrderNumber,
       ipi,
       priceTable,
+      minimumOrderTable,
       allowedRepresentatives,
     } = req.body;
 
@@ -156,6 +157,7 @@ async function createSupplier(req, res) {
           : 0,
       ipi: parsedIpi,
       priceTable: normalizedPriceTable,
+      minimumOrderTable: Array.isArray(minimumOrderTable) ? minimumOrderTable : [],
       allowedRepresentatives: validAllowedRepresentatives,
       active: true,
     });
@@ -284,6 +286,7 @@ async function updateSupplier(req, res) {
       currentOrderNumber,
       ipi,
       priceTable,
+      minimumOrderTable,
       allowedRepresentatives,
     } = req.body;
 
@@ -376,6 +379,10 @@ async function updateSupplier(req, res) {
     supplier.ipi = parsedIpi;
     supplier.priceTable = normalizedPriceTable;
     supplier.allowedRepresentatives = validAllowedRepresentatives;
+
+    if (minimumOrderTable !== undefined) {
+      supplier.minimumOrderTable = Array.isArray(minimumOrderTable) ? minimumOrderTable : [];
+    }
 
     await supplier.save();
 

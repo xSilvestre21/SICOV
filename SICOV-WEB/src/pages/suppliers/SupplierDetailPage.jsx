@@ -101,7 +101,7 @@ export function SupplierDetailPage() {
               <thead className="bg-[#f5f5ee] border-b border-[#e3e3d1]">
                 <tr>
                   <th className="text-left px-4 py-2 font-medium text-[#4b5757]">Material</th>
-                  <th className="text-right px-4 py-2 font-medium text-[#4b5757]">Preço/Kg</th>
+                  <th className="text-right px-4 py-2 font-medium text-[#4b5757]">Fator Kg</th>
                   <th className="text-right px-4 py-2 font-medium text-[#4b5757]">Densidade</th>
                 </tr>
               </thead>
@@ -109,8 +109,41 @@ export function SupplierDetailPage() {
                 {supplier.priceTable.map((row, i) => (
                   <tr key={i}>
                     <td className="px-4 py-2 font-medium text-[#4b5757]">{row.material}</td>
-                    <td className="px-4 py-2 text-right text-gray-600">{formatCurrency(row.price)}</td>
-                    <td className="px-4 py-2 text-right text-gray-600">{row.density ?? '—'}</td>
+                    <td className="px-4 py-2 text-right text-gray-600">{row.factorKg != null ? formatCurrency(row.factorKg) : '—'}</td>
+                    <td className="px-4 py-2 text-right text-gray-600">{row.density != null ? Number(row.density).toLocaleString('pt-BR', { maximumFractionDigits: 4 }) : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      {supplier.minimumOrderTable?.length > 0 && (
+        <Card>
+          <CardHeader><h2 className="text-sm font-semibold text-[#4b5757]">Pedido Mínimo por Faixa de Medida</h2></CardHeader>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-[#f5f5ee] border-b border-[#e3e3d1]">
+                <tr>
+                  <th className="text-left px-4 py-2 font-medium text-[#4b5757]">Faixa de Medida</th>
+                  <th className="text-right px-4 py-2 font-medium text-[#4b5757]">Pedido Mínimo</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#e3e3d1]">
+                {supplier.minimumOrderTable.map((row, i) => (
+                  <tr key={i}>
+                    <td className="px-4 py-2 text-[#4b5757]">
+                      {row.measureFrom && row.measureTo
+                        ? `${row.measureFrom} a ${row.measureTo} cm`
+                        : row.measureFrom
+                          ? `Acima de ${row.measureFrom} cm`
+                          : row.measureTo
+                            ? `Até ${row.measureTo} cm`
+                            : '—'
+                      }
+                    </td>
+                    <td className="px-4 py-2 text-right font-medium text-[#4b5757]">{row.minimumKg} kg</td>
                   </tr>
                 ))}
               </tbody>

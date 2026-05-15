@@ -233,7 +233,7 @@ async function resolvePlasticBagCommercialData({ supplierId, material }) {
   return {
     supplier,
     density: materialEntry.density,
-    factorKg: materialEntry.price,
+    factorKg: materialEntry.factorKg || materialEntry.price,
   };
 }
 

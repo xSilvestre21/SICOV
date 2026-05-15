@@ -83,6 +83,14 @@ const supplierSchema = new mongoose.Schema(
       type: [priceTableItemSchema],
       default: [],
     },
+    minimumOrderTable: {
+      type: [{
+        measureFrom: { type: Number, min: 0 },
+        measureTo: { type: Number, min: 0 },
+        minimumKg: { type: Number, required: true, min: 0 },
+      }],
+      default: [],
+    },
     allowedRepresentatives: [
       {
         type: mongoose.Schema.Types.ObjectId,
