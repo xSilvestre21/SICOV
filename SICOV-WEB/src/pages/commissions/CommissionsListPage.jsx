@@ -5,6 +5,7 @@ import { Card, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { CommissionDetailModal } from './CommissionDetailModal';
 import api from '../../lib/api';
 
@@ -16,6 +17,7 @@ const blurClass = (hidden) => hidden ? 'blur-md select-none' : '';
 
 export function CommissionsListPage() {
   const { isAdmin } = useAuth();
+  const { isDark } = useTheme();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [commissions, setCommissions] = useState([]);
@@ -319,7 +321,7 @@ export function CommissionsListPage() {
                 key={c._id}
                 className={`px-4 md:px-6 py-4 transition-colors ${
                   c.status === 'cancelled'
-                    ? 'bg-red-50/70 cursor-default'
+                    ? isDark ? 'bg-red-900/20 border-l-2 border-red-700 cursor-default' : 'bg-red-50/70 cursor-default'
                     : 'hover:bg-[#f5f5ee] cursor-pointer'
                 }`}
                 onClick={() => c.status !== 'cancelled' && setSelectedCommission(c)}
