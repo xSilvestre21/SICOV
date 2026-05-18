@@ -51,18 +51,26 @@ export function DashboardPage() {
   useEffect(() => {
     async function load() {
       try {
+        const currentMonth = new Date().getMonth() + 1;
+        const currentYear = new Date().getFullYear();
         const [ordersRes, commissionsRes] = await Promise.all([
           api.get('/orders?limit=5'),
-          api.get('/commissions/summary'),
+          api.get(`/commissions/summary?month=${currentMonth}&year=${currentYear}`),
         ]);
 
         setRecentOrders(ordersRes.data.orders || []);
 
-        const summary = commissionsRes.data.summary?.[0];
+        const items = commissionsRes.data.summary || [];
+        const summary = items.reduce((acc, item) => ({
+          totalPool: (acc.totalPool || 0) + (item.totalPool || 0),
+          totalAdminCommission: (acc.totalAdminCommission || 0) + (item.totalAdminCommission || 0),
+          totalRepComm: (acc.totalRepComm || 0) + (item.totalRepresentativeCommission || 0),
+        }), {});
         setStats({
           totalOrders: ordersRes.data.total,
-          totalPool: summary?.totalPool ?? 0,
-          totalRepComm: summary?.totalRepresentativeCommission ?? 0,
+          totalPool: summary.totalPool ?? 0,
+          totalAdminComm: summary.totalAdminCommission ?? 0,
+          totalRepComm: summary.totalRepComm ?? 0,
         });
       } catch {
         // silencioso — mostra dados parciais
@@ -82,7 +90,7 @@ export function DashboardPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[#4b5757]">Dashboard</h1>
+          <h1 className="text-2xl font-bold text-[#4b5757]">Início</h1>
           <p className="text-sm text-[#7c8a6e] mt-1">Visão geral do sistema</p>
         </div>
         <button
@@ -106,15 +114,15 @@ export function DashboardPage() {
         />
         <StatCard
           icon={DollarSign}
-          label="Comissão Total"
-          value={loading ? '...' : formatCurrency(stats?.totalPool)}
+          label="Sua Comissão (mês atual)"
+          value={loading ? '...' : formatCurrency(stats?.totalAdminComm)}
           color="bg-[#7c8a6e]"
           to="/commissions"
           hidden={valuesHidden}
         />
         <StatCard
           icon={TrendingUp}
-          label="Comissão Representantes"
+          label="Comissão Representantes (mês atual)"
           value={loading ? '...' : formatCurrency(stats?.totalRepComm)}
           color="bg-[#b0b087]"
           to="/commissions"

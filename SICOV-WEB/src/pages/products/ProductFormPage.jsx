@@ -370,7 +370,7 @@ export function ProductFormPage() {
                     }
                     return updated;
                   });
-                }} placeholder={supplierHint.factorKg ? `Fornecedor: R$ ${Number(supplierHint.factorKg).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : ''} />
+                }} placeholder={supplierHint.factorKg ? `Fornecedor: ${supplierHint.factorKg}` : ''} />
               </>
             )}
             {form.calculationMode === 'manual_price' && (

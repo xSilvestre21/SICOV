@@ -15,7 +15,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 
 const navItems = [
-  { to: '/',            label: 'Dashboard',    icon: LayoutDashboard },
+  { to: '/',            label: 'Início',       icon: LayoutDashboard },
   { to: '/orders',      label: 'Pedidos',      icon: ShoppingCart },
   { to: '/quotations',  label: 'Orçamentos',   icon: FileText },
   { to: '/commissions', label: 'Comissões',    icon: DollarSign },

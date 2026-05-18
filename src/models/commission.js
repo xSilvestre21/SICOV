@@ -145,6 +145,12 @@ const commissionSchema = new mongoose.Schema(
       default: false,
     },
 
+    // Indica que esta comissão foi dividida em parcelas (não deve contar no total)
+    installmentsCreated: {
+      type: Boolean,
+      default: false,
+    },
+
     // Data de vencimento da parcela (apenas quando projected: true)
     dueDate: {
       type: Date,

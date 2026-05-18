@@ -213,7 +213,176 @@ export function CommissionDetailModal({ commission, onClose, onUpdated }) {
             <Button type="submit" loading={loading}><Save size={16} /> Salvar</Button>
           </div>
         </form>
+
+        {/* Seção de parcelamento — aparece para comissões originais (não para parcelas individuais) */}
+        {isAdmin && (!commission.projected || commission.installmentsCreated || !commission.installmentIndex) && (
+          <InstallmentsSection commission={commission} onCreated={onUpdated} />
+        )}
       </div>
+    </div>
+  );
+}
+
+
+function InstallmentsSection({ commission, onCreated }) {
+  const [showForm, setShowForm] = useState(false);
+  const [intervals, setIntervals] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  const isAlreadyInstallmented = commission.installmentsCreated || (commission.projected && !commission.installmentIndex);
+
+  const handleCreate = async () => {
+    setError('');
+    setSuccess('');
+
+    const parsed = intervals
+      .split(/[,\s]+/)
+      .map((v) => parseInt(v.trim(), 10))
+      .filter((v) => !isNaN(v) && v > 0);
+
+    if (parsed.length === 0) {
+      return setError('Informe os dias (ex: 30, 60, 90)');
+    }
+
+    setLoading(true);
+    try {
+      await api.post(`/commissions/${commission._id}/installments`, {
+        intervals: parsed,
+        representativePercentage: commission.representativePercentage,
+        adminPercentage: commission.adminPercentage,
+      });
+      setSuccess(`${parsed.length} parcela(s) criada(s) com sucesso!`);
+      setTimeout(() => onCreated(commission), 1500);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Erro ao criar parcelas.');
+    } finally { setLoading(false); }
+  };
+
+  const handleDeleteInstallments = async () => {
+    if (!confirm('Deletar todas as parcelas deste pedido?')) return;
+    setDeleteLoading(true);
+    setError('');
+    try {
+      // Busca e deleta parcelas vinculadas a este pedido
+      const { data } = await api.get('/commissions', { params: { orderNumber: commission.orderNumber, status: 'all', limit: 100 } });
+      const parcelas = (data.commissions || []).filter((c) => c.projected && c.installmentIndex && c.orderId === commission.orderId);
+      for (const p of parcelas) {
+        await api.delete(`/commissions/${p._id}`);
+      }
+      // Desmarca a comissão original como parcelada
+      await api.put(`/commissions/${commission._id}`, { projected: false, installmentsCreated: false });
+      setSuccess('Parcelas deletadas.');
+      setTimeout(() => onCreated(commission), 1500);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Erro ao deletar parcelas.');
+    } finally { setDeleteLoading(false); }
+  };
+
+  // Preview das datas
+  const previewDates = (() => {
+    if (!intervals) return [];
+    const deliveryDate = commission.realDeliveryDate || commission.deliveryDate || commission.dueDate;
+    if (!deliveryDate) return [];
+
+    const parsed = intervals.split(/[,\s]+/).map((v) => parseInt(v.trim(), 10)).filter((v) => !isNaN(v) && v > 0);
+    const base = new Date(deliveryDate);
+
+    return parsed.map((days) => {
+      const date = new Date(base);
+      date.setUTCDate(date.getUTCDate() + days);
+      return {
+        days,
+        supplierDate: date.toLocaleDateString('pt-BR', { timeZone: 'UTC' }),
+        period: { month: date.getUTCMonth() + 1, year: date.getUTCFullYear() },
+      };
+    });
+  })();
+
+  return (
+    <div className="px-6 pb-6 border-t border-[#e3e3d1]">
+      <div className="flex items-center justify-between pt-4 mb-3">
+        <p className="text-sm font-semibold text-[#4b5757]">Parcelamento</p>
+        {!showForm && !isAlreadyInstallmented && (
+          <Button variant="secondary" size="sm" onClick={() => setShowForm(true)}>
+            Parcelar
+          </Button>
+        )}
+        {isAlreadyInstallmented && !showForm && (
+          <div className="flex gap-2">
+            <Button variant="secondary" size="sm" onClick={() => setShowForm(true)}>
+              Editar Parcelas
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Indicador de que já foi parcelada */}
+      {isAlreadyInstallmented && !showForm && (
+        <p className="text-xs text-[#7c8a6e] mb-2">Esta comissão foi parcelada. Clique em "Editar Parcelas" para alterar os dias.</p>
+      )}
+
+      {showForm && (
+        <div className="space-y-3">
+          {isAlreadyInstallmented && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              <p className="text-xs text-amber-700">As parcelas existentes serão deletadas e recriadas com os novos dias.</p>
+            </div>
+          )}
+
+          <div>
+            <label className="text-sm font-medium text-[#4b5757] mb-1 block">
+              Dias após a entrega (separados por vírgula)
+            </label>
+            <input
+              type="text"
+              value={intervals}
+              onChange={(e) => setIntervals(e.target.value)}
+              placeholder="Ex: 30, 60, 90"
+              className="w-full rounded-lg border border-[#b0b087] px-3 py-2 text-sm outline-none focus:border-[#58706d] focus:ring-1 focus:ring-[#58706d]"
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              Base: {commission.realDeliveryDate ? new Date(commission.realDeliveryDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : commission.deliveryDate ? new Date(commission.deliveryDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : 'sem data de entrega'}
+            </p>
+          </div>
+
+          {previewDates.length > 0 && (
+            <div className="bg-[#f5f5ee] rounded-lg p-3">
+              <p className="text-xs font-medium text-[#7c8a6e] mb-2">Preview das parcelas:</p>
+              <div className="space-y-1">
+                {previewDates.map((p, i) => (
+                  <div key={i} className="flex justify-between text-xs">
+                    <span className="text-[#4b5757]">Parcela {i + 1} (+{p.days} dias)</span>
+                    <span className="text-gray-500">Vencimento: {p.supplierDate} · Mês: {p.period.month}/{p.period.year}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {error && <p className="text-xs text-red-500">{error}</p>}
+          {success && <p className="text-xs text-emerald-600">{success}</p>}
+
+          <div className="flex gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setShowForm(false)}>Cancelar</Button>
+            {isAlreadyInstallmented && (
+              <Button variant="danger" size="sm" loading={deleteLoading} onClick={handleDeleteInstallments}>Deletar Parcelas</Button>
+            )}
+            <Button size="sm" loading={loading} onClick={async () => {
+              if (isAlreadyInstallmented) await handleDeleteInstallments();
+              if (!error) await handleCreate();
+            }}>
+              {isAlreadyInstallmented ? 'Recriar Parcelas' : 'Criar Parcelas'}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {commission.projected && commission.installmentIndex && (
+        <p className="text-xs text-[#7c8a6e]">Esta é a parcela {commission.installmentIndex}.</p>
+      )}
     </div>
   );
 }

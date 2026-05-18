@@ -355,7 +355,8 @@ export function CommissionsListPage() {
                             — {c.representativeName}
                           </span>
                         )}
-                        {c.projected && <Badge variant="pending">Projetada</Badge>}
+                        {c.installmentsCreated && <Badge variant="default">Parcelada</Badge>}
+                        {c.projected && !c.installmentsCreated && <Badge variant="pending">Parcela {c.installmentIndex || ''}</Badge>}
                         {c.status === 'cancelled' && <Badge variant="cancelled">Cancelada</Badge>}
                       </div>
                       <p className="text-xs text-gray-400 mt-0.5">

@@ -158,6 +158,8 @@ async function updateCommission(req, res) {
       adminPercentage,
       realReceivedValue,
       realDeliveryDate,
+      projected,
+      installmentsCreated,
     } = req.body;
 
     const commission = await Commission.findById(id);
@@ -206,6 +208,12 @@ async function updateCommission(req, res) {
     }
     if (realDeliveryDate !== undefined) {
       commission.realDeliveryDate = realDeliveryDate;
+    }
+    if (projected !== undefined) {
+      commission.projected = projected;
+    }
+    if (installmentsCreated !== undefined) {
+      commission.installmentsCreated = installmentsCreated;
     }
 
     // Recalcula comissões se qualquer campo que afeta o cálculo foi alterado
@@ -359,7 +367,12 @@ async function createInstallments(req, res) {
       return {
         orderId: parentCommission.orderId,
         representativeId: parentCommission.representativeId,
+        representativeName: parentCommission.representativeName || null,
         orderValueWithoutIpi: installmentValue,
+        orderNumber: parentCommission.orderNumber || null,
+        supplierId: parentCommission.supplierId || null,
+        supplierName: parentCommission.supplierName || null,
+        customerPurchaseOrder: parentCommission.customerPurchaseOrder || null,
         pool,
         realReceivedValue: null,
         representativePercentage,
@@ -377,6 +390,11 @@ async function createInstallments(req, res) {
     });
 
     const created = await Commission.insertMany(installments);
+
+    // Marca a comissão original como parcelada (não deve contar no total)
+    parentCommission.projected = true;
+    parentCommission.installmentsCreated = true;
+    await parentCommission.save();
 
     return res.status(201).json({
       message: `${created.length} parcela(s) projetada(s) com sucesso`,
@@ -413,6 +431,16 @@ async function getCommissionsSummary(req, res) {
 
     if (month) matchStage['period.month'] = Number(month);
     if (year) matchStage['period.year'] = Number(year);
+
+    // Exclui do total comissões originais que foram parceladas
+    // Uma comissão parcelada tem projected:true mas NÃO tem installmentIndex (é a original)
+    // Parcelas têm projected:true E installmentIndex (essas contam)
+    // Comissões normais têm projected:false (essas contam)
+    matchStage.$nor = [
+      { projected: true, installmentIndex: null },
+      { projected: true, installmentIndex: { $exists: false } },
+      { installmentsCreated: true },
+    ];
 
     const pageNumber = Number(page);
     const limitNumber = Number(limit);
