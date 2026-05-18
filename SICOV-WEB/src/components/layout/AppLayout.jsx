@@ -2,20 +2,22 @@ import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import { Sidebar } from './Sidebar';
+import { useTheme } from '../../contexts/ThemeContext';
 
 export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { isDark } = useTheme();
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f5f5ee]">
+    <div className={`flex h-screen overflow-hidden ${isDark ? 'bg-[#1e2322]' : 'bg-[#f5f5ee]'}`}>
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Topbar mobile */}
-        <header className="lg:hidden flex items-center gap-3 px-4 py-3 bg-white border-b border-[#e3e3d1]">
+        <header className={`lg:hidden flex items-center gap-3 px-4 py-3 border-b ${isDark ? 'bg-[#2a2f2e] border-[#3d4543]' : 'bg-white border-[#e3e3d1]'}`}>
           <button
             onClick={() => setSidebarOpen(true)}
-            className="text-[#4b5757] hover:text-[#58706d]"
+            className={isDark ? 'text-[#d4e4d1] hover:text-white' : 'text-[#4b5757] hover:text-[#58706d]'}
           >
             <Menu size={22} />
           </button>
@@ -23,7 +25,7 @@ export function AppLayout() {
             <div className="w-7 h-7 rounded-md bg-[#58706d] flex items-center justify-center">
               <span className="text-white font-bold text-xs">S</span>
             </div>
-            <span className="font-bold text-[#4b5757]">SICOV</span>
+            <span className={`font-bold ${isDark ? 'text-[#d4e4d1]' : 'text-[#4b5757]'}`}>SICOV</span>
           </div>
         </header>
 

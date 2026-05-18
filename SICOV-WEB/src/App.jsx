@@ -1,9 +1,11 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { AppLayout } from './components/layout/AppLayout';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
 import { LoginPage } from './pages/LoginPage';
-import { DashboardPage } from './pages/DashboardPage';
+import { DashboardPage as HomePage } from './pages/DashboardPage';
+import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { OrdersListPage } from './pages/orders/OrdersListPage';
 import { NewOrderPage } from './pages/orders/NewOrderPage';
 import { OrderDetailPage } from './pages/orders/OrderDetailPage';
@@ -37,7 +39,8 @@ function AppRoutes() {
       <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
 
       <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-        <Route index element={<DashboardPage />} />
+        <Route index element={<HomePage />} />
+        <Route path="dashboard" element={<DashboardPage />} />
 
         {/* Pedidos */}
         <Route path="orders" element={<OrdersListPage />} />
@@ -89,9 +92,11 @@ function AppRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }

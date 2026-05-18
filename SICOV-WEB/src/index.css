@@ -34,7 +34,133 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* ── Dark Mode ────────────────────────────────────────────────────────────── */
+html.dark body {
+  background-color: #1e2322;
+  color: #d4e4d1;
+}
+
 /* ── Scrollbar fina ───────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--color-brand-warm); border-radius: 3px; }
+
+html.dark ::-webkit-scrollbar-thumb { background: #58706d; }
+
+/* ── Dark mode: Recharts text/tick colors ─────────────────────────────────── */
+html.dark .recharts-cartesian-axis-tick-value {
+  fill: #d4e4d1 !important;
+}
+html.dark .recharts-cartesian-grid line {
+  stroke: #3d4543 !important;
+}
+html.dark .recharts-legend-item-text {
+  color: #d4e4d1 !important;
+}
+html.dark .recharts-label {
+  fill: #d4e4d1 !important;
+}
+
+/* ── Dark mode: general text overrides ────────────────────────────────────── */
+html.dark .text-\[\#4b5757\] {
+  color: #d4e4d1;
+}
+html.dark .text-\[\#7c8a6e\] {
+  color: #9cb3a0;
+}
+
+/* ── Dark mode: hover/bg overrides ────────────────────────────────────────── */
+html.dark .hover\:bg-\[\#f5f5ee\]:hover {
+  background-color: #323a38;
+}
+html.dark .bg-\[\#f5f5ee\] {
+  background-color: #2a2f2e;
+}
+html.dark .bg-white {
+  background-color: #2a2f2e;
+}
+html.dark select.bg-white,
+html.dark input.bg-white {
+  background-color: #1e2322;
+}
+
+/* ── Dark mode: all form inputs ───────────────────────────────────────────── */
+html.dark input:not([type="checkbox"]):not([type="radio"]),
+html.dark select,
+html.dark textarea {
+  background-color: #1e2322;
+  color: #d4e4d1;
+  border-color: #3d4543;
+}
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #6b8a6e;
+}
+
+/* ── Dark mode: table row hover ───────────────────────────────────────────── */
+html.dark tr.hover\:bg-\[\#f5f5ee\]:hover,
+html.dark .hover\:bg-\[\#f5f5ee\]:hover {
+  background-color: #323a38;
+}
+
+/* ── Dark mode: badge/tag colors ──────────────────────────────────────────── */
+html.dark .bg-emerald-50 { background-color: rgba(16, 185, 129, 0.1); }
+html.dark .bg-emerald-100 { background-color: rgba(16, 185, 129, 0.15); }
+html.dark .bg-red-50 { background-color: rgba(239, 68, 68, 0.1); }
+html.dark .bg-red-100 { background-color: rgba(239, 68, 68, 0.15); }
+html.dark .bg-amber-50 { background-color: rgba(245, 158, 11, 0.1); }
+html.dark .bg-amber-100 { background-color: rgba(245, 158, 11, 0.15); }
+html.dark .bg-blue-50 { background-color: rgba(59, 130, 246, 0.1); }
+html.dark .bg-blue-100 { background-color: rgba(59, 130, 246, 0.15); }
+html.dark .bg-gray-100 { background-color: rgba(148, 163, 184, 0.15); }
+
+/* ── Dark mode: order number and strong text ──────────────────────────────── */
+html.dark .text-emerald-700 { color: #6ee7b7; }
+html.dark .text-emerald-600 { color: #6ee7b7; }
+html.dark .text-red-700 { color: #fca5a5; }
+html.dark .text-red-600 { color: #fca5a5; }
+html.dark .text-amber-700 { color: #fcd34d; }
+html.dark .text-blue-700 { color: #93c5fd; }
+html.dark .text-gray-500 { color: #9cb3a0; }
+
+/* ── Dark mode: borders ───────────────────────────────────────────────────── */
+html.dark .border-\[\#e3e3d1\] {
+  border-color: #3d4543;
+}
+html.dark .border-\[\#b0b087\] {
+  border-color: #3d4543;
+}
+
+/* ── Dark mode: background overrides ──────────────────────────────────────── */
+html.dark .bg-\[\#e3e3d1\] {
+  background-color: #3d4543;
+}
+html.dark .bg-\[\#e3e3d1\]\/30 {
+  background-color: rgba(61, 69, 67, 0.4);
+}
+html.dark .bg-\[\#e3e3d1\]\/50 {
+  background-color: rgba(61, 69, 67, 0.5);
+}
+html.dark .bg-\[\#f5f5ee\] {
+  background-color: #2a2f2e;
+}
+
+/* ── Dark mode: specific text colors for visibility ───────────────────────── */
+html.dark .text-gray-400 {
+  color: #9cb3a0;
+}
+html.dark .text-gray-500 {
+  color: #9cb3a0;
+}
+html.dark .text-gray-600 {
+  color: #b8d4b5;
+}
+html.dark .text-gray-700 {
+  color: #d4e4d1;
+}
+html.dark .text-gray-800 {
+  color: #d4e4d1;
+}
+html.dark .text-gray-900 {
+  color: #e8f5e6;
+}
