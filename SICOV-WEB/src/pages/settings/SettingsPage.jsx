@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Save, Settings, Moon, Sun } from 'lucide-react';
+import { Save, Settings, Moon, Sun, Monitor } from 'lucide-react';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
 
 export function SettingsPage() {
@@ -12,9 +13,11 @@ export function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
-  const { isDark, toggleTheme } = useTheme();
+  const { isDark, theme, setTheme } = useTheme();
+  const { isAdmin } = useAuth();
 
   useEffect(() => {
+    if (!isAdmin) { setLoading(false); return; }
     api.get('/settings')
       .then(({ data }) => setForm({
         defaultObservations: data.defaultObservations || '',
@@ -52,39 +55,48 @@ export function SettingsPage() {
         </div>
       </div>
 
-      {/* Dark Mode Toggle */}
+      {/* Aparência */}
       <Card>
         <CardHeader><h2 className={`text-sm font-semibold ${isDark ? 'text-[#d4e4d1]' : 'text-[#4b5757]'}`}>Aparência</h2></CardHeader>
         <CardBody>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {isDark ? <Moon size={20} className="text-[#9cb3a0]" /> : <Sun size={20} className="text-[#7c8a6e]" />}
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 mb-2">
+              {theme === 'auto' ? <Sun size={20} className="text-[#7c8a6e]" /> : isDark ? <Moon size={20} className="text-[#9cb3a0]" /> : <Sun size={20} className="text-[#7c8a6e]" />}
               <div>
                 <p className={`text-sm font-medium ${isDark ? 'text-[#d4e4d1]' : 'text-[#4b5757]'}`}>
-                  Modo Escuro
+                  Tema
                 </p>
                 <p className={`text-xs ${isDark ? 'text-[#6b8a6e]' : 'text-[#7c8a6e]'}`}>
-                  {isDark ? 'Tema escuro ativado' : 'Tema claro ativado'}
+                  {theme === 'light' ? 'Tema claro' : theme === 'dark' ? 'Tema escuro' : 'Automático (claro de dia, escuro à noite)'}
                 </p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                isDark ? 'bg-[#58706d]' : 'bg-[#b0b087]'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  isDark ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
+            <div className={`inline-flex items-center gap-1 rounded-lg border p-1 ${isDark ? 'border-[#3d4543]' : 'border-[#e3e3d1]'}`}>
+              {[
+                { value: 'light', label: 'Claro', Icon: Sun },
+                { value: 'dark', label: 'Escuro', Icon: Moon },
+                { value: 'auto', label: 'Automático', Icon: Monitor },
+              ].map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setTheme(opt.value)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                    theme === opt.value
+                      ? 'bg-[#58706d] text-white'
+                      : isDark ? 'text-[#d4e4d1] hover:bg-[#3d4543]' : 'text-[#4b5757] hover:bg-[#f5f5ee]'
+                  }`}
+                >
+                  <opt.Icon size={14} />
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
         </CardBody>
       </Card>
 
+      {isAdmin && (
       <form onSubmit={handleSubmit} className="space-y-4">
         <Card>
           <CardHeader><h2 className={`text-sm font-semibold ${isDark ? 'text-[#d4e4d1]' : 'text-[#4b5757]'}`}>Vendedora Padrão</h2></CardHeader>
@@ -122,6 +134,7 @@ export function SettingsPage() {
           <Button type="submit" loading={saving}><Save size={16} /> Salvar Configurações</Button>
         </div>
       </form>
+      )}
     </div>
   );
 }

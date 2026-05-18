@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, Search } from 'lucide-react';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { useTheme } from '../../contexts/ThemeContext';
 import api from '../../lib/api';
 
 const productTypes = [
@@ -41,6 +42,110 @@ const chargeTypes = [
   { value: 'per_linear_meter', label: 'Por Metro Linear' },
   { value: 'fixed', label: 'Fixo' },
 ];
+
+function SearchableSelect({ label, items, value, onChange, displayKey, fallbackKey, placeholder }) {
+  const { isDark } = useTheme();
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const wrapperRef = useRef(null);
+
+  const selectedItem = items.find((item) => item._id === value);
+  const displayValue = selectedItem ? (selectedItem[displayKey] || selectedItem[fallbackKey]) : '';
+
+  const filtered = query.length > 0
+    ? items.filter((item) => {
+        const name = (item[displayKey] || item[fallbackKey] || '').toLowerCase();
+        return name.includes(query.toLowerCase());
+      })
+    : items;
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  function handleSelect(item) {
+    onChange(item._id);
+    setQuery('');
+    setOpen(false);
+  }
+
+  function handleClear() {
+    onChange('');
+    setQuery('');
+  }
+
+  return (
+    <div ref={wrapperRef} className="relative">
+      <label className={`text-sm font-medium mb-1 block ${isDark ? 'text-[#d4e4d1]' : 'text-[#4b5757]'}`}>{label}</label>
+      {value && !open ? (
+        <div
+          onClick={() => setOpen(true)}
+          className={`w-full rounded-lg border px-3 py-2 text-sm cursor-pointer flex items-center justify-between ${
+            isDark
+              ? 'bg-[#1e2322] border-[#3d4543] text-[#d4e4d1]'
+              : 'bg-white border-[#b0b087] text-[#4b5757]'
+          }`}
+        >
+          <span>{displayValue}</span>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); handleClear(); }}
+            className={`text-xs px-1.5 py-0.5 rounded ${isDark ? 'text-[#9cb3a0] hover:text-[#d4e4d1]' : 'text-[#7c8a6e] hover:text-[#4b5757]'}`}
+          >
+            ✕
+          </button>
+        </div>
+      ) : (
+        <div className="relative">
+          <Search size={14} className={`absolute left-3 top-1/2 -translate-y-1/2 ${isDark ? 'text-[#6b8a6e]' : 'text-[#7c8a6e]'}`} />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
+            onFocus={() => setOpen(true)}
+            placeholder={placeholder}
+            className={`w-full pl-8 pr-3 py-2 text-sm rounded-lg border outline-none transition-colors focus:border-[#58706d] focus:ring-1 focus:ring-[#58706d] ${
+              isDark
+                ? 'bg-[#1e2322] border-[#3d4543] text-[#d4e4d1] placeholder:text-[#6b8a6e]'
+                : 'bg-white border-[#b0b087] text-[#4b5757] placeholder:text-gray-400'
+            }`}
+          />
+        </div>
+      )}
+
+      {open && (
+        <div className={`absolute z-50 mt-1 w-full rounded-lg shadow-lg max-h-48 overflow-y-auto border ${
+          isDark ? 'bg-[#2a2f2e] border-[#3d4543]' : 'bg-white border-[#e3e3d1]'
+        }`}>
+          {filtered.length === 0 ? (
+            <p className={`px-3 py-2 text-sm ${isDark ? 'text-[#6b8a6e]' : 'text-[#7c8a6e]'}`}>Nenhum resultado</p>
+          ) : (
+            filtered.slice(0, 30).map((item) => (
+              <button
+                key={item._id}
+                type="button"
+                onClick={() => handleSelect(item)}
+                className={`w-full text-left px-3 py-2 text-sm transition-colors ${
+                  isDark
+                    ? 'text-[#d4e4d1] hover:bg-[#3d4543]'
+                    : 'text-[#4b5757] hover:bg-[#f5f5ee]'
+                } ${item._id === value ? (isDark ? 'bg-[#58706d]/20' : 'bg-[#e3e3d1]/50') : ''}`}
+              >
+                {item[displayKey] || item[fallbackKey]}
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function ProductFormPage() {
   const { id } = useParams();
@@ -218,20 +323,24 @@ export function ProductFormPage() {
         <Card>
           <CardHeader><h2 className="text-sm font-semibold text-[#4b5757]">Vínculos</h2></CardHeader>
           <CardBody className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium text-[#4b5757] mb-1 block">Cliente *</label>
-              <select value={form.clientId} onChange={set('clientId')} className="w-full rounded-lg border border-[#b0b087] px-3 py-2 text-sm outline-none focus:border-[#58706d] focus:ring-1 focus:ring-[#58706d]">
-                <option value="">Selecione...</option>
-                {clients.map((c) => <option key={c._id} value={c._id}>{c.tradeName || c.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-[#4b5757] mb-1 block">Fornecedor *</label>
-              <select value={form.supplierId} onChange={set('supplierId')} className="w-full rounded-lg border border-[#b0b087] px-3 py-2 text-sm outline-none focus:border-[#58706d] focus:ring-1 focus:ring-[#58706d]">
-                <option value="">Selecione...</option>
-                {suppliers.map((s) => <option key={s._id} value={s._id}>{s.tradeName || s.name}</option>)}
-              </select>
-            </div>
+            <SearchableSelect
+              label="Cliente *"
+              items={clients}
+              value={form.clientId}
+              onChange={(id) => setForm((f) => ({ ...f, clientId: id }))}
+              displayKey="tradeName"
+              fallbackKey="name"
+              placeholder="Buscar cliente..."
+            />
+            <SearchableSelect
+              label="Fornecedor *"
+              items={suppliers}
+              value={form.supplierId}
+              onChange={(id) => setForm((f) => ({ ...f, supplierId: id }))}
+              displayKey="tradeName"
+              fallbackKey="name"
+              placeholder="Buscar fornecedor..."
+            />
           </CardBody>
         </Card>
 
@@ -355,7 +464,7 @@ export function ProductFormPage() {
                     placeholder="0"
                   />
                 </div>
-                <Input label="Densidade" type="number" step="any" value={form.density} onChange={set('density')} placeholder={supplierHint.density ? `Fornecedor: ${Number(supplierHint.density).toLocaleString('pt-BR', { maximumFractionDigits: 4 })}` : ''} />
+                <Input label="Densidade" type="number" step="any" value={form.density} onChange={set('density')} placeholder={supplierHint.density ? `Dica: ${Number(supplierHint.density).toLocaleString('pt-BR', { maximumFractionDigits: 4 })}` : ''} />
                 <Input label="Fator Kg" type="number" step="any" value={form.factorKg} onChange={(e) => {
                   const factorKg = e.target.value;
                   setForm((f) => {
@@ -370,7 +479,7 @@ export function ProductFormPage() {
                     }
                     return updated;
                   });
-                }} placeholder={supplierHint.factorKg ? `Fornecedor: ${supplierHint.factorKg}` : ''} />
+                }} placeholder={supplierHint.factorKg ? `Dica: R$ ${Number(supplierHint.factorKg).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : ''} />
               </>
             )}
             {form.calculationMode === 'manual_price' && (

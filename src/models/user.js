@@ -37,6 +37,13 @@ const userSchema = new mongoose.Schema(
       min: 0,
       max: 100,
     },
+
+    // Preferência de tema do usuário: 'light', 'dark' ou 'auto' (segue horário do dia)
+    themePreference: {
+      type: String,
+      enum: ['light', 'dark', 'auto'],
+      default: 'light',
+    },
   },
   {
     timestamps: true,

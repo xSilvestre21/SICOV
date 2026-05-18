@@ -129,6 +129,7 @@ async function login(req, res) {
         email: user.email,
         profile: user.profile,
         active: user.active,
+        themePreference: user.themePreference || 'light',
       },
     });
   } catch (err) {

@@ -65,14 +65,14 @@ function AppRoutes() {
 
         {/* Produtos */}
         <Route path="products" element={<ProductsListPage />} />
-        <Route path="products/new" element={<ProductFormPage />} />
+        <Route path="products/new" element={<ProtectedRoute adminOnly><ProductFormPage /></ProtectedRoute>} />
         <Route path="products/:id" element={<ProductDetailPage />} />
-        <Route path="products/:id/edit" element={<ProductFormPage />} />
+        <Route path="products/:id/edit" element={<ProtectedRoute adminOnly><ProductFormPage /></ProtectedRoute>} />
 
-        {/* Fornecedores (admin) */}
-        <Route path="suppliers" element={<ProtectedRoute adminOnly><SuppliersListPage /></ProtectedRoute>} />
+        {/* Fornecedores */}
+        <Route path="suppliers" element={<SuppliersListPage />} />
         <Route path="suppliers/new" element={<ProtectedRoute adminOnly><SupplierFormPage /></ProtectedRoute>} />
-        <Route path="suppliers/:id" element={<ProtectedRoute adminOnly><SupplierDetailPage /></ProtectedRoute>} />
+        <Route path="suppliers/:id" element={<SupplierDetailPage />} />
         <Route path="suppliers/:id/edit" element={<ProtectedRoute adminOnly><SupplierFormPage /></ProtectedRoute>} />
 
         {/* Representantes (admin) */}
@@ -80,8 +80,8 @@ function AppRoutes() {
         <Route path="users/new" element={<ProtectedRoute adminOnly><UserFormPage /></ProtectedRoute>} />
         <Route path="users/:id/edit" element={<ProtectedRoute adminOnly><UserFormPage /></ProtectedRoute>} />
 
-        {/* Configurações (admin) */}
-        <Route path="settings" element={<ProtectedRoute adminOnly><SettingsPage /></ProtectedRoute>} />
+        {/* Configurações */}
+        <Route path="settings" element={<SettingsPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -142,7 +142,30 @@ export function EditQuotationPage() {
     }
   };
   const removeItem = (i) => setItems((prev) => prev.filter((_, idx) => idx !== i));
-  const updateItem = (i, field, value) => setItems((prev) => prev.map((item, idx) => idx === i ? { ...item, [field]: value } : item));
+  const updateItem = (i, field, value) => setItems((prev) => prev.map((item, idx) => {
+    if (idx !== i) return item;
+    const updated = { ...item, [field]: value };
+
+    // Auto-gera nome para modo dimensions_density_factor
+    const calcMode = updated.calculationMode || 'dimensions_density_factor';
+    if (calcMode === 'dimensions_density_factor' && ['width', 'length', 'thickness', 'gusset', 'material', 'calculationMode'].includes(field)) {
+      const fmt = (v) => String(v).replace('.', ',');
+      const parts = [];
+      if (updated.width && updated.length && updated.thickness) {
+        parts.push(`${fmt(updated.width)}x${fmt(updated.length)}x${fmt(updated.thickness)}`);
+      }
+      if (updated.gusset) {
+        parts.push(`SF ${fmt(updated.gusset)}`);
+      }
+      if (updated.material) {
+        parts.push(String(updated.material).toUpperCase());
+      }
+      if (parts.length > 0) {
+        updated.name = parts.join(' ');
+      }
+    }
+    return updated;
+  }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -317,6 +340,8 @@ export function EditQuotationPage() {
                       <Input label="Largura" type="number" step="any" value={item.width || ''} onChange={(e) => updateItem(i, 'width', e.target.value)} />
                       <Input label="Comprimento" type="number" step="any" value={item.length || ''} onChange={(e) => updateItem(i, 'length', e.target.value)} />
                       <Input label="Espessura" type="number" step="any" value={item.thickness || ''} onChange={(e) => updateItem(i, 'thickness', e.target.value)} />
+                      <Input label="Sanfona" type="number" step="any" value={item.gusset || ''} onChange={(e) => updateItem(i, 'gusset', e.target.value)} />
+                      <Input label="Material" value={item.material || ''} onChange={(e) => updateItem(i, 'material', e.target.value)} placeholder="Ex: PEAD" />
                       <Input label="Densidade" type="number" step="any" value={item.density || ''} onChange={(e) => updateItem(i, 'density', e.target.value)} />
                       <Input label="Fator Kg (R$)" type="number" step="any" value={item.factorKg || ''} onChange={(e) => updateItem(i, 'factorKg', e.target.value)} />
                     </div>

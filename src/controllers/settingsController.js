@@ -64,4 +64,27 @@ async function updateSettings(req, res) {
   }
 }
 
-module.exports = { getSettings, updateSettings };
+/**
+ * Atualiza a preferência de tema do usuário autenticado.
+ * Disponível para todos os perfis (admin e representante).
+ *
+ * Body: { themePreference: 'light' | 'dark' | 'auto' }
+ */
+async function updateThemePreference(req, res) {
+  try {
+    const { themePreference } = req.body;
+
+    if (!['light', 'dark', 'auto'].includes(themePreference)) {
+      return res.status(400).json({ message: 'themePreference deve ser "light", "dark" ou "auto"' });
+    }
+
+    await User.findByIdAndUpdate(req.user.id, { themePreference });
+
+    return res.json({ message: 'Preferência de tema atualizada', themePreference });
+  } catch (err) {
+    console.error('[updateThemePreference]', err.message);
+    return res.status(500).json({ message: 'Erro ao atualizar preferência de tema' });
+  }
+}
+
+module.exports = { getSettings, updateSettings, updateThemePreference };

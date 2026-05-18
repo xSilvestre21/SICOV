@@ -87,6 +87,7 @@ export function ClientDetailPage() {
           </div>
         </div>
 
+        {isAdmin && (
         <div className="flex flex-wrap gap-2">
           <Link to={`/clients/${id}/edit`}>
             <Button variant="outline" size="sm"><Edit size={14} /> Editar</Button>
@@ -100,7 +101,6 @@ export function ClientDetailPage() {
             <Power size={14} />
             {client.active ? 'Desativar' : 'Reativar'}
           </Button>
-          {isAdmin && (
             <Button
               variant="danger"
               size="sm"
@@ -109,8 +109,8 @@ export function ClientDetailPage() {
             >
               <Trash2 size={14} /> Excluir
             </Button>
-          )}
         </div>
+        )}
       </div>
 
       {/* Info */}

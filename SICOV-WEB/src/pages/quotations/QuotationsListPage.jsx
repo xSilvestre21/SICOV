@@ -4,6 +4,7 @@ import { Plus, Search, ChevronLeft, ChevronRight, FileText, Download } from 'luc
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
+import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
 
 function formatCurrency(v) {
@@ -16,6 +17,7 @@ function formatDate(v) {
 }
 
 export function QuotationsListPage() {
+  const { isAdmin } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [quotations, setQuotations] = useState([]);
@@ -112,6 +114,9 @@ export function QuotationsListPage() {
                       <span className="text-xs text-gray-400">{formatDate(q.createdAt)}</span>
                       {q.supplierSnapshot?.name && (
                         <span className="text-xs text-gray-400">· {q.supplierSnapshot.name}</span>
+                      )}
+                      {isAdmin && q.representativeId?.name && (
+                        <span className="text-xs font-medium text-[#58706d]">· {q.representativeId.name}</span>
                       )}
                       {q.items?.length > 0 && (
                         <span className="text-xs text-gray-400">· {q.items.length} ite{q.items.length > 1 ? 'ns' : 'm'}</span>

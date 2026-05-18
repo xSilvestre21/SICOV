@@ -4,6 +4,7 @@ import { Plus, Search, ChevronLeft, ChevronRight, Truck } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
+import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
 
 function formatCnpj(v) {
@@ -14,6 +15,7 @@ function formatCnpj(v) {
 }
 
 export function SuppliersListPage() {
+  const { isAdmin } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [suppliers, setSuppliers] = useState([]);
   const [total, setTotal] = useState(0);
@@ -49,7 +51,7 @@ export function SuppliersListPage() {
           <h1 className="text-2xl font-bold text-[#4b5757]">Fornecedores</h1>
           <p className="text-sm text-[#7c8a6e]">{total} fornecedor{total !== 1 ? 'es' : ''}</p>
         </div>
-        <Link to="/suppliers/new"><Button size="md"><Plus size={16} /> Novo Fornecedor</Button></Link>
+        {isAdmin && <Link to="/suppliers/new"><Button size="md"><Plus size={16} /> Novo Fornecedor</Button></Link>}
       </div>
 
       <Card className="p-4">

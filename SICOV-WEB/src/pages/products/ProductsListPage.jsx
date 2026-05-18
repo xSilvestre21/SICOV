@@ -73,9 +73,11 @@ export function ProductsListPage() {
           <h1 className="text-2xl font-bold text-[#4b5757]">Produtos</h1>
           <p className="text-sm text-[#7c8a6e]">{total} produto{total !== 1 ? 's' : ''}</p>
         </div>
+        {isAdmin && (
         <Link to="/products/new">
           <Button size="md"><Plus size={16} /> Novo Produto</Button>
         </Link>
+        )}
       </div>
 
       <Card className="p-4">

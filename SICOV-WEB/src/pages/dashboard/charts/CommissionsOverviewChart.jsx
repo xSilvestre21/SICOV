@@ -18,6 +18,7 @@ import { useDashboardFilters } from '../../../contexts/DashboardFilterContext';
 import { useDashboardData } from '../../../hooks/useDashboardData';
 import { ChartStyleSelector } from '../../../components/dashboard/ChartStyleSelector';
 import { useTheme } from '../../../contexts/ThemeContext';
+import { useAuth } from '../../../contexts/AuthContext';
 
 const CHART_STYLES = [
   { id: 'line', label: 'Linhas', icon: TrendingUp },
@@ -101,6 +102,7 @@ function ChartSkeleton() {
 export function CommissionsOverviewChart() {
   const { month, year, granularity } = useDashboardFilters();
   const { isDark } = useTheme();
+  const { isAdmin } = useAuth();
   const { data, loading, error, retry } = useDashboardData(
     '/dashboard/commissions-overview',
     { month, year, granularity },
@@ -108,10 +110,13 @@ export function CommissionsOverviewChart() {
   const [chartStyle, setChartStyle] = useState('line');
 
   // Prepara dados para Recharts com label de período formatado
+  // Para representantes, mostra representativeCommission; para admin, adminCommission
   const chartData = (data?.data || []).map((item) => ({
     ...item,
     periodLabel: formatPeriodLabel(item, granularity),
-    adminCommission: item.totalAdminCommission ?? 0,
+    adminCommission: isAdmin
+      ? (item.totalAdminCommission ?? 0)
+      : (item.totalRepresentativeCommission ?? 0),
   }));
 
   // Loading state

@@ -89,17 +89,36 @@ async function getCommissions(req, res) {
     const limitNumber = Number(limit);
     const skip = (pageNumber - 1) * limitNumber;
 
-    const [commissions, total] = await Promise.all([
+    const [rawCommissions, total] = await Promise.all([
       Commission.find(filter)
         .sort({ orderNumber: -1, createdAt: -1 })
         .skip(skip)
-        .limit(limitNumber),
+        .limit(limitNumber)
+        .lean(),
       Commission.countDocuments(filter),
     ]);
 
+    // Preenche representativeName para comissões que não o têm (registros antigos)
+    const User = require('../models/user');
+    const commissions = rawCommissions;
+    const missingNames = commissions.filter((c) => !c.representativeName && c.representativeId);
+    if (missingNames.length > 0) {
+      const repIds = [...new Set(missingNames.map((c) => c.representativeId.toString()))];
+      const users = await User.find({ _id: { $in: repIds } }).select('name').lean();
+      const nameMap = new Map(users.map((u) => [u._id.toString(), u.name]));
+      for (const c of commissions) {
+        if (!c.representativeName && c.representativeId) {
+          c.representativeName = nameMap.get(c.representativeId.toString()) || null;
+        }
+      }
+    }
+
     const data =
       req.user.profile !== 'admin'
-        ? commissions.map(sanitizeForRepresentative)
+        ? commissions.map((c) => {
+            const { realReceivedValue, adminPercentage, adminCommission, realPool, realAdminCommission, ...rest } = c;
+            return rest;
+          })
         : commissions;
 
     return res.json({

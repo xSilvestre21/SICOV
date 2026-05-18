@@ -322,9 +322,9 @@ export function CommissionsListPage() {
                 className={`px-4 md:px-6 py-4 transition-colors ${
                   c.status === 'cancelled'
                     ? isDark ? 'bg-red-900/20 border-l-2 border-red-700 cursor-default' : 'bg-red-50/70 cursor-default'
-                    : 'hover:bg-[#f5f5ee] cursor-pointer'
+                    : isAdmin ? 'hover:bg-[#f5f5ee] cursor-pointer' : 'cursor-default'
                 }`}
-                onClick={() => c.status !== 'cancelled' && setSelectedCommission(c)}
+                onClick={() => c.status !== 'cancelled' && isAdmin && setSelectedCommission(c)}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 min-w-0">
@@ -352,9 +352,9 @@ export function CommissionsListPage() {
                         <p className="text-sm font-medium text-[#4b5757]">
                           Pedido #{c.orderNumber ?? '—'}
                         </p>
-                        {isAdmin && c.representativeName && (
+                        {isAdmin && (c.representativeName || c.representativeId) && (
                           <span className="text-sm font-semibold text-[#58706d]">
-                            — {c.representativeName}
+                            — {c.representativeName || representatives.find((r) => String(r._id) === String(c.representativeId))?.name || 'Representante'}
                           </span>
                         )}
                         {c.installmentsCreated && <Badge variant="default">Parcelada</Badge>}
@@ -390,7 +390,7 @@ export function CommissionsListPage() {
                         Real: {formatCurrency(c.realRepresentativeCommission)}
                       </span>
                     )}
-                    {c.representativeCommission > 0 && (
+                    {isAdmin && c.representativeCommission > 0 && (
                       <span className={`text-xs text-gray-300 ${blurClass(valuesHidden)}`}>
                         Rep: {formatCurrency(c.representativeCommission)}
                       </span>

@@ -144,6 +144,15 @@ html.dark .bg-\[\#e3e3d1\]\/50 {
 html.dark .bg-\[\#f5f5ee\] {
   background-color: #2a2f2e;
 }
+html.dark .bg-\[\#f9f9f4\] {
+  background-color: #252b29;
+}
+html.dark .bg-gray-50 {
+  background-color: #252b29;
+}
+html.dark .bg-gray-100 {
+  background-color: rgba(148, 163, 184, 0.15);
+}
 
 /* ── Dark mode: specific text colors for visibility ───────────────────────── */
 html.dark .text-gray-400 {
@@ -163,4 +172,9 @@ html.dark .text-gray-800 {
 }
 html.dark .text-gray-900 {
   color: #e8f5e6;
+}
+
+/* ── Dark mode: dropdown/popover backgrounds ──────────────────────────────── */
+html.dark .shadow-lg {
+  --tw-shadow-color: rgba(0, 0, 0, 0.4);
 }

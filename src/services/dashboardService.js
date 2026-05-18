@@ -8,6 +8,13 @@ const Order = require('../models/order');
 const Commission = require('../models/commission');
 const User = require('../models/user');
 const Client = require('../models/client');
+const mongoose = require('mongoose');
+
+/** Converte representativeId string para ObjectId para uso em aggregation pipelines */
+function toObjectId(id) {
+  if (!id) return null;
+  return mongoose.Types.ObjectId.isValid(id) ? new mongoose.Types.ObjectId(id) : id;
+}
 
 /**
  * Constrói filtro de período para o modelo Commission (usa campo period.month / period.year).
@@ -159,7 +166,9 @@ async function aggregateClientsRevenue({ month, year, granularity, user, limit =
   const commissionPeriodFilter = granularity === 'annual'
     ? buildPeriodFilter(month, year, 'annual')
     : buildPeriodFilter(month, year);
-  const representativeFilter = user.profile === 'admin' ? {} : { representativeId: user._id };
+  const representativeFilter = user.profile === 'admin'
+    ? {}
+    : { representativeId: toObjectId(user._id) };
 
   // Step 1: Buscar orderIds das comissões do período (excluindo parcelas para não duplicar)
   const commissionPipeline = [
@@ -220,7 +229,7 @@ async function aggregateTopClients({ month, year, granularity, representativeId,
   const commissionPeriodFilter = granularity === 'annual'
     ? buildPeriodFilter(month, year, 'annual')
     : buildPeriodFilter(month, year);
-  const representativeFilter = representativeId ? { representativeId } : {};
+  const representativeFilter = representativeId ? { representativeId: toObjectId(representativeId) } : {};
 
   // Step 1: Buscar orderIds das comissões do período (excluindo parcelas para não duplicar)
   const commissionPipeline = [
@@ -284,7 +293,7 @@ async function aggregateRepresentativesPerformance({ month, year, granularity, r
   const commissionPeriodFilter = granularity === 'annual'
     ? buildPeriodFilter(month, year, 'annual')
     : buildPeriodFilter(month, year);
-  const representativeFilter = representativeId ? { representativeId } : {};
+  const representativeFilter = representativeId ? { representativeId: toObjectId(representativeId) } : {};
 
   // Step 1: Aggregate commissions to find the correct representative per order
   // Commissions have the correct representativeId (linked to the client, not who created the order)
@@ -645,7 +654,7 @@ async function aggregateClientDetail({ clientId, month, year, granularity, repre
  */
 async function aggregateCommissionsOverview({ month, year, granularity, representativeId }) {
   const periodFilter = buildPeriodFilter(month, year, granularity);
-  const representativeFilter = representativeId ? { representativeId } : {};
+  const representativeFilter = representativeId ? { representativeId: toObjectId(representativeId) } : {};
 
   // Agrupa por ano quando granularidade é anual, por mês/ano quando mensal
   const groupId = granularity === 'annual'
@@ -706,7 +715,7 @@ async function aggregateCancelledOrders({ month, year, granularity, groupBy = 'p
   const commissionPeriodFilter = granularity === 'annual'
     ? buildPeriodFilter(month, year, 'annual')
     : buildPeriodFilter(month, year);
-  const repFilter = representativeId ? { representativeId } : {};
+  const repFilter = representativeId ? { representativeId: toObjectId(representativeId) } : {};
 
   // Step 1: Buscar todos os orderIds de comissões do período (excluindo parcelas para não duplicar)
   const allOrdersPipeline = [

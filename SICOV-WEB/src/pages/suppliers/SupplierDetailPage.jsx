@@ -4,6 +4,7 @@ import { ArrowLeft, Edit, Trash2, Power } from 'lucide-react';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
+import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
 
 function formatCnpj(v) {
@@ -19,6 +20,7 @@ function formatCurrency(v) {
 }
 
 export function SupplierDetailPage() {
+  const { isAdmin } = useAuth();
   const { id } = useParams();
   const navigate = useNavigate();
   const [supplier, setSupplier] = useState(null);
@@ -63,11 +65,13 @@ export function SupplierDetailPage() {
             {supplier.tradeName && <p className="text-sm text-[#7c8a6e]">{supplier.name}</p>}
           </div>
         </div>
+        {isAdmin && (
         <div className="flex flex-wrap gap-2">
           <Link to={`/suppliers/${id}/edit`}><Button variant="outline" size="sm"><Edit size={14} /> Editar</Button></Link>
           <Button variant="outline" size="sm" onClick={handleToggle} loading={actionLoading === 'toggle'}><Power size={14} /> {supplier.active ? 'Desativar' : 'Reativar'}</Button>
           <Button variant="danger" size="sm" onClick={handleDelete} loading={actionLoading === 'delete'}><Trash2 size={14} /> Excluir</Button>
         </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -152,7 +156,7 @@ export function SupplierDetailPage() {
         </Card>
       )}
 
-      {supplier.allowedRepresentatives?.length > 0 && (
+      {isAdmin && supplier.allowedRepresentatives?.length > 0 && (
         <Card>
           <CardHeader><h2 className="text-sm font-semibold text-[#4b5757]">Representantes Autorizados</h2></CardHeader>
           <CardBody>

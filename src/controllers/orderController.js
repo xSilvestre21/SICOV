@@ -385,7 +385,19 @@ async function getOrders(req, res) {
     }
 
     if (req.user.profile !== 'admin') {
-      filter.representativeId = req.user.id;
+      // Representante vê pedidos dos seus clientes (não apenas os que ele criou)
+      const repClients = await Client.find({ representativeId: req.user.id }).select('_id').lean();
+      const repClientIds = repClients.map((c) => c._id.toString());
+
+      if (clientId) {
+        // Se filtrou por clientId específico, verifica se é cliente dele
+        if (!repClientIds.includes(clientId)) {
+          return res.json({ page: 1, limit: Number(limit), total: 0, totalPages: 0, orders: [] });
+        }
+        // filter.clientId já está setado acima
+      } else {
+        filter.clientId = { $in: repClients.map((c) => c._id) };
+      }
     }
 
     const pageNumber = Number(page);
@@ -429,9 +441,13 @@ async function getOrderById(req, res) {
       req.user.profile !== 'admin' &&
       order.representativeId.toString() !== req.user.id
     ) {
-      return res.status(403).json({
-        message: 'Acesso negado',
-      });
+      // Verifica se o pedido é de um cliente do representante
+      const client = await Client.findById(order.clientId).select('representativeId').lean();
+      if (!client || client.representativeId.toString() !== req.user.id) {
+        return res.status(403).json({
+          message: 'Acesso negado',
+        });
+      }
     }
 
     return res.json(order);
@@ -461,9 +477,13 @@ async function updateOrder(req, res) {
       req.user.profile !== 'admin' &&
       order.representativeId.toString() !== req.user.id
     ) {
-      return res.status(403).json({
-        message: 'Acesso negado',
-      });
+      // Verifica se o pedido é de um cliente do representante
+      const clientCheck = await Client.findById(order.clientId).select('representativeId').lean();
+      if (!clientCheck || clientCheck.representativeId.toString() !== req.user.id) {
+        return res.status(403).json({
+          message: 'Acesso negado',
+        });
+      }
     }
 
     if (order.status === 'cancelled') {
@@ -678,9 +698,12 @@ async function getDuplicateOrderTemplate(req, res) {
       req.user.profile !== 'admin' &&
       oldOrder.representativeId.toString() !== req.user.id
     ) {
-      return res.status(403).json({
-        message: 'Acesso negado',
-      });
+      const clientCheck = await Client.findById(oldOrder.clientId).select('representativeId').lean();
+      if (!clientCheck || clientCheck.representativeId.toString() !== req.user.id) {
+        return res.status(403).json({
+          message: 'Acesso negado',
+        });
+      }
     }
 
     return res.json({

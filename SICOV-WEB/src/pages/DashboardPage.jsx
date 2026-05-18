@@ -112,22 +112,35 @@ export function DashboardPage() {
           to="/orders"
           hidden={valuesHidden}
         />
-        <StatCard
-          icon={DollarSign}
-          label="Sua Comissão (mês atual)"
-          value={loading ? '...' : formatCurrency(stats?.totalAdminComm)}
-          color="bg-[#7c8a6e]"
-          to="/commissions"
-          hidden={valuesHidden}
-        />
-        <StatCard
-          icon={TrendingUp}
-          label="Comissão Representantes (mês atual)"
-          value={loading ? '...' : formatCurrency(stats?.totalRepComm)}
-          color="bg-[#b0b087]"
-          to="/commissions"
-          hidden={valuesHidden}
-        />
+        {isAdmin ? (
+          <>
+            <StatCard
+              icon={DollarSign}
+              label="Sua Comissão (mês atual)"
+              value={loading ? '...' : formatCurrency(stats?.totalAdminComm)}
+              color="bg-[#7c8a6e]"
+              to="/commissions"
+              hidden={valuesHidden}
+            />
+            <StatCard
+              icon={TrendingUp}
+              label="Comissão Representantes (mês atual)"
+              value={loading ? '...' : formatCurrency(stats?.totalRepComm)}
+              color="bg-[#b0b087]"
+              to="/commissions"
+              hidden={valuesHidden}
+            />
+          </>
+        ) : (
+          <StatCard
+            icon={DollarSign}
+            label="Minha Comissão (mês atual)"
+            value={loading ? '...' : formatCurrency(stats?.totalRepComm)}
+            color="bg-[#7c8a6e]"
+            to="/commissions"
+            hidden={valuesHidden}
+          />
+        )}
       </div>
 
       {/* Atalhos rápidos */}

@@ -9,6 +9,7 @@ import {
   ChevronUp,
   Copy,
   Edit,
+  AlertTriangle,
 } from 'lucide-react';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -104,7 +105,7 @@ function ItemDetail({ item, ipiRate, orderSubtotal, orderIpiValue }) {
 
       {/* Detalhes expandidos */}
       {expanded && (
-        <div className="px-4 md:px-6 pb-4 pt-1 ml-7 bg-[#f9f9f4] border-t border-[#e3e3d1]">
+        <div className="px-4 md:px-6 pb-4 pt-1 pl-11 bg-[#f9f9f4] border-t border-[#e3e3d1]">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-6 gap-y-3 text-sm">
             {/* Dados comerciais */}
             {cd.factorKg != null && (
@@ -293,6 +294,11 @@ export function OrderDetailPage() {
                 {isCancelled ? 'Cancelado' : 'Ativo'}
               </Badge>
               {order.sentToSupplier && <Badge variant="sent">Enviado</Badge>}
+              {order.lastEditedAt && !order.sentToSupplier && !isCancelled && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[#e3e3d1] text-[#4b5757]">
+                  <AlertTriangle size={12} /> Editado — conferir antes de enviar
+                </span>
+              )}
             </div>
             <p className="text-sm text-[#7c8a6e]">Criado em {formatDate(order.createdAt)}</p>
           </div>

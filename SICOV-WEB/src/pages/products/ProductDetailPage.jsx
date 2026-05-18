@@ -80,6 +80,7 @@ export function ProductDetailPage() {
             <p className="text-sm text-[#7c8a6e]">{typeLabels[product.productType] || product.productType}</p>
           </div>
         </div>
+        {isAdmin && (
         <div className="flex flex-wrap gap-2">
           <Link to={`/products/${id}/edit`}>
             <Button variant="outline" size="sm"><Edit size={14} /> Editar</Button>
@@ -91,6 +92,7 @@ export function ProductDetailPage() {
             <Trash2 size={14} /> Excluir
           </Button>
         </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

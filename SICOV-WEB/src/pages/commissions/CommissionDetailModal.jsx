@@ -85,7 +85,9 @@ export function CommissionDetailModal({ commission, onClose, onUpdated }) {
           <div>
             <h2 className="text-lg font-bold text-[#4b5757]">Comissão — Pedido #{commission.orderNumber ?? '—'}</h2>
             <p className="text-xs text-gray-400">
+              {commission.representativeName && <span className="font-medium text-[#58706d]">{commission.representativeName} · </span>}
               {commission.customerPurchaseOrder ? `PC: ${commission.customerPurchaseOrder} · ` : ''}
+              {commission.supplierName ? `${commission.supplierName} · ` : ''}
               {commission.period?.month}/{commission.period?.year}
             </p>
           </div>

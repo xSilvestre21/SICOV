@@ -17,6 +17,10 @@ export function AuthProvider({ children }) {
     const { data } = await api.post('/auth/login', { email, password });
     localStorage.setItem('sicov_token', data.token);
     localStorage.setItem('sicov_user', JSON.stringify(data.user));
+    // Sincroniza preferência de tema do servidor
+    if (data.user.themePreference) {
+      localStorage.setItem('sicov_theme', data.user.themePreference);
+    }
     setUser(data.user);
     return data.user;
   }, []);

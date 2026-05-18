@@ -353,7 +353,8 @@ async function getQuotations(req, res) {
       Quotation.find(filter)
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(limitNumber),
+        .limit(limitNumber)
+        .populate('representativeId', 'name'),
       Quotation.countDocuments(filter),
     ]);
 

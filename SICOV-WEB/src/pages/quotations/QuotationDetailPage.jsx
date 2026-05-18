@@ -86,7 +86,7 @@ function ItemDetail({ item, ipiRate, orderSubtotal, orderIpiValue }) {
       </div>
 
       {expanded && (
-        <div className="px-4 md:px-6 pb-4 pt-1 ml-7 bg-[#f9f9f4] border-t border-[#e3e3d1]">
+        <div className="px-4 md:px-6 pb-4 pt-1 pl-11 bg-[#f9f9f4] border-t border-[#e3e3d1]">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-6 gap-y-3 text-sm">
             {cd.factorKg != null && <div><p className="text-xs text-gray-400">Fator Kg (R$/kg)</p><p className="font-medium text-[#4b5757]">{formatCurrency(cd.factorKg)}</p></div>}
             {cd.basePrice != null && <div><p className="text-xs text-gray-400">Preço Base</p><p className="font-medium text-[#4b5757]">{formatCurrency(cd.basePrice)}</p></div>}

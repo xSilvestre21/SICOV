@@ -24,9 +24,9 @@ const navItems = [
   { to: '/commissions', label: 'Comissões',    icon: DollarSign },
   { to: '/clients',     label: 'Clientes',     icon: Users },
   { to: '/products',    label: 'Produtos',     icon: Package },
-  { to: '/suppliers',   label: 'Fornecedores', icon: Truck, adminOnly: true },
+  { to: '/suppliers',   label: 'Fornecedores', icon: Truck },
   { to: '/users',       label: 'Representantes', icon: Users, adminOnly: true },
-  { to: '/settings',    label: 'Configurações', icon: Settings, adminOnly: true },
+  { to: '/settings',    label: 'Configurações', icon: Settings },
 ];
 
 export function Sidebar({ open, onClose }) {

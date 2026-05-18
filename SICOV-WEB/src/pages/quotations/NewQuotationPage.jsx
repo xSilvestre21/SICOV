@@ -203,7 +203,54 @@ export function NewQuotationPage() {
 
   const addItem = () => setItems((prev) => [...prev, { productId: '', quantity: '', hasIpi: true }]);
   const removeItem = (i) => setItems((prev) => prev.filter((_, idx) => idx !== i));
-  const updateItem = (i, field, value) => setItems((prev) => prev.map((item, idx) => idx === i ? { ...item, [field]: value } : item));
+  const updateItem = (i, field, value) => setItems((prev) => prev.map((item, idx) => {
+    if (idx !== i) return item;
+    const updated = { ...item, [field]: value };
+
+    // Auto-gera nome para modo dimensions_density_factor (igual ao cadastro de produto)
+    const calcMode = updated.calculationMode || 'dimensions_density_factor';
+    if (calcMode === 'dimensions_density_factor' && ['width', 'length', 'thickness', 'gusset', 'material', 'calculationMode'].includes(field)) {
+      const fmt = (v) => String(v).replace('.', ',');
+      const parts = [];
+      if (updated.width && updated.length && updated.thickness) {
+        parts.push(`${fmt(updated.width)}x${fmt(updated.length)}x${fmt(updated.thickness)}`);
+      }
+      if (updated.gusset) {
+        parts.push(`SF ${fmt(updated.gusset)}`);
+      }
+      if (updated.material) {
+        parts.push(String(updated.material).toUpperCase());
+      }
+      if (parts.length > 0) {
+        updated.name = parts.join(' ');
+      }
+    }
+
+    // Auto-preenche densidade quando material é selecionado (da tabela do fornecedor)
+    if (field === 'material' && value && supplierId) {
+      const sup = suppliers.find((s) => s._id === supplierId);
+      if (sup?.priceTable?.length) {
+        const match = sup.priceTable.find((p) => p.material.toLowerCase() === value.toLowerCase());
+        if (match?.density && !updated.density) {
+          updated.density = match.density;
+        }
+      }
+    }
+
+    return updated;
+  }));
+
+  // Obtém dicas do fornecedor selecionado (fator kg, densidade)
+  const getSupplierHint = (material) => {
+    if (!supplierId || !material) return {};
+    const sup = suppliers.find((s) => s._id === supplierId);
+    if (!sup?.priceTable?.length) return {};
+    const match = sup.priceTable.find((p) => p.material.toLowerCase() === material.toLowerCase());
+    if (!match) return {};
+    return { density: match.density, factorKg: match.factorKg };
+  };
+
+  const selectedSupplierObj = suppliers.find((s) => s._id === supplierId);
 
   // Atualiza IPI quando fornecedor ad-hoc muda
   useEffect(() => {
@@ -421,15 +468,32 @@ export function NewQuotationPage() {
                   </div>
 
                   {/* Linha 3: Campos de cálculo (condicionais) */}
-                  {(item.calculationMode || 'dimensions_density_factor') === 'dimensions_density_factor' && (
+                  {(item.calculationMode || 'dimensions_density_factor') === 'dimensions_density_factor' && (() => {
+                    const hint = getSupplierHint(item.material);
+                    return (
                     <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                       <Input label="Largura" type="number" step="any" value={item.width || ''} onChange={(e) => updateItem(i, 'width', e.target.value)} />
                       <Input label="Comprimento" type="number" step="any" value={item.length || ''} onChange={(e) => updateItem(i, 'length', e.target.value)} />
                       <Input label="Espessura" type="number" step="any" value={item.thickness || ''} onChange={(e) => updateItem(i, 'thickness', e.target.value)} />
-                      <Input label="Densidade" type="number" step="any" value={item.density || ''} onChange={(e) => updateItem(i, 'density', e.target.value)} />
-                      <Input label="Fator Kg (R$)" type="number" step="any" value={item.factorKg || ''} onChange={(e) => updateItem(i, 'factorKg', e.target.value)} />
+                      <Input label="Sanfona" type="number" step="any" value={item.gusset || ''} onChange={(e) => updateItem(i, 'gusset', e.target.value)} />
+                      {selectedSupplierObj?.priceTable?.length > 0 ? (
+                        <div>
+                          <label className="text-sm font-medium text-[#4b5757] mb-1 block">Material</label>
+                          <select value={item.material || ''} onChange={(e) => updateItem(i, 'material', e.target.value)} className="w-full rounded-lg border border-[#b0b087] px-3 py-2 text-sm outline-none focus:border-[#58706d]">
+                            <option value="">Selecione...</option>
+                            {selectedSupplierObj.priceTable.map((p, pi) => (
+                              <option key={pi} value={p.material}>{p.material}</option>
+                            ))}
+                          </select>
+                        </div>
+                      ) : (
+                        <Input label="Material" value={item.material || ''} onChange={(e) => updateItem(i, 'material', e.target.value)} placeholder="Ex: PEAD" />
+                      )}
+                      <Input label="Densidade" type="number" step="any" value={item.density || ''} onChange={(e) => updateItem(i, 'density', e.target.value)} placeholder={hint.density ? `${Number(hint.density).toLocaleString('pt-BR', { maximumFractionDigits: 4 })}` : ''} />
+                      <Input label="Fator Kg (R$)" type="number" step="any" value={item.factorKg || ''} onChange={(e) => updateItem(i, 'factorKg', e.target.value)} placeholder={hint.factorKg ? `Dica: R$ ${Number(hint.factorKg).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : ''} />
                     </div>
-                  )}
+                    );
+                  })()}
 
                   {(item.calculationMode === 'weight_times_price_per_kg') && (
                     <div className="grid grid-cols-2 gap-2">
@@ -504,7 +568,7 @@ export function NewQuotationPage() {
                 }, 0);
               }
               const ipiVal = subtotalComIpi * (supplierIpi / 100);
-              return totalEstimado > 0 ? (
+              return items.length > 0 ? (
                 <div className="flex justify-end pt-2 border-t border-[#e3e3d1]">
                   <div className="text-right space-y-1">
                     <div>

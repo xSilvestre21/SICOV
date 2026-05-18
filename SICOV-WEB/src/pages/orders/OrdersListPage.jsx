@@ -5,6 +5,7 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
+  AlertTriangle,
 } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -182,6 +183,11 @@ export function OrdersListPage() {
                           <Badge variant="sent">Enviado</Badge>
                         ) : (
                           <Badge variant="pending">Pendente</Badge>
+                        )}
+                        {order.lastEditedAt && !order.sentToSupplier && order.status !== 'cancelled' && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[#e3e3d1] text-[#4b5757]">
+                            <AlertTriangle size={12} /> Editado
+                          </span>
                         )}
                       </div>
                     </div>

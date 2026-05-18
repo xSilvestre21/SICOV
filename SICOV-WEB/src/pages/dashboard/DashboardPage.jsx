@@ -144,7 +144,7 @@ function DashboardContent() {
         {isAdmin && <RepresentativesPerformanceChart />}
 
         <TopClientsChart />
-        <CancelledOrdersChart />
+        {isAdmin && <CancelledOrdersChart />}
       </div>
     </div>
   );
