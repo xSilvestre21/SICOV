@@ -12,11 +12,12 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
-import { BarChart3, PieChart as PieChartIcon, AlignLeft, RefreshCw } from 'lucide-react';
+import { BarChart3, PieChart as PieChartIcon, AlignLeft, RefreshCw, Download } from 'lucide-react';
 import { Card, CardHeader, CardBody } from '../../../components/ui/Card';
 import { ChartStyleSelector } from '../../../components/dashboard/ChartStyleSelector';
 import { useDashboardFilters } from '../../../contexts/DashboardFilterContext';
 import { useDashboardData } from '../../../hooks/useDashboardData';
+import { exportToCsv } from '../../../utils/exportCsv';
 
 const CHART_STYLES = [
   { id: 'bar', label: 'Barras verticais', icon: BarChart3 },
@@ -175,13 +176,27 @@ export function ClientsRevenueChart() {
     <Card>
       <CardHeader className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-[#4b5757]">Faturamento por Cliente</h3>
-        {!loading && !error && chartData.length > 0 && (
-          <ChartStyleSelector
-            styles={CHART_STYLES}
-            activeStyle={chartStyle}
-            onChange={setChartStyle}
-          />
-        )}
+        <div className="flex items-center gap-2">
+          {!loading && !error && chartData.length > 0 && (
+            <>
+              <button
+                onClick={() => exportToCsv(chartData, [
+                  { key: 'tradeName', label: 'Cliente' },
+                  { key: 'totalRevenue', label: 'Faturamento (R$)' },
+                ], `faturamento-clientes-${month}-${year}`)}
+                className="p-1.5 text-[#7c8a6e] hover:text-[#4b5757] rounded-lg hover:bg-[#e3e3d1] transition-colors"
+                title="Exportar CSV"
+              >
+                <Download size={14} />
+              </button>
+              <ChartStyleSelector
+                styles={CHART_STYLES}
+                activeStyle={chartStyle}
+                onChange={setChartStyle}
+              />
+            </>
+          )}
+        </div>
       </CardHeader>
 
       <CardBody>

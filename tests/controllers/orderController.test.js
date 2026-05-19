@@ -11,6 +11,8 @@ const Order    = require("../../src/models/order");
 const Product  = require("../../src/models/product");
 const Client   = require("../../src/models/client");
 const Supplier = require("../../src/models/supplier");
+const Commission = require("../../src/models/commission");
+const User     = require("../../src/models/user");
 const generateOrderPdf = require("../../src/utils/orderPdfGenerator");
 const {
   createOrder,
@@ -146,6 +148,66 @@ describe("createOrder", () => {
     expect(res.status).toHaveBeenCalledWith(404);
     expect(res.json).toHaveBeenCalledWith({ message: "Fornecedor n\u00e3o encontrado" });
   });
+
+  it("cria pedido com deliveryDate definida e usa na comissao", async () => {
+    const req = {
+      body: { clientId: "c1", items: [{ productId: "p1", quantity: 100 }], deliveryDate: "2026-06-15T00:00:00.000Z" },
+      user: repUser,
+    };
+    const res = makeRes();
+    const mockClient = { _id: "c1", name: "Empresa", paymentTerm: "30 dias", cnpj: "123", tradeName: "Emp", representativeId: "repId" };
+    Client.findById.mockResolvedValue(mockClient);
+    Product.findById.mockResolvedValue(makeProduct());
+    Supplier.findById.mockResolvedValue(makeSupplier(10));
+    Supplier.findByIdAndUpdate.mockResolvedValue({ ...makeSupplier(10), currentOrderNumber: 2 });
+    User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue({ defaultCommissionPercentage: 3, name: "Rep" }) });
+    Commission.create.mockResolvedValue({});
+    Order.create.mockResolvedValue({ _id: "o1", orderNumber: 2, subtotal: 500, ipiValue: 50, total: 550, createdAt: new Date() });
+    await createOrder(req, res);
+    expect(res.status).toHaveBeenCalledWith(201);
+    expect(Commission.create).toHaveBeenCalledWith(expect.objectContaining({ deliveryDate: "2026-06-15T00:00:00.000Z" }));
+  });
+
+  it("cria pedido sem deliveryDate e usa createdAt na comissao", async () => {
+    const req = {
+      body: { clientId: "c1", items: [{ productId: "p1", quantity: 100 }] },
+      user: repUser,
+    };
+    const res = makeRes();
+    const mockClient = { _id: "c1", name: "Empresa", paymentTerm: "30 dias", cnpj: "123", tradeName: "Emp", representativeId: "repId" };
+    Client.findById.mockResolvedValue(mockClient);
+    Product.findById.mockResolvedValue(makeProduct());
+    Supplier.findById.mockResolvedValue(makeSupplier(10));
+    Supplier.findByIdAndUpdate.mockResolvedValue({ ...makeSupplier(10), currentOrderNumber: 2 });
+    User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue({ defaultCommissionPercentage: 3, name: "Rep" }) });
+    Commission.create.mockResolvedValue({});
+    Order.create.mockResolvedValue({ _id: "o1", orderNumber: 2, subtotal: 500, ipiValue: 50, total: 550, createdAt: new Date("2026-04-01") });
+    await createOrder(req, res);
+    expect(res.status).toHaveBeenCalledWith(201);
+    expect(Commission.create).toHaveBeenCalledWith(expect.objectContaining({ deliveryDate: null }));
+  });
+
+  it("cria pedido com item hasIpi=false (nao inclui no calculo de IPI)", async () => {
+    const req = {
+      body: { clientId: "c1", items: [{ productId: "p1", quantity: 100, hasIpi: false }] },
+      user: repUser,
+    };
+    const res = makeRes();
+    const mockClient = { _id: "c1", name: "Empresa", paymentTerm: "30 dias", cnpj: "123", tradeName: "Emp", representativeId: "repId" };
+    Client.findById.mockResolvedValue(mockClient);
+    Product.findById.mockResolvedValue(makeProduct());
+    Supplier.findById.mockResolvedValue(makeSupplier(10));
+    Supplier.findByIdAndUpdate.mockResolvedValue({ ...makeSupplier(10), currentOrderNumber: 2 });
+    User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue({ defaultCommissionPercentage: 3, name: "Rep" }) });
+    Commission.create.mockResolvedValue({});
+    // With hasIpi=false, ipiValue should be 0 since all items are excluded from IPI
+    Order.create.mockImplementation((data) => {
+      expect(data.ipiValue).toBe(0);
+      return Promise.resolve({ _id: "o1", orderNumber: 2, ...data, createdAt: new Date() });
+    });
+    await createOrder(req, res);
+    expect(res.status).toHaveBeenCalledWith(201);
+  });
 });
 
 // cancelOrder
@@ -254,6 +316,10 @@ describe("getOrders", () => {
     Order.countDocuments.mockResolvedValue(results.length);
   }
 
+  function mockClientFind(clients = [{ _id: "c1" }, { _id: "c2" }]) {
+    Client.find.mockReturnValue({ select: jest.fn().mockReturnValue({ lean: jest.fn().mockResolvedValue(clients) }) });
+  }
+
   it("representante ve apenas seus pedidos", async () => {
     const req = { query: {}, user: repUser };
     const res = makeRes();
@@ -348,6 +414,44 @@ describe("getOrders", () => {
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ page: 2, limit: 5, total: 15, totalPages: 3 }));
   });
 
+  it("representante filtra por clientId que pertence a ele", async () => {
+    const req = { query: { clientId: "c1" }, user: repUser };
+    const res = makeRes();
+    mockClientFind([{ _id: "c1" }, { _id: "c2" }]);
+    mockFind([]);
+    await getOrders(req, res);
+    // clientId is included in repClientIds, so filter.clientId stays as "c1"
+    expect(Order.find).toHaveBeenCalledWith(expect.objectContaining({ clientId: "c1" }));
+  });
+
+  it("representante filtra por clientId que NAO pertence a ele retorna vazio", async () => {
+    const req = { query: { clientId: "c99" }, user: repUser };
+    const res = makeRes();
+    mockClientFind([{ _id: "c1" }, { _id: "c2" }]);
+    mockFind([]);
+    await getOrders(req, res);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ total: 0, orders: [] }));
+  });
+
+  it("busca por texto numerico inclui orderNumber no $or", async () => {
+    const req = { query: { search: "123" }, user: adminUser };
+    const res = makeRes();
+    mockFind();
+    await getOrders(req, res);
+    const callArg = Order.find.mock.calls[0][0];
+    expect(callArg.$or).toEqual(expect.arrayContaining([{ orderNumber: 123 }]));
+  });
+
+  it("busca por texto nao numerico nao inclui orderNumber no $or", async () => {
+    const req = { query: { search: "abc" }, user: adminUser };
+    const res = makeRes();
+    mockFind();
+    await getOrders(req, res);
+    const callArg = Order.find.mock.calls[0][0];
+    const hasOrderNumber = callArg.$or.some(cond => cond.orderNumber !== undefined);
+    expect(hasOrderNumber).toBe(false);
+  });
+
   it("500 em caso de erro", async () => {
     const req = { query: {}, user: adminUser };
     const res = makeRes();
@@ -388,6 +492,28 @@ describe("getOrderById", () => {
     expect(res.json).toHaveBeenCalledWith(mockOrder);
   });
 
+  it("representante acessa pedido de outro criador mas cujo cliente pertence a ele", async () => {
+    const req = { params: { id: "o1" }, user: repUser };
+    const res = makeRes();
+    const mockOrder = { _id: "o1", clientId: "c1", representativeId: { toString: () => "outroRepId" } };
+    Order.findById.mockResolvedValue(mockOrder);
+    // Client belongs to the representative
+    Client.findById.mockReturnValue({ select: jest.fn().mockReturnValue({ lean: jest.fn().mockResolvedValue({ representativeId: { toString: () => repUser.id } }) }) });
+    await getOrderById(req, res);
+    expect(res.json).toHaveBeenCalledWith(mockOrder);
+  });
+
+  it("403 quando representante acessa pedido e client nao encontrado", async () => {
+    const req = { params: { id: "o1" }, user: repUser };
+    const res = makeRes();
+    const mockOrder = { _id: "o1", clientId: "c1", representativeId: { toString: () => "outroRepId" } };
+    Order.findById.mockResolvedValue(mockOrder);
+    // Client not found
+    Client.findById.mockReturnValue({ select: jest.fn().mockReturnValue({ lean: jest.fn().mockResolvedValue(null) }) });
+    await getOrderById(req, res);
+    expect(res.status).toHaveBeenCalledWith(403);
+  });
+
   it("admin acessa qualquer pedido", async () => {
     const req = { params: { id: "o1" }, user: adminUser };
     const res = makeRes();
@@ -426,6 +552,26 @@ describe("updateOrder", () => {
     Client.findById.mockReturnValue({ select: jest.fn().mockReturnValue({ lean: jest.fn().mockResolvedValue({ representativeId: { toString: () => "outroRepId" } }) }) });
     await updateOrder(req, res);
     expect(res.status).toHaveBeenCalledWith(403);
+  });
+
+  it("representante edita pedido de outro criador mas cujo cliente pertence a ele", async () => {
+    const supplierId = { toString: () => "s1" };
+    const mockOrder = {
+      _id: "o1", representativeId: { toString: () => "outroRepId" },
+      clientId: "c1",
+      status: "active", sentToSupplier: false, supplierId,
+      items: [], subtotal: 0, ipiValue: 0, total: 0,
+      save: jest.fn().mockResolvedValue(true),
+    };
+    const req = { params: { id: "o1" }, body: { items: [{ productId: "p1", quantity: 5 }] }, user: repUser };
+    const res = makeRes();
+    Order.findById.mockResolvedValue(mockOrder);
+    // Client belongs to the representative
+    Client.findById.mockReturnValue({ select: jest.fn().mockReturnValue({ lean: jest.fn().mockResolvedValue({ representativeId: { toString: () => repUser.id } }) }) });
+    Product.findById.mockResolvedValue(makeProduct("s1"));
+    Supplier.findById.mockResolvedValue({ _id: "s1", ipi: 0, name: "Forn", cnpj: "123", tradeName: "F", logoUrl: null });
+    await updateOrder(req, res);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: "Pedido atualizado com sucesso" }));
   });
 
   it("400 quando pedido esta cancelado", async () => {
@@ -473,6 +619,77 @@ describe("updateOrder", () => {
     await updateOrder(req, res);
     expect(mockOrder.subtotal).toBe(25);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: "Pedido atualizado com sucesso" }));
+  });
+
+  it("atualiza pedido e recalcula comissao quando subtotal muda", async () => {
+    const supplierId = { toString: () => "s1" };
+    const mockOrder = {
+      _id: "o1", representativeId: { toString: () => adminUser.id },
+      status: "active", sentToSupplier: false, supplierId,
+      items: [], subtotal: 0, ipiValue: 0, total: 0,
+      deliveryDate: new Date("2026-04-15"),
+      customerPurchaseOrder: "PC-001",
+      createdAt: new Date("2026-04-01"),
+      save: jest.fn().mockResolvedValue(true),
+    };
+    const mockCommission = {
+      orderId: "o1",
+      orderValueWithoutIpi: 100, // different from new subtotal (25)
+      period: { month: 4, year: 2026 },
+      customerPurchaseOrder: "PC-001",
+      deliveryDate: new Date("2026-04-15"),
+      adminPercentage: 5,
+      representativePercentage: 10,
+      realReceivedValue: 80,
+      save: jest.fn().mockResolvedValue(true),
+    };
+    const req = { params: { id: "o1" }, body: { items: [{ productId: "p1", quantity: 5 }] }, user: adminUser };
+    const res = makeRes();
+    Order.findById.mockResolvedValue(mockOrder);
+    Product.findById.mockResolvedValue(makeProduct());
+    Supplier.findById.mockResolvedValue({ _id: "s1", ipi: 0, name: "Forn", cnpj: "123", tradeName: "F", logoUrl: null });
+    Commission.findOne.mockResolvedValue(mockCommission);
+    await updateOrder(req, res);
+    // Commission should be recalculated with new subtotal=25
+    expect(mockCommission.orderValueWithoutIpi).toBe(25);
+    expect(mockCommission.pool).toBeCloseTo(1.25, 2); // 25 * 5 / 100
+    expect(mockCommission.realPool).toBeCloseTo(4, 2); // 80 * 5 / 100
+    expect(mockCommission.save).toHaveBeenCalled();
+  });
+
+  it("atualiza pedido e recalcula comissao quando period muda (deliveryDate alterada)", async () => {
+    const supplierId = { toString: () => "s1" };
+    const mockOrder = {
+      _id: "o1", representativeId: { toString: () => adminUser.id },
+      status: "active", sentToSupplier: false, supplierId,
+      items: [], subtotal: 0, ipiValue: 0, total: 0,
+      deliveryDate: null,
+      customerPurchaseOrder: null,
+      createdAt: new Date("2026-04-01"),
+      save: jest.fn().mockResolvedValue(true),
+    };
+    const mockCommission = {
+      orderId: "o1",
+      orderValueWithoutIpi: 25, // same as new subtotal
+      period: { month: 3, year: 2026 }, // different from new period (April based on createdAt)
+      customerPurchaseOrder: null,
+      deliveryDate: null,
+      adminPercentage: 5,
+      representativePercentage: 10,
+      realReceivedValue: null,
+      save: jest.fn().mockResolvedValue(true),
+    };
+    // deliveryDate is set as a Date object in the body
+    const req = { params: { id: "o1" }, body: { items: [{ productId: "p1", quantity: 5 }], deliveryDate: new Date("2026-06-15T00:00:00.000Z") }, user: adminUser };
+    const res = makeRes();
+    Order.findById.mockResolvedValue(mockOrder);
+    Product.findById.mockResolvedValue(makeProduct());
+    Supplier.findById.mockResolvedValue({ _id: "s1", ipi: 0, name: "Forn", cnpj: "123", tradeName: "F", logoUrl: null });
+    Commission.findOne.mockResolvedValue(mockCommission);
+    await updateOrder(req, res);
+    // Period should be updated to June 2026
+    expect(mockCommission.period).toEqual({ month: 6, year: 2026 });
+    expect(mockCommission.save).toHaveBeenCalled();
   });
 
   it("500 quando produto nao encontrado no update", async () => {

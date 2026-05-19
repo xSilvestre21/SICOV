@@ -279,4 +279,251 @@ describe('calculateProductPrice', () => {
       );
     });
   });
+
+  // ── selectedExtras ────────────────────────────────────────────────────────
+
+  describe('selectedExtras', () => {
+    it('ignora extras com value <= 0', () => {
+      const product = {
+        name: 'Produto',
+        calculationMode: 'quantity_times_unit_price',
+        saleMode: 'unit',
+        commercialData: { unitPrice: 10 },
+        technicalData: {},
+        selectedExtras: [
+          { chargeType: 'per_unit', value: 0 },
+          { chargeType: 'per_unit', value: -5 },
+        ],
+      };
+
+      const result = calculateProductPrice(product, 5);
+      expect(result.unitPrice).toBe(10);
+    });
+
+    it('ignora extras sem value (undefined)', () => {
+      const product = {
+        name: 'Produto',
+        calculationMode: 'quantity_times_unit_price',
+        saleMode: 'unit',
+        commercialData: { unitPrice: 10 },
+        technicalData: {},
+        selectedExtras: [
+          { chargeType: 'per_unit', value: undefined },
+        ],
+      };
+
+      const result = calculateProductPrice(product, 5);
+      expect(result.unitPrice).toBe(10);
+    });
+
+    it('aplica extra per_unit somando ao unitPrice', () => {
+      const product = {
+        name: 'Produto',
+        calculationMode: 'quantity_times_unit_price',
+        saleMode: 'unit',
+        commercialData: { unitPrice: 10 },
+        technicalData: {},
+        selectedExtras: [
+          { chargeType: 'per_unit', value: 2.5 },
+        ],
+      };
+
+      const result = calculateProductPrice(product, 5);
+      expect(result.unitPrice).toBe(12.5);
+      expect(result.subtotal).toBe(62.5);
+    });
+
+    it('aplica extra per_box somando ao unitPrice', () => {
+      const product = {
+        name: 'Produto',
+        calculationMode: 'boxes_times_box_price',
+        saleMode: 'box',
+        commercialData: { boxPrice: 45 },
+        technicalData: {},
+        selectedExtras: [
+          { chargeType: 'per_box', value: 5 },
+        ],
+      };
+
+      const result = calculateProductPrice(product, 10);
+      expect(result.unitPrice).toBe(50);
+      expect(result.subtotal).toBe(500);
+    });
+
+    it('aplica extra per_linear_meter somando ao unitPrice', () => {
+      const product = {
+        name: 'Produto',
+        calculationMode: 'quantity_times_unit_price',
+        saleMode: 'unit',
+        commercialData: { unitPrice: 10 },
+        technicalData: {},
+        selectedExtras: [
+          { chargeType: 'per_linear_meter', value: 3 },
+        ],
+      };
+
+      const result = calculateProductPrice(product, 5);
+      expect(result.unitPrice).toBe(13);
+    });
+
+    it('aplica extra fixed dividindo pelo quantity', () => {
+      const product = {
+        name: 'Produto',
+        calculationMode: 'quantity_times_unit_price',
+        saleMode: 'unit',
+        commercialData: { unitPrice: 10 },
+        technicalData: {},
+        selectedExtras: [
+          { chargeType: 'fixed', value: 50 },
+        ],
+      };
+
+      const result = calculateProductPrice(product, 10);
+      expect(result.unitPrice).toBe(15); // 10 + 50/10
+      expect(result.subtotal).toBe(150);
+    });
+
+    it('nao aplica extra fixed quando quantity é 0', () => {
+      const product = {
+        name: 'Produto',
+        calculationMode: 'quantity_times_unit_price',
+        saleMode: 'unit',
+        commercialData: { unitPrice: 10 },
+        technicalData: {},
+        selectedExtras: [
+          { chargeType: 'fixed', value: 50 },
+        ],
+      };
+
+      // quantity=0 would cause division by zero, so fixed extra is skipped
+      // but unitPrice=10 is still valid
+      const result = calculateProductPrice(product, 0);
+      // unitPrice stays 10 (fixed not applied since quantity=0)
+      // but subtotal = 10 * 0 = 0... and then it throws because unitPrice > 0 but subtotal = 0
+      // Actually the check is on unitPrice, not subtotal. Let's verify:
+      expect(result.unitPrice).toBe(10);
+      expect(result.subtotal).toBe(0);
+    });
+
+    it('aplica extra per_kg quando saleMode é kg', () => {
+      const product = {
+        name: 'Produto KG',
+        calculationMode: 'dimensions_density_factor',
+        saleMode: 'kg',
+        commercialData: { factorKg: 8 },
+        technicalData: { measurements: {} },
+        selectedExtras: [
+          { chargeType: 'per_kg', value: 1.5 },
+        ],
+      };
+
+      const result = calculateProductPrice(product, 100);
+      expect(result.unitPrice).toBe(9.5); // 8 + 1.5
+    });
+
+    it('aplica extra per_kg convertido para milheiro quando saleMode é thousand', () => {
+      const product = {
+        name: 'Saco Milheiro',
+        calculationMode: 'dimensions_density_factor',
+        saleMode: 'thousand',
+        commercialData: { factorKg: 10, density: 0.95 },
+        technicalData: {
+          measurements: { width: 0.2, length: 0.3, thickness: 0.0001 },
+        },
+        selectedExtras: [
+          { chargeType: 'per_kg', value: 2 },
+        ],
+      };
+
+      // kgPerThousand = 0.2 * 0.3 * 0.0001 * 0.95 = 0.0000057
+      // baseUnitPrice = 0.0000057 * 10 = 0.000057
+      // extra per_kg for thousand: 2 * kgPerThousand = 2 * 0.0000057 = 0.0000114
+      // total unitPrice = 0.000057 + 0.0000114 = 0.0000684
+      const kgPerThousand = 0.2 * 0.3 * 0.0001 * 0.95;
+      const expectedUnitPrice = kgPerThousand * 10 + 2 * kgPerThousand;
+      const result = calculateProductPrice(product, 1000);
+      expect(result.unitPrice).toBeCloseTo(expectedUnitPrice, 10);
+    });
+
+    it('aplica extra per_thousand quando saleMode é thousand', () => {
+      const product = {
+        name: 'Saco Milheiro',
+        calculationMode: 'dimensions_density_factor',
+        saleMode: 'thousand',
+        commercialData: { factorKg: 10, density: 0.95 },
+        technicalData: {
+          measurements: { width: 0.2, length: 0.3, thickness: 0.0001 },
+        },
+        selectedExtras: [
+          { chargeType: 'per_thousand', value: 5 },
+        ],
+      };
+
+      const kgPerThousand = 0.2 * 0.3 * 0.0001 * 0.95;
+      const baseUnitPrice = kgPerThousand * 10;
+      const result = calculateProductPrice(product, 1000);
+      expect(result.unitPrice).toBeCloseTo(baseUnitPrice + 5, 10);
+    });
+
+    it('aplica extra per_thousand convertido para kg quando saleMode é kg', () => {
+      const product = {
+        name: 'Produto KG',
+        calculationMode: 'dimensions_density_factor',
+        saleMode: 'kg',
+        commercialData: { factorKg: 8, density: 0.95 },
+        technicalData: {
+          measurements: { width: 0.2, length: 0.3, thickness: 0.0001 },
+        },
+        selectedExtras: [
+          { chargeType: 'per_thousand', value: 10 },
+        ],
+      };
+
+      // kgPerThousand = 0.2 * 0.3 * 0.0001 * 0.95 = 0.0000057
+      // extra per_thousand for kg: 10 / kgPerThousand
+      const kgPerThousand = 0.2 * 0.3 * 0.0001 * 0.95;
+      const expectedUnitPrice = 8 + 10 / kgPerThousand;
+      const result = calculateProductPrice(product, 100);
+      expect(result.unitPrice).toBeCloseTo(expectedUnitPrice, 5);
+    });
+
+    it('nao aplica extra per_thousand para kg quando kgPerThousand é 0', () => {
+      const product = {
+        name: 'Produto KG',
+        calculationMode: 'dimensions_density_factor',
+        saleMode: 'kg',
+        commercialData: { factorKg: 8 },
+        technicalData: {
+          measurements: { width: 0, length: 0, thickness: 0 },
+        },
+        selectedExtras: [
+          { chargeType: 'per_thousand', value: 10 },
+        ],
+      };
+
+      // kgPerThousand = 0 → division by zero guard → extra not applied
+      const result = calculateProductPrice(product, 100);
+      expect(result.unitPrice).toBe(8);
+    });
+
+    it('aplica múltiplos extras cumulativamente', () => {
+      const product = {
+        name: 'Produto',
+        calculationMode: 'quantity_times_unit_price',
+        saleMode: 'unit',
+        commercialData: { unitPrice: 10 },
+        technicalData: {},
+        selectedExtras: [
+          { chargeType: 'per_unit', value: 2 },
+          { chargeType: 'per_unit', value: 3 },
+          { chargeType: 'fixed', value: 50 },
+        ],
+      };
+
+      const result = calculateProductPrice(product, 10);
+      // 10 + 2 + 3 + 50/10 = 20
+      expect(result.unitPrice).toBe(20);
+      expect(result.subtotal).toBe(200);
+    });
+  });
 });

@@ -16,6 +16,7 @@ export function AuthProvider({ children }) {
   const login = useCallback(async (email, password) => {
     const { data } = await api.post('/auth/login', { email, password });
     localStorage.setItem('sicov_token', data.token);
+    localStorage.setItem('sicov_refreshToken', data.refreshToken);
     localStorage.setItem('sicov_user', JSON.stringify(data.user));
     // Sincroniza preferência de tema do servidor
     if (data.user.themePreference) {
@@ -27,6 +28,7 @@ export function AuthProvider({ children }) {
 
   const logout = useCallback(() => {
     localStorage.removeItem('sicov_token');
+    localStorage.removeItem('sicov_refreshToken');
     localStorage.removeItem('sicov_user');
     setUser(null);
   }, []);

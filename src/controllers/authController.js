@@ -109,20 +109,23 @@ async function login(req, res) {
       return res.status(401).json({ message: 'Credenciais inválidas.' });
     }
 
-    // Token com expiração de 8 horas (jornada de trabalho)
+    // Access token (4h) + Refresh token (7 dias)
     const token = jwt.sign(
-      {
-        id: user._id,
-        email: user.email,
-        profile: user.profile,
-      },
+      { id: user._id, email: user.email, profile: user.profile },
       process.env.JWT_SECRET,
       { expiresIn: '4h' },
+    );
+
+    const refreshToken = jwt.sign(
+      { id: user._id, type: 'refresh' },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' },
     );
 
     return res.status(200).json({
       message: 'Login realizado com sucesso.',
       token,
+      refreshToken,
       user: {
         id: user._id,
         name: user.name,
@@ -140,7 +143,44 @@ async function login(req, res) {
   }
 }
 
+/**
+ * POST /auth/refresh
+ * Renova o access token usando um refresh token válido.
+ */
+async function refreshAccessToken(req, res) {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) {
+      return res.status(400).json({ message: 'refreshToken é obrigatório.' });
+    }
+
+    const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+    if (decoded.type !== 'refresh') {
+      return res.status(401).json({ message: 'Token inválido.' });
+    }
+
+    const user = await User.findById(decoded.id).select('_id email profile active name themePreference');
+    if (!user || !user.active) {
+      return res.status(401).json({ message: 'Usuário não encontrado ou inativo.' });
+    }
+
+    const newToken = jwt.sign(
+      { id: user._id, email: user.email, profile: user.profile },
+      process.env.JWT_SECRET,
+      { expiresIn: '4h' },
+    );
+
+    return res.json({ token: newToken });
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: 'Refresh token expirado. Faça login novamente.' });
+    }
+    return res.status(401).json({ message: 'Token inválido.' });
+  }
+}
+
 module.exports = {
   registerAdmin,
   login,
+  refreshAccessToken,
 };

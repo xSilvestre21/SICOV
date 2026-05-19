@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Save, Settings, Moon, Sun, Monitor } from 'lucide-react';
+import { Save, Settings, Moon, Sun, Monitor, HardDrive } from 'lucide-react';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -13,6 +13,8 @@ export function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
+  const [backupLoading, setBackupLoading] = useState(false);
+  const [backupMsg, setBackupMsg] = useState('');
   const { isDark, theme, setTheme } = useTheme();
   const { isAdmin } = useAuth();
 
@@ -134,6 +136,53 @@ export function SettingsPage() {
           <Button type="submit" loading={saving}><Save size={16} /> Salvar Configurações</Button>
         </div>
       </form>
+      )}
+
+      {isAdmin && (
+      <Card>
+        <CardHeader><h2 className={`text-sm font-semibold ${isDark ? 'text-[#d4e4d1]' : 'text-[#4b5757]'}`}>Backup do Sistema</h2></CardHeader>
+        <CardBody>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <HardDrive size={20} className={isDark ? 'text-[#9cb3a0]' : 'text-[#7c8a6e]'} />
+              <div>
+                <p className={`text-sm font-medium ${isDark ? 'text-[#d4e4d1]' : 'text-[#4b5757]'}`}>
+                  Backup Manual
+                </p>
+                <p className={`text-xs ${isDark ? 'text-[#6b8a6e]' : 'text-[#7c8a6e]'}`}>
+                  Gera um backup do banco de dados e salva na pasta configurada
+                </p>
+              </div>
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              loading={backupLoading}
+              onClick={async () => {
+                setBackupLoading(true);
+                setBackupMsg('');
+                try {
+                  const { data } = await api.post('/settings/backup');
+                  setBackupMsg(data.message);
+                } catch (err) {
+                  setBackupMsg(err.response?.data?.message || 'Erro ao executar backup.');
+                } finally {
+                  setBackupLoading(false);
+                  setTimeout(() => setBackupMsg(''), 5000);
+                }
+              }}
+            >
+              <HardDrive size={14} /> Fazer Backup
+            </Button>
+          </div>
+          {backupMsg && (
+            <p className={`text-xs mt-2 ${backupMsg.includes('Erro') ? 'text-red-500' : isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>
+              {backupMsg}
+            </p>
+          )}
+        </CardBody>
+      </Card>
       )}
     </div>
   );

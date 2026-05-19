@@ -1,8 +1,12 @@
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import { Sidebar } from './Sidebar';
 import { useTheme } from '../../contexts/ThemeContext';
+
+function PageLoader() {
+  return <div className="flex items-center justify-center h-32"><div className="animate-spin w-6 h-6 border-2 border-[#58706d] border-t-transparent rounded-full" /></div>;
+}
 
 export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -31,7 +35,9 @@ export function AppLayout() {
 
         {/* Conteúdo da página */}
         <main className="flex-1 overflow-y-auto p-4 md:p-6">
-          <Outlet />
+          <Suspense fallback={<PageLoader />}>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
     </div>

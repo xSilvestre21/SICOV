@@ -87,7 +87,8 @@ app.use((err, req, res, next) => {
     return res.status(403).json({ message: err.message });
   }
 
-  console.error(`[${new Date().toISOString()}] ${req.method} ${req.path} —`, err.message);
+  const logger = require('./src/utils/logger');
+  logger.error({ method: req.method, path: req.path, error: err.message }, 'Unhandled error');
 
   return res.status(err.status || 500).json({
     message: err.status ? err.message : 'Erro interno do servidor.',

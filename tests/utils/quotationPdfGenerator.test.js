@@ -374,4 +374,101 @@ describe('generateQuotationPdf', () => {
     const { buffer } = await generateAndCollect(quotation);
     expect(buffer.slice(0, 4).toString()).toBe('%PDF');
   });
+
+  // ── Itens com selectedExtras ──────────────────────────────────────────────
+
+  it('gera PDF com item que possui selectedExtras preenchido', async () => {
+    const quotation = makeQuotation({
+      items: [{
+        productSnapshot: {
+          name: 'Produto com Extras',
+          description: 'Descrição com extras',
+          unitLabel: 'UN',
+          saleMode: 'unit',
+          clientCode: 'CC1',
+          selectedExtras: [
+            { name: 'Acabamento Especial', price: 2.5 },
+            { name: 'Embalagem Premium', price: 1.0 },
+          ],
+        },
+        quantity: 50, unitPrice: 15, subtotal: 750,
+      }],
+      subtotal: 750, ipiValue: 75, total: 825,
+    });
+    const { buffer } = await generateAndCollect(quotation);
+    expect(buffer.slice(0, 4).toString()).toBe('%PDF');
+  });
+
+  it('gera PDF com item que possui selectedExtras vazio', async () => {
+    const quotation = makeQuotation({
+      items: [{
+        productSnapshot: {
+          name: 'Produto sem Extras',
+          description: 'Sem extras',
+          unitLabel: 'UN',
+          saleMode: 'unit',
+          clientCode: 'CC1',
+          selectedExtras: [],
+        },
+        quantity: 50, unitPrice: 10, subtotal: 500,
+      }],
+      subtotal: 500, ipiValue: 50, total: 550,
+    });
+    const { buffer } = await generateAndCollect(quotation);
+    expect(buffer.slice(0, 4).toString()).toBe('%PDF');
+  });
+
+  it('gera PDF com mix de itens com e sem selectedExtras', async () => {
+    const quotation = makeQuotation({
+      items: [
+        {
+          productSnapshot: {
+            name: 'Com Extras', description: 'Desc', unitLabel: 'UN', saleMode: 'unit', clientCode: 'C1',
+            selectedExtras: [{ name: 'Extra A', price: 3 }],
+          },
+          quantity: 10, unitPrice: 20, subtotal: 200,
+        },
+        {
+          productSnapshot: {
+            name: 'Sem Extras', description: 'Desc2', unitLabel: 'KG', saleMode: 'kg', clientCode: 'C2',
+            selectedExtras: undefined,
+          },
+          quantity: 20, unitPrice: 5, subtotal: 100,
+        },
+      ],
+      subtotal: 300, ipiValue: 30, total: 330,
+    });
+    const { buffer } = await generateAndCollect(quotation);
+    expect(buffer.slice(0, 4).toString()).toBe('%PDF');
+  });
+
+  // ── Observações personalizadas vs padrão ──────────────────────────────────
+
+  it('gera PDF com observations personalizado longo', async () => {
+    const quotation = makeQuotation({
+      observations: 'Condições especiais:\n- Frete incluso\n- Prazo de 45 dias\n- Desconto de 5% para pagamento antecipado',
+    });
+    const { buffer } = await generateAndCollect(quotation);
+    expect(buffer.slice(0, 4).toString()).toBe('%PDF');
+  });
+
+  it('gera PDF com paymentTerm e deliveryDate no texto padrão', async () => {
+    const quotation = makeQuotation({
+      observations: undefined,
+      paymentTerm: '30/60/90 dias',
+      deliveryDate: new Date('2026-08-15T00:00:00Z'),
+    });
+    const { buffer } = await generateAndCollect(quotation);
+    expect(buffer.slice(0, 4).toString()).toBe('%PDF');
+  });
+
+  it('gera PDF sem paymentTerm e sem deliveryDate (usa "A combinar")', async () => {
+    const quotation = makeQuotation({
+      observations: undefined,
+      paymentTerm: undefined,
+      deliveryDate: undefined,
+    });
+    const { buffer } = await generateAndCollect(quotation);
+    expect(buffer.slice(0, 4).toString()).toBe('%PDF');
+  });
 });

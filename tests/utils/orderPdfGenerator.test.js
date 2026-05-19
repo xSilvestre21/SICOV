@@ -483,3 +483,149 @@ describe('quebra de página', () => {
     expect(buffer.slice(0, 4).toString()).toBe('%PDF');
   });
 });
+
+// ─── Itens com selectedExtras ─────────────────────────────────────────────────
+
+describe('itens com selectedExtras', () => {
+  it('gera PDF com item que possui selectedExtras preenchido', async () => {
+    const order = makeOrder({
+      items: [{
+        productSnapshot: {
+          supplierCode: 'S1', clientCode: 'C1', name: 'Produto com Extras',
+          description: 'Descrição com extras', unitLabel: 'UN', saleMode: 'unit',
+          selectedExtras: [
+            { name: 'Acabamento Especial', price: 2.5 },
+            { name: 'Embalagem Premium', price: 1.0 },
+          ],
+        },
+        quantity: 50, unitPrice: 15, subtotal: 750, hasIpi: true,
+      }],
+      subtotal: 750, ipiValue: 75, total: 825,
+    });
+    const { buffer } = await generateAndCollect(order);
+    expect(buffer.slice(0, 4).toString()).toBe('%PDF');
+  });
+
+  it('gera PDF com item que possui selectedExtras vazio', async () => {
+    const order = makeOrder({
+      items: [{
+        productSnapshot: {
+          supplierCode: 'S1', clientCode: 'C1', name: 'Produto sem Extras',
+          description: 'Sem extras', unitLabel: 'UN', saleMode: 'unit',
+          selectedExtras: [],
+        },
+        quantity: 50, unitPrice: 10, subtotal: 500, hasIpi: true,
+      }],
+      subtotal: 500, ipiValue: 50, total: 550,
+    });
+    const { buffer } = await generateAndCollect(order);
+    expect(buffer.slice(0, 4).toString()).toBe('%PDF');
+  });
+
+  it('gera PDF com mix de itens com e sem selectedExtras', async () => {
+    const order = makeOrder({
+      items: [
+        {
+          productSnapshot: {
+            supplierCode: 'S1', clientCode: 'C1', name: 'Com Extras',
+            description: 'Desc', unitLabel: 'UN', saleMode: 'unit',
+            selectedExtras: [{ name: 'Extra A', price: 3 }],
+          },
+          quantity: 10, unitPrice: 20, subtotal: 200, hasIpi: true,
+        },
+        {
+          productSnapshot: {
+            supplierCode: 'S2', clientCode: 'C2', name: 'Sem Extras',
+            description: 'Desc2', unitLabel: 'KG', saleMode: 'kg',
+            selectedExtras: undefined,
+          },
+          quantity: 20, unitPrice: 5, subtotal: 100, hasIpi: true,
+        },
+      ],
+      subtotal: 300, ipiValue: 30, total: 330,
+    });
+    const { buffer } = await generateAndCollect(order);
+    expect(buffer.slice(0, 4).toString()).toBe('%PDF');
+  });
+});
+
+// ─── Itens com IPI desabilitado ───────────────────────────────────────────────
+
+describe('itens com IPI desabilitado (hasIpi=false)', () => {
+  it('gera PDF com item que possui hasIpi=false', async () => {
+    const order = makeOrder({
+      items: [
+        {
+          productSnapshot: { supplierCode: 'S1', clientCode: 'C1', name: 'Com IPI', description: 'D1', unitLabel: 'UN', saleMode: 'unit' },
+          quantity: 10, unitPrice: 10, subtotal: 100, hasIpi: true,
+        },
+        {
+          productSnapshot: { supplierCode: 'S2', clientCode: 'C2', name: 'Sem IPI', description: 'D2', unitLabel: 'UN', saleMode: 'unit' },
+          quantity: 10, unitPrice: 10, subtotal: 100, hasIpi: false,
+        },
+      ],
+      subtotal: 200, ipiValue: 10, total: 210,
+    });
+    const { buffer } = await generateAndCollect(order);
+    expect(buffer.slice(0, 4).toString()).toBe('%PDF');
+  });
+
+  it('gera PDF com todos os itens hasIpi=false (ipiValue=0)', async () => {
+    const order = makeOrder({
+      items: [
+        {
+          productSnapshot: { supplierCode: 'S1', clientCode: 'C1', name: 'Sem IPI 1', description: 'D1', unitLabel: 'UN', saleMode: 'unit' },
+          quantity: 10, unitPrice: 10, subtotal: 100, hasIpi: false,
+        },
+        {
+          productSnapshot: { supplierCode: 'S2', clientCode: 'C2', name: 'Sem IPI 2', description: 'D2', unitLabel: 'UN', saleMode: 'unit' },
+          quantity: 5, unitPrice: 20, subtotal: 100, hasIpi: false,
+        },
+      ],
+      subtotal: 200, ipiValue: 0, total: 200,
+      supplierSnapshot: { name: 'Forn', tradeName: 'F', cnpj: '456', ipi: 10, logoUrl: null },
+    });
+    const { buffer } = await generateAndCollect(order);
+    expect(buffer.slice(0, 4).toString()).toBe('%PDF');
+  });
+});
+
+// ─── Observações do pedido ────────────────────────────────────────────────────
+
+describe('observações do pedido', () => {
+  it('gera PDF com notes do pedido e notes do cliente combinados', async () => {
+    const order = makeOrder({
+      notes: 'Observação do pedido',
+      clientSnapshot: { ...makeOrder().clientSnapshot, notes: 'Observação do cliente' },
+    });
+    const { buffer } = await generateAndCollect(order);
+    expect(buffer.slice(0, 4).toString()).toBe('%PDF');
+  });
+
+  it('gera PDF com apenas notes do pedido (sem notes do cliente)', async () => {
+    const order = makeOrder({
+      notes: 'Apenas obs do pedido',
+      clientSnapshot: { ...makeOrder().clientSnapshot, notes: '' },
+    });
+    const { buffer } = await generateAndCollect(order);
+    expect(buffer.slice(0, 4).toString()).toBe('%PDF');
+  });
+
+  it('gera PDF com apenas notes do cliente (sem notes do pedido)', async () => {
+    const order = makeOrder({
+      notes: '',
+      clientSnapshot: { ...makeOrder().clientSnapshot, notes: 'Apenas obs do cliente' },
+    });
+    const { buffer } = await generateAndCollect(order);
+    expect(buffer.slice(0, 4).toString()).toBe('%PDF');
+  });
+
+  it('gera PDF sem nenhuma observação (notes undefined e clientSnapshot.notes undefined)', async () => {
+    const order = makeOrder({
+      notes: undefined,
+      clientSnapshot: { ...makeOrder().clientSnapshot, notes: undefined },
+    });
+    const { buffer } = await generateAndCollect(order);
+    expect(buffer.slice(0, 4).toString()).toBe('%PDF');
+  });
+});

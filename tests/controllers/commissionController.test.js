@@ -347,7 +347,33 @@ describe("updateCommission", () => {
     const res = makeRes();
     Commission.findById.mockResolvedValue(comm);
     await updateCommission(req, res);
+    expect(comm.realReceivedValue).toBeNull();
+    expect(comm.realPool).toBeNull();
+    expect(comm.realRepresentativeCommission).toBeNull();
+    expect(comm.realAdminCommission).toBeNull();
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: "Comissão atualizada com sucesso" }));
+  });
+
+  it("atualiza projected sem recalcular comissoes", async () => {
+    const comm = makeCommission();
+    const originalPool = comm.pool;
+    const req = { params: { id: "commId" }, body: { projected: true }, user: adminUser };
+    const res = makeRes();
+    Commission.findById.mockResolvedValue(comm);
+    await updateCommission(req, res);
+    expect(comm.projected).toBe(true);
+    expect(comm.pool).toBe(originalPool);
+    expect(comm.save).toHaveBeenCalled();
+  });
+
+  it("atualiza installmentsCreated sem recalcular comissoes", async () => {
+    const comm = makeCommission();
+    const req = { params: { id: "commId" }, body: { installmentsCreated: true }, user: adminUser };
+    const res = makeRes();
+    Commission.findById.mockResolvedValue(comm);
+    await updateCommission(req, res);
+    expect(comm.installmentsCreated).toBe(true);
+    expect(comm.save).toHaveBeenCalled();
   });
 
   it("recalcula comissoes ao alterar representativePercentage", async () => {
@@ -479,12 +505,70 @@ describe("createInstallments", () => {
     expect(res.status).toHaveBeenCalledWith(400);
   });
 
-  it("400 quando representativePercentage esta ausente", async () => {
-    const req = { params: { id: "commId" }, body: { intervals: [28, 35] }, user: adminUser };
+  it("400 quando intervals contem valor nao inteiro (float)", async () => {
+    const req = { params: { id: "commId" }, body: { intervals: [28, 3.5], representativePercentage: 3 }, user: adminUser };
+    const res = makeRes();
+    await createInstallments(req, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ message: "Todos os intervalos devem ser inteiros positivos" });
+  });
+
+  it("400 quando representativePercentage e null", async () => {
+    const req = { params: { id: "commId" }, body: { intervals: [28], representativePercentage: null }, user: adminUser };
     const res = makeRes();
     await createInstallments(req, res);
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json).toHaveBeenCalledWith({ message: "representativePercentage \u00e9 obrigat\u00f3rio" });
+  });
+
+  it("400 quando representativePercentage e negativo", async () => {
+    const req = { params: { id: "commId" }, body: { intervals: [28], representativePercentage: -1 }, user: adminUser };
+    const res = makeRes();
+    await createInstallments(req, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ message: "representativePercentage deve ser um n\u00famero >= 0" });
+  });
+
+  it("400 quando representativePercentage nao e numero", async () => {
+    const req = { params: { id: "commId" }, body: { intervals: [28], representativePercentage: "abc" }, user: adminUser };
+    const res = makeRes();
+    await createInstallments(req, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ message: "representativePercentage deve ser um n\u00famero >= 0" });
+  });
+
+  it("400 quando adminPercentage e negativo", async () => {
+    const req = { params: { id: "commId" }, body: { intervals: [28], representativePercentage: 3, adminPercentage: -2 }, user: adminUser };
+    const res = makeRes();
+    await createInstallments(req, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ message: "adminPercentage deve ser um n\u00famero >= 0" });
+  });
+
+  it("400 quando adminPercentage nao e numero", async () => {
+    const req = { params: { id: "commId" }, body: { intervals: [28], representativePercentage: 3, adminPercentage: "abc" }, user: adminUser };
+    const res = makeRes();
+    await createInstallments(req, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ message: "adminPercentage deve ser um n\u00famero >= 0" });
+  });
+
+  it("usa createdAt como referencia quando deliveryDate esta ausente", async () => {
+    const req = {
+      params: { id: "commId" },
+      body: { intervals: [28], representativePercentage: 10 },
+      user: adminUser,
+    };
+    const res = makeRes();
+    Commission.findById.mockResolvedValue(makeCommission({ orderValueWithoutIpi: 1000, realReceivedValue: null }));
+    Order.findById.mockResolvedValue(makeOrder({ deliveryDate: null, createdAt: new Date("2026-04-01T00:00:00.000Z") }));
+    Commission.insertMany.mockResolvedValue([{}]);
+    await createInstallments(req, res);
+    const insertArg = Commission.insertMany.mock.calls[0][0];
+    // dueDate should be based on createdAt + 28 days
+    const expectedDue = new Date("2026-04-01T00:00:00.000Z");
+    expectedDue.setUTCDate(expectedDue.getUTCDate() + 28);
+    expect(insertArg[0].dueDate.toISOString()).toBe(expectedDue.toISOString());
   });
 
   it("404 quando comissao pai nao existe", async () => {
@@ -687,5 +771,31 @@ describe("getCommissionsSummary", () => {
     await getCommissionsSummary(req, res);
     expect(res.status).toHaveBeenCalledWith(500);
     expect(res.json).toHaveBeenCalledWith({ message: "Erro ao buscar resumo de comissões" });
+  });
+
+  it("retorna total 0 quando countResult esta vazio", async () => {
+    const req = { query: {}, user: adminUser };
+    const res = makeRes();
+    Commission.aggregate
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([]); // empty count result
+    await getCommissionsSummary(req, res);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ total: 0, totalPages: 0 }),
+    );
+  });
+
+  it("representante filtra por seu proprio id no pipeline", async () => {
+    const req = { query: { month: "6", year: "2026" }, user: repUser };
+    const res = makeRes();
+    Commission.aggregate
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ total: 0 }]);
+    await getCommissionsSummary(req, res);
+    const pipeline = Commission.aggregate.mock.calls[0][0];
+    const matchStage = pipeline.find((s) => s.$match);
+    expect(matchStage.$match.representativeId).toBeDefined();
+    expect(matchStage.$match["period.month"]).toBe(6);
+    expect(matchStage.$match["period.year"]).toBe(2026);
   });
 });

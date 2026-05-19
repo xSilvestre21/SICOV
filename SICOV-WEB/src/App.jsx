@@ -1,3 +1,4 @@
+import { lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -5,28 +6,30 @@ import { AppLayout } from './components/layout/AppLayout';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage as HomePage } from './pages/DashboardPage';
-import { DashboardPage } from './pages/dashboard/DashboardPage';
-import { OrdersListPage } from './pages/orders/OrdersListPage';
-import { NewOrderPage } from './pages/orders/NewOrderPage';
-import { OrderDetailPage } from './pages/orders/OrderDetailPage';
-import { EditOrderPage } from './pages/orders/EditOrderPage';
-import { ClientsListPage } from './pages/clients/ClientsListPage';
-import { ClientFormPage } from './pages/clients/ClientFormPage';
-import { ClientDetailPage } from './pages/clients/ClientDetailPage';
-import { ProductsListPage } from './pages/products/ProductsListPage';
-import { ProductDetailPage } from './pages/products/ProductDetailPage';
-import { ProductFormPage } from './pages/products/ProductFormPage';
-import { CommissionsListPage } from './pages/commissions/CommissionsListPage';
-import { QuotationsListPage } from './pages/quotations/QuotationsListPage';
-import { NewQuotationPage } from './pages/quotations/NewQuotationPage';
-import { QuotationDetailPage } from './pages/quotations/QuotationDetailPage';
-import { EditQuotationPage } from './pages/quotations/EditQuotationPage';
-import { SuppliersListPage } from './pages/suppliers/SuppliersListPage';
-import { SupplierFormPage } from './pages/suppliers/SupplierFormPage';
-import { SupplierDetailPage } from './pages/suppliers/SupplierDetailPage';
-import { UsersListPage } from './pages/users/UsersListPage';
-import { UserFormPage } from './pages/users/UserFormPage';
-import { SettingsPage } from './pages/settings/SettingsPage';
+
+// Lazy-loaded pages (code splitting)
+const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage'));
+const OrdersListPage = lazy(() => import('./pages/orders/OrdersListPage').then(m => ({ default: m.OrdersListPage })));
+const NewOrderPage = lazy(() => import('./pages/orders/NewOrderPage').then(m => ({ default: m.NewOrderPage })));
+const OrderDetailPage = lazy(() => import('./pages/orders/OrderDetailPage').then(m => ({ default: m.OrderDetailPage })));
+const EditOrderPage = lazy(() => import('./pages/orders/EditOrderPage').then(m => ({ default: m.EditOrderPage })));
+const ClientsListPage = lazy(() => import('./pages/clients/ClientsListPage').then(m => ({ default: m.ClientsListPage })));
+const ClientFormPage = lazy(() => import('./pages/clients/ClientFormPage').then(m => ({ default: m.ClientFormPage })));
+const ClientDetailPage = lazy(() => import('./pages/clients/ClientDetailPage').then(m => ({ default: m.ClientDetailPage })));
+const ProductsListPage = lazy(() => import('./pages/products/ProductsListPage').then(m => ({ default: m.ProductsListPage })));
+const ProductDetailPage = lazy(() => import('./pages/products/ProductDetailPage').then(m => ({ default: m.ProductDetailPage })));
+const ProductFormPage = lazy(() => import('./pages/products/ProductFormPage').then(m => ({ default: m.ProductFormPage })));
+const CommissionsListPage = lazy(() => import('./pages/commissions/CommissionsListPage').then(m => ({ default: m.CommissionsListPage })));
+const QuotationsListPage = lazy(() => import('./pages/quotations/QuotationsListPage').then(m => ({ default: m.QuotationsListPage })));
+const NewQuotationPage = lazy(() => import('./pages/quotations/NewQuotationPage').then(m => ({ default: m.NewQuotationPage })));
+const QuotationDetailPage = lazy(() => import('./pages/quotations/QuotationDetailPage').then(m => ({ default: m.QuotationDetailPage })));
+const EditQuotationPage = lazy(() => import('./pages/quotations/EditQuotationPage').then(m => ({ default: m.EditQuotationPage })));
+const SuppliersListPage = lazy(() => import('./pages/suppliers/SuppliersListPage').then(m => ({ default: m.SuppliersListPage })));
+const SupplierFormPage = lazy(() => import('./pages/suppliers/SupplierFormPage').then(m => ({ default: m.SupplierFormPage })));
+const SupplierDetailPage = lazy(() => import('./pages/suppliers/SupplierDetailPage').then(m => ({ default: m.SupplierDetailPage })));
+const UsersListPage = lazy(() => import('./pages/users/UsersListPage').then(m => ({ default: m.UsersListPage })));
+const UserFormPage = lazy(() => import('./pages/users/UserFormPage').then(m => ({ default: m.UserFormPage })));
+const SettingsPage = lazy(() => import('./pages/settings/SettingsPage').then(m => ({ default: m.SettingsPage })));
 
 function PublicRoute({ children }) {
   const { user } = useAuth();

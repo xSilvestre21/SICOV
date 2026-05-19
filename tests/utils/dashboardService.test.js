@@ -37,6 +37,16 @@ describe('buildPeriodFilter', () => {
       'period.year': now.getFullYear(),
     });
   });
+
+  it('retorna filtro de todos os meses do ano quando granularity é monthly e year fornecido', () => {
+    const filter = buildPeriodFilter(6, 2025, 'monthly');
+    expect(filter).toEqual({ 'period.year': 2025 });
+  });
+
+  it('retorna filtro de todos os meses do ano quando granularity é monthly sem month', () => {
+    const filter = buildPeriodFilter(undefined, 2025, 'monthly');
+    expect(filter).toEqual({ 'period.year': 2025 });
+  });
 });
 
 // ─── buildOrderPeriodFilter ──────────────────────────────────────────────────
@@ -287,5 +297,85 @@ describe('sanitizeForRepresentative', () => {
     const data = { totalRevenue: 5000, period: { month: 1, year: 2024 } };
     const result = sanitizeForRepresentative(data, 'representative');
     expect(result).toEqual({ totalRevenue: 5000, period: { month: 1, year: 2024 } });
+  });
+});
+
+
+// ─── aggregateCommissionsOverview ────────────────────────────────────────────
+
+jest.mock('../../src/models/commission');
+jest.mock('../../src/models/order');
+jest.mock('../../src/models/user');
+jest.mock('../../src/models/client');
+
+const { aggregateCommissionsOverview } = require('../../src/services/dashboardService');
+const Commission = require('../../src/models/commission');
+
+describe('aggregateCommissionsOverview', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('retorna dados com zero-fill de 12 meses para granularity monthly (default)', async () => {
+    Commission.aggregate.mockResolvedValue([
+      { period: { month: 3, year: 2025 }, totalAdminCommission: 100, totalRepresentativeCommission: 50 },
+    ]);
+    const result = await aggregateCommissionsOverview({ month: 3, year: 2025 });
+    expect(result).toHaveLength(12);
+    expect(result[2]).toEqual(expect.objectContaining({ period: { month: 3, year: 2025 }, totalAdminCommission: 100 }));
+    expect(result[0].totalAdminCommission).toBe(0);
+  });
+
+  it('retorna dados com zero-fill de 5 anos para granularity annual', async () => {
+    Commission.aggregate.mockResolvedValue([
+      { period: { month: null, year: 2023 }, totalAdminCommission: 200, totalRepresentativeCommission: 100, totalRevenue: 5000 },
+    ]);
+    const result = await aggregateCommissionsOverview({ month: 6, year: 2025, granularity: 'annual' });
+    expect(result).toHaveLength(5);
+    // 2021, 2022, 2023, 2024, 2025
+    expect(result[0].period.year).toBe(2021);
+    expect(result[4].period.year).toBe(2025);
+    expect(result[2]).toEqual(expect.objectContaining({ period: { month: null, year: 2023 }, totalAdminCommission: 200 }));
+    expect(result[0].totalAdminCommission).toBe(0);
+  });
+
+  it('usa groupId com month:null para granularity annual no pipeline', async () => {
+    Commission.aggregate.mockResolvedValue([]);
+    await aggregateCommissionsOverview({ month: 6, year: 2025, granularity: 'annual' });
+    const pipeline = Commission.aggregate.mock.calls[0][0];
+    const groupStage = pipeline.find((s) => s.$group);
+    expect(groupStage.$group._id.month).toBeNull();
+    expect(groupStage.$group._id.year).toBe('$period.year');
+  });
+
+  it('usa groupId com month e year para granularity nao-annual', async () => {
+    Commission.aggregate.mockResolvedValue([]);
+    await aggregateCommissionsOverview({ month: 6, year: 2025 });
+    const pipeline = Commission.aggregate.mock.calls[0][0];
+    const groupStage = pipeline.find((s) => s.$group);
+    expect(groupStage.$group._id.month).toBe('$period.month');
+    expect(groupStage.$group._id.year).toBe('$period.year');
+  });
+
+  it('inclui filtro de representativeId quando fornecido', async () => {
+    Commission.aggregate.mockResolvedValue([]);
+    await aggregateCommissionsOverview({ month: 6, year: 2025, representativeId: '507f1f77bcf86cd799439011' });
+    const pipeline = Commission.aggregate.mock.calls[0][0];
+    const matchStage = pipeline.find((s) => s.$match);
+    expect(matchStage.$match.representativeId).toBeDefined();
+  });
+
+  it('nao inclui filtro de representativeId quando nao fornecido', async () => {
+    Commission.aggregate.mockResolvedValue([]);
+    await aggregateCommissionsOverview({ month: 6, year: 2025 });
+    const pipeline = Commission.aggregate.mock.calls[0][0];
+    const matchStage = pipeline.find((s) => s.$match);
+    expect(matchStage.$match.representativeId).toBeUndefined();
+  });
+
+  it('usa ano atual quando year nao fornecido', async () => {
+    Commission.aggregate.mockResolvedValue([]);
+    const result = await aggregateCommissionsOverview({});
+    expect(result).toHaveLength(12);
+    const currentYear = new Date().getFullYear();
+    expect(result[0].period.year).toBe(currentYear);
   });
 });
