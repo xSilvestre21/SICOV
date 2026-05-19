@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Commission = require('../models/commission');
 const Order = require('../models/order');
+const User = require('../models/user');
 
 const DEFAULT_ADMIN_PERCENTAGE = 5;
 
@@ -99,7 +100,6 @@ async function getCommissions(req, res) {
     ]);
 
     // Preenche representativeName para comissões que não o têm (registros antigos)
-    const User = require('../models/user');
     const commissions = rawCommissions;
     const missingNames = commissions.filter((c) => !c.representativeName && c.representativeId);
     if (missingNames.length > 0) {

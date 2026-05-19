@@ -2,6 +2,9 @@
 jest.mock("../../src/models/product");
 jest.mock("../../src/models/client");
 jest.mock("../../src/models/supplier");
+jest.mock("../../src/models/settings");
+jest.mock("../../src/models/user");
+jest.mock("../../src/models/commission");
 jest.mock("../../src/utils/orderPdfGenerator");
 
 const Order    = require("../../src/models/order");
@@ -254,9 +257,12 @@ describe("getOrders", () => {
   it("representante ve apenas seus pedidos", async () => {
     const req = { query: {}, user: repUser };
     const res = makeRes();
+    // New logic: getOrders calls Client.find to get rep's clients, then filters by clientId $in
+    Client.find.mockReturnValue({ select: jest.fn().mockReturnValue({ lean: jest.fn().mockResolvedValue([{ _id: "c1" }, { _id: "c2" }]) }) });
     mockFind();
     await getOrders(req, res);
-    expect(Order.find).toHaveBeenCalledWith(expect.objectContaining({ representativeId: repUser.id }));
+    expect(Client.find).toHaveBeenCalledWith({ representativeId: repUser.id });
+    expect(Order.find).toHaveBeenCalledWith(expect.objectContaining({ clientId: { $in: [{ _id: "c1" }, { _id: "c2" }].map(c => c._id) } }));
   });
 
   it("admin ve todos os pedidos", async () => {
@@ -366,7 +372,9 @@ describe("getOrderById", () => {
   it("403 quando representante tenta acessar pedido de outro", async () => {
     const req = { params: { id: "o1" }, user: repUser };
     const res = makeRes();
-    Order.findById.mockResolvedValue({ _id: "o1", representativeId: { toString: () => "outroRepId" } });
+    Order.findById.mockResolvedValue({ _id: "o1", clientId: "c1", representativeId: { toString: () => "outroRepId" } });
+    // Secondary check: Client.findById returns client belonging to another rep
+    Client.findById.mockReturnValue({ select: jest.fn().mockReturnValue({ lean: jest.fn().mockResolvedValue({ representativeId: { toString: () => "outroRepId" } }) }) });
     await getOrderById(req, res);
     expect(res.status).toHaveBeenCalledWith(403);
   });
@@ -413,7 +421,9 @@ describe("updateOrder", () => {
   it("403 quando representante tenta editar pedido de outro", async () => {
     const req = { params: { id: "o1" }, body: { items: [{ productId: "p1", quantity: 1 }] }, user: repUser };
     const res = makeRes();
-    Order.findById.mockResolvedValue({ _id: "o1", representativeId: { toString: () => "outroRepId" }, status: "active", sentToSupplier: false, supplierId: { toString: () => "s1" } });
+    Order.findById.mockResolvedValue({ _id: "o1", clientId: "c1", representativeId: { toString: () => "outroRepId" }, status: "active", sentToSupplier: false, supplierId: { toString: () => "s1" } });
+    // Secondary check: Client.findById returns client belonging to another rep
+    Client.findById.mockReturnValue({ select: jest.fn().mockReturnValue({ lean: jest.fn().mockResolvedValue({ representativeId: { toString: () => "outroRepId" } }) }) });
     await updateOrder(req, res);
     expect(res.status).toHaveBeenCalledWith(403);
   });
@@ -522,7 +532,9 @@ describe("getDuplicateOrderTemplate", () => {
   it("403 quando representante tenta duplicar pedido de outro", async () => {
     const req = { params: { id: "o1" }, user: repUser };
     const res = makeRes();
-    Order.findById.mockResolvedValue({ _id: "o1", representativeId: { toString: () => "outroRepId" }, items: [] });
+    Order.findById.mockResolvedValue({ _id: "o1", clientId: "c1", representativeId: { toString: () => "outroRepId" }, items: [] });
+    // Secondary check: Client.findById returns client belonging to another rep
+    Client.findById.mockReturnValue({ select: jest.fn().mockReturnValue({ lean: jest.fn().mockResolvedValue({ representativeId: { toString: () => "outroRepId" } }) }) });
     await getDuplicateOrderTemplate(req, res);
     expect(res.status).toHaveBeenCalledWith(403);
   });

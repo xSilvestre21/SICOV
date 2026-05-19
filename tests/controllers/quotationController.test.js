@@ -668,7 +668,8 @@ describe('getQuotations', () => {
     const q = {
       sort: jest.fn().mockReturnThis(),
       skip: jest.fn().mockReturnThis(),
-      limit: jest.fn().mockResolvedValue(results),
+      limit: jest.fn().mockReturnThis(),
+      populate: jest.fn().mockResolvedValue(results),
     };
     Quotation.find.mockReturnValue(q);
     Quotation.countDocuments.mockResolvedValue(results.length);

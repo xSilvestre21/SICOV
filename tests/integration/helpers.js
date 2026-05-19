@@ -44,7 +44,7 @@ async function createSupplier(adminToken, overrides = {}) {
     name: 'Fornecedor Teste',
     cnpj: '08819970000125',
     ipi: 9.75,
-    priceTable: [{ material: 'PEMD', price: 10, density: 0.95 }],
+    priceTable: [{ material: 'PEMD', factorKg: 10, density: 0.95 }],
     ...overrides,
   };
 

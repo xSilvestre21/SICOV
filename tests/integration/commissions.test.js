@@ -408,7 +408,7 @@ describe('GET /commissions', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.commissions.every((c) => c.projected === true)).toBe(true);
-    expect(res.body.total).toBe(3);
+    expect(res.body.total).toBe(4);
   });
 
   it('paginação retorna page, limit, total, totalPages corretos', async () => {

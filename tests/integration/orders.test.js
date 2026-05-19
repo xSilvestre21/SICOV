@@ -19,7 +19,7 @@ afterAll(async () => { await disconnectDB(); });
 async function buildOrderFixture(adminToken, adminId) {
   const supplier = await createSupplier(adminToken, {
     ipi: 10,
-    priceTable: [{ material: 'PEMD', price: 10, density: 0.95 }],
+    priceTable: [{ material: 'PEMD', factorKg: 10, density: 0.95 }],
   });
   const client = await createClient(adminToken, adminId, {
     paymentTerm: 'Boleto 30 dias',

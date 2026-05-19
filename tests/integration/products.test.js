@@ -44,7 +44,7 @@ describe('POST /products', () => {
   it('cria saco plástico buscando dados do fornecedor', async () => {
     const { token, user } = await createAdminAndLogin();
     const supplier = await createSupplier(token, {
-      priceTable: [{ material: 'PEMD', price: 10, density: 0.95 }],
+      priceTable: [{ material: 'PEMD', factorKg: 10, density: 0.95 }],
     });
     const client = await createClient(token, user.id);
 
@@ -131,7 +131,7 @@ describe('POST /products', () => {
   it('retorna 400 para material não encontrado na tabela do fornecedor', async () => {
     const { token, user } = await createAdminAndLogin();
     const supplier = await createSupplier(token, {
-      priceTable: [{ material: 'PEMD', price: 10, density: 0.95 }],
+      priceTable: [{ material: 'PEMD', factorKg: 10, density: 0.95 }],
     });
     const client = await createClient(token, user.id);
 

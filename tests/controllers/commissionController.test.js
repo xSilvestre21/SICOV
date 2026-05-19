@@ -1,8 +1,10 @@
 ﻿jest.mock("../../src/models/commission");
 jest.mock("../../src/models/order");
+jest.mock("../../src/models/user");
 
 const Commission = require("../../src/models/commission");
 const Order = require("../../src/models/order");
+const User = require("../../src/models/user");
 const {
   getCommissions,
   getCommissionById,
@@ -62,10 +64,14 @@ describe("getCommissions", () => {
     const q = {
       sort: jest.fn().mockReturnThis(),
       skip: jest.fn().mockReturnThis(),
-      limit: jest.fn().mockResolvedValue(results),
+      limit: jest.fn().mockReturnThis(),
+      lean: jest.fn().mockResolvedValue(results),
     };
     Commission.find.mockReturnValue(q);
     Commission.countDocuments.mockResolvedValue(results.length);
+    // Mock User.find for representativeName enrichment
+    const userQ = { select: jest.fn().mockReturnThis(), lean: jest.fn().mockResolvedValue([]) };
+    User.find.mockReturnValue(userQ);
   }
 
   it("representante ve apenas seus proprios registros", async () => {
@@ -174,16 +180,18 @@ describe("getCommissions", () => {
     mockFind();
     await getCommissions(req, res);
     expect(Commission.find).toHaveBeenCalledWith(
-      expect.objectContaining({ status: "active" })
+      expect.objectContaining({ status: { $ne: 'cancelled' } })
     );
   });
 
   it("retorna paginacao correta", async () => {
     const req = { query: { page: "2", limit: "5" }, user: adminUser };
     const res = makeRes();
-    const q = { sort: jest.fn().mockReturnThis(), skip: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([]) };
+    const q = { sort: jest.fn().mockReturnThis(), skip: jest.fn().mockReturnThis(), limit: jest.fn().mockReturnThis(), lean: jest.fn().mockResolvedValue([]) };
     Commission.find.mockReturnValue(q);
     Commission.countDocuments.mockResolvedValue(15);
+    const userQ = { select: jest.fn().mockReturnThis(), lean: jest.fn().mockResolvedValue([]) };
+    User.find.mockReturnValue(userQ);
     await getCommissions(req, res);
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({ page: 2, limit: 5, total: 15, totalPages: 3 })
@@ -193,10 +201,12 @@ describe("getCommissions", () => {
   it("representante nao recebe campos sensiveis na listagem", async () => {
     const req = { query: {}, user: repUser };
     const res = makeRes();
-    const comm = makeCommission({ representativeId: { toString: () => repUser.id } });
-    const q = { sort: jest.fn().mockReturnThis(), skip: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([comm]) };
+    const comm = { ...makeCommission(), representativeId: repUser.id, representativeName: 'Rep' };
+    const q = { sort: jest.fn().mockReturnThis(), skip: jest.fn().mockReturnThis(), limit: jest.fn().mockReturnThis(), lean: jest.fn().mockResolvedValue([comm]) };
     Commission.find.mockReturnValue(q);
     Commission.countDocuments.mockResolvedValue(1);
+    const userQ = { select: jest.fn().mockReturnThis(), lean: jest.fn().mockResolvedValue([]) };
+    User.find.mockReturnValue(userQ);
     await getCommissions(req, res);
     const returned = res.json.mock.calls[0][0].commissions[0];
     expect(returned).not.toHaveProperty("realReceivedValue");
@@ -207,10 +217,12 @@ describe("getCommissions", () => {
   it("admin recebe todos os campos", async () => {
     const req = { query: {}, user: adminUser };
     const res = makeRes();
-    const comm = makeCommission();
-    const q = { sort: jest.fn().mockReturnThis(), skip: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([comm]) };
+    const comm = { ...makeCommission(), representativeName: 'Rep' };
+    const q = { sort: jest.fn().mockReturnThis(), skip: jest.fn().mockReturnThis(), limit: jest.fn().mockReturnThis(), lean: jest.fn().mockResolvedValue([comm]) };
     Commission.find.mockReturnValue(q);
     Commission.countDocuments.mockResolvedValue(1);
+    const userQ = { select: jest.fn().mockReturnThis(), lean: jest.fn().mockResolvedValue([]) };
+    User.find.mockReturnValue(userQ);
     await getCommissions(req, res);
     const returned = res.json.mock.calls[0][0].commissions[0];
     expect(returned).toHaveProperty("adminCommission");

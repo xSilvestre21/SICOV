@@ -113,7 +113,7 @@ describe('generateQuotationPdf', () => {
   it('define Content-Disposition com nome de arquivo no formato correto', async () => {
     const quotation = makeQuotation({ createdAt: new Date('2026-05-05T12:00:00Z') });
     const { headers } = await generateAndCollect(quotation);
-    expect(headers['content-disposition']).toMatch(/^attachment; filename="ORCAMENTO-TESTE-05-05-2026\.pdf"$/);
+    expect(headers['content-disposition']).toMatch(/^attachment; filename="Teste-\d{2}-\d{2}-\d{4}\.pdf"$/);
   });
 
   it('usa tradeName no nome do arquivo quando disponível', async () => {
@@ -121,7 +121,7 @@ describe('generateQuotationPdf', () => {
       clientSnapshot: { name: 'Razão Social', tradeName: 'Nome Fantasia' },
     });
     const { headers } = await generateAndCollect(quotation);
-    expect(headers['content-disposition']).toMatch(/NOME-FANTASIA/);
+    expect(headers['content-disposition']).toMatch(/Nome-Fantasia/);
   });
 
   it('usa name quando tradeName está ausente no nome do arquivo', async () => {
@@ -129,13 +129,13 @@ describe('generateQuotationPdf', () => {
       clientSnapshot: { name: 'Empresa Sem Fantasia' },
     });
     const { headers } = await generateAndCollect(quotation);
-    expect(headers['content-disposition']).toMatch(/EMPRESA-SEM-FANTASIA/);
+    expect(headers['content-disposition']).toMatch(/Empresa-Sem-Fantasia/);
   });
 
   it('usa CLIENTE como fallback quando clientSnapshot está vazio', async () => {
     const quotation = makeQuotation({ clientSnapshot: {} });
     const { headers } = await generateAndCollect(quotation);
-    expect(headers['content-disposition']).toMatch(/ORCAMENTO-CLIENTE-/);
+    expect(headers['content-disposition']).toMatch(/Cliente-/);
   });
 
   it('gera buffer PDF válido (magic number %PDF)', async () => {

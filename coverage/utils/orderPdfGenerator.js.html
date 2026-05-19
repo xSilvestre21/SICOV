@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">93.92% </span>
+                <span class="strong">93.48% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>201/214</span>
+                <span class='fraction'>201/215</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">78.81% </span>
+                <span class="strong">78.33% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>93/118</span>
+                <span class='fraction'>94/120</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>20/20</span>
+                <span class='fraction'>21/21</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">96.84% </span>
+                <span class="strong">96.85% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>184/190</span>
+                <span class='fraction'>185/191</span>
             </div>
         
             
@@ -493,7 +493,14 @@
 <a name='L428'></a><a href='#L428'>428</a>
 <a name='L429'></a><a href='#L429'>429</a>
 <a name='L430'></a><a href='#L430'>430</a>
-<a name='L431'></a><a href='#L431'>431</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">12x</span>
+<a name='L431'></a><a href='#L431'>431</a>
+<a name='L432'></a><a href='#L432'>432</a>
+<a name='L433'></a><a href='#L433'>433</a>
+<a name='L434'></a><a href='#L434'>434</a>
+<a name='L435'></a><a href='#L435'>435</a>
+<a name='L436'></a><a href='#L436'>436</a>
+<a name='L437'></a><a href='#L437'>437</a>
+<a name='L438'></a><a href='#L438'>438</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">12x</span>
 <span class="cline-any cline-yes">12x</span>
 <span class="cline-any cline-yes">12x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -579,8 +586,8 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">35x</span>
-<span class="cline-any cline-yes">34x</span>
-<span class="cline-any cline-yes">34x</span>
+<span class="cline-any cline-yes">35x</span>
+<span class="cline-any cline-yes">35x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -822,13 +829,17 @@
 <span class="cline-any cline-yes">35x</span>
 <span class="cline-any cline-yes">35x</span>
 <span class="cline-any cline-yes">35x</span>
-<span class="cline-any cline-yes">35x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">35x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">35x</span>
+<span class="cline-any cline-yes">35x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -915,6 +926,9 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">35x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">35x</span>
@@ -1008,9 +1022,9 @@ function sanitize(text) {
 }
 &nbsp;
 function formatDateFile(value) {
-  if (!value) return '';
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (!value) <span class="cstat-no" title="statement not covered" >return '';</span>
   const d = new Date(value);
-  return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+  return `${String(d.getUTCDate()).padStart(2, '0')}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${d.getUTCFullYear()}`;
 }
 &nbsp;
 // ─── Layout ──────────────────────────────────────────────────────────────────
@@ -1228,9 +1242,9 @@ function drawTableHeader(doc, y) {
 }
 &nbsp;
 /**
- * Desenha os totais (subtotal, IPI, total) e a assinatura.
+ * Desenha os totais (subtotal, IPI, total).
  */
-function drawTotalsAndSignature(doc, order, y) {
+function drawTotals(doc, order, y) {
   const s = order.supplierSnapshot || <span class="branch-1 cbranch-no" title="branch not covered" >{};</span>
 &nbsp;
   hline(doc, y, 0.25);
@@ -1252,13 +1266,17 @@ function drawTotalsAndSignature(doc, order, y) {
   doc.fontSize(11).font('Helvetica-Bold');
   doc.text('TOTAL GERAL:', LABEL_X, y, { lineBreak: false });
   doc.text(formatCurrency(order.total), VALUE_X, y, { width: VALUE_W, align: 'right', lineBreak: false });
-  y += 20;
-&nbsp;
-  // Assinatura
-  doc.fontSize(9).font('Helvetica')
-    .text(order.sellerName || '', MARGIN, y, { lineBreak: false });
 &nbsp;
   return y;
+}
+&nbsp;
+/**
+ * Desenha o nome da vendedora fixo no rodapé da página.
+ */
+function drawSellerFooter(doc, order) {
+  const footerY = PAGE_H - MARGIN - 10;
+  doc.fontSize(9).font('Helvetica')
+    .text(order.sellerName || '', MARGIN, footerY, { lineBreak: false });
 }
 &nbsp;
 // ─── Gerador principal ────────────────────────────────────────────────────────
@@ -1271,10 +1289,10 @@ function generateOrderPdf(order, res) {
     autoFirstPage: true,
   });
 &nbsp;
-  // Nome do arquivo
+  // Nome do arquivo: nº pedido - empresa - PC-xxx (se tiver) - data de entrega
   const companyName = sanitize(order.clientSnapshot?.tradeName || order.clientSnapshot?.name || <span class="branch-2 cbranch-no" title="branch not covered" >'')</span>;
-  let purchaseOrder = order.customerPurchaseOrder ? `PC-${sanitize(order.customerPurchaseOrder)}` : '';
-  const date = formatDateFile(order.createdAt);
+  const purchaseOrder = order.customerPurchaseOrder ? `PC-${sanitize(order.customerPurchaseOrder)}` : '';
+  const date = formatDateFile(order.deliveryDate || order.createdAt);
   let fileName = `${order.orderNumber}-${companyName}`;
   if (purchaseOrder) fileName += `-${purchaseOrder}`;
   fileName += `-${date}.pdf`;
@@ -1347,7 +1365,10 @@ function generateOrderPdf(order, res) {
 <span class="cstat-no" title="statement not covered" >    y += 8;</span>
   }
 &nbsp;
-  drawTotalsAndSignature(doc, order, y);
+  drawTotals(doc, order, y);
+&nbsp;
+  // Nome da vendedora fixo no rodapé da página
+  drawSellerFooter(doc, order);
 &nbsp;
   doc.end();
 }
@@ -1360,7 +1381,7 @@ module.exports = generateOrderPdf;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-05-11T19:30:29.818Z
+                at 2026-05-19T00:43:06.098Z
             </div>
         <script src="../prettify.js"></script>
         <script>

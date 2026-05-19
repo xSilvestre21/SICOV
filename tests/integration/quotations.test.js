@@ -26,7 +26,7 @@ async function buildQuotationFixture(adminToken, representativeId, supplierOverr
   const supplier = await createSupplier(adminToken, {
     ipi: 10,
     city: 'São Paulo',
-    priceTable: [{ material: 'PEMD', price: 10, density: 0.95 }],
+    priceTable: [{ material: 'PEMD', factorKg: 10, density: 0.95 }],
     ...supplierOverrides,
   });
 
@@ -576,7 +576,7 @@ describe('GET /quotations', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.total).toBe(1);
-    expect(res.body.quotations[0].representativeId).toBe(rep.id);
+    expect(res.body.quotations[0].representativeId._id).toBe(rep.id);
   });
 
   it('admin vê todos os orçamentos', async () => {
