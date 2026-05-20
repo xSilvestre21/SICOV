@@ -30,17 +30,13 @@ api.interceptors.response.use(
   async (err) => {
     const originalRequest = err.config;
 
-    // Se não é 401 ou já tentou refresh, rejeita
+    // Se não é 401 ou já tentou refresh, rejeita normalmente
     if (err.response?.status !== 401 || originalRequest._retry) {
       return Promise.reject(err);
     }
 
-    // Se é a rota de login/refresh, não tenta refresh
+    // Se é a rota de login/refresh, apenas rejeita (não tenta refresh)
     if (originalRequest.url?.includes('/auth/')) {
-      localStorage.removeItem('sicov_token');
-      localStorage.removeItem('sicov_refreshToken');
-      localStorage.removeItem('sicov_user');
-      window.location.href = '/login';
       return Promise.reject(err);
     }
 
@@ -54,16 +50,15 @@ api.interceptors.response.use(
       });
     }
 
-    originalRequest._retry = true;
-    isRefreshing = true;
-
+    // Tenta renovar o token
     const refreshToken = localStorage.getItem('sicov_refreshToken');
     if (!refreshToken) {
-      localStorage.removeItem('sicov_token');
-      localStorage.removeItem('sicov_user');
-      window.location.href = '/login';
+      // Sem refresh token — apenas rejeita (ProtectedRoute vai redirecionar)
       return Promise.reject(err);
     }
+
+    originalRequest._retry = true;
+    isRefreshing = true;
 
     try {
       const { data } = await axios.post('/api/auth/refresh', { refreshToken });
@@ -74,10 +69,7 @@ api.interceptors.response.use(
       return api(originalRequest);
     } catch (refreshErr) {
       processQueue(refreshErr, null);
-      localStorage.removeItem('sicov_token');
-      localStorage.removeItem('sicov_refreshToken');
-      localStorage.removeItem('sicov_user');
-      window.location.href = '/login';
+      // Não redireciona aqui — deixa o ProtectedRoute/AuthContext cuidar
       return Promise.reject(refreshErr);
     } finally {
       isRefreshing = false;

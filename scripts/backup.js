@@ -21,6 +21,8 @@
  */
 
 require('dotenv').config();
+const dns = require('dns');
+dns.setServers(['8.8.8.8', '1.1.1.1']); // Usa Google/Cloudflare DNS (evita problemas com DNS de provedores)
 const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');

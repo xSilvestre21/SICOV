@@ -39,20 +39,20 @@ app.use(
 // ── Rate limiting: proteção contra brute force e abuso ───────────────────────
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: process.env.NODE_ENV === 'test' ? 0 : 20,
+  max: process.env.NODE_ENV === 'production' ? 20 : 0,
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: 'Muitas tentativas. Tente novamente em 15 minutos.' },
-  skip: () => process.env.NODE_ENV === 'test',
+  skip: () => process.env.NODE_ENV !== 'production',
 });
 
 const globalLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minuto
-  max: process.env.NODE_ENV === 'test' ? 0 : 200,
+  max: process.env.NODE_ENV === 'production' ? 200 : 0,
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: 'Limite de requisições atingido. Tente novamente em breve.' },
-  skip: () => process.env.NODE_ENV === 'test',
+  skip: () => process.env.NODE_ENV !== 'production',
 });
 
 app.use(globalLimiter);

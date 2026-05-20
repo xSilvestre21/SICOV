@@ -1,4 +1,8 @@
 const mongoose = require('mongoose');
+const dns = require('dns');
+
+// Usa Google/Cloudflare DNS para evitar problemas com DNS de provedores (ex: Vivo)
+dns.setServers(['8.8.8.8', '1.1.1.1']);
 
 async function connectDB() {
   try {

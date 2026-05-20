@@ -740,9 +740,9 @@ async function aggregateCancelledOrders({ month, year, granularity, groupBy = 'p
   const totalOrders = await Order.countDocuments({ _id: { $in: allOrderIds } });
 
   // Step 3: Determine groupBy field for aggregation
-  const periodDateExpr = { $ifNull: ['$deliveryDate', '$createdAt'] };
+  // Usa createdAt como referência para agrupamento por período (sempre válido)
   const groupByField = {
-    period: { month: { $month: periodDateExpr }, year: { $year: periodDateExpr } },
+    period: { month: { $month: '$createdAt' }, year: { $year: '$createdAt' } },
     client: '$clientId',
     representative: '$representativeId',
   }[groupBy];

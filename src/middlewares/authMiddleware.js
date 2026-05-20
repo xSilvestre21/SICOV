@@ -49,6 +49,7 @@ async function authMiddleware(req, res, next) {
 
     return next();
   } catch (err) {
+    console.error('[authMiddleware] Token rejeitado:', err.message);
     return res.status(401).json({
       message: 'Token inválido ou expirado.',
       error: err.message,

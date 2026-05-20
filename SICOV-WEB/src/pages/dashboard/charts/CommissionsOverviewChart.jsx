@@ -152,7 +152,7 @@ export function CommissionsOverviewChart() {
       <section className={`rounded-xl border p-5 ${isDark ? "bg-[#2a2f2e] border-[#3d4543]" : "bg-white border-[#e3e3d1]"}`}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold text-[#4b5757]">
-            Receita e Comissão do Administrador
+            {isAdmin ? 'Receita e Comissão do Administrador' : 'Receita e Comissão do Representante'}
           </h3>
         </div>
         <p className="text-sm text-gray-400 text-center py-10">
@@ -166,7 +166,7 @@ export function CommissionsOverviewChart() {
     <section className={`rounded-xl border p-5 ${isDark ? "bg-[#2a2f2e] border-[#3d4543]" : "bg-white border-[#e3e3d1]"}`}>
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-semibold text-[#4b5757]">
-          Receita e Comissão do Administrador
+          {isAdmin ? 'Receita e Comissão do Administrador' : 'Receita e Comissão do Representante'}
         </h3>
         <ChartStyleSelector
           styles={CHART_STYLES}
