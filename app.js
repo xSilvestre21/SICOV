@@ -17,6 +17,10 @@ const dashboardRoutes = require('./src/routes/dashboardRoutes');
 
 const app = express();
 
+// ── Trust proxy (necessário para Render/Heroku/etc) ──────────────────────────
+// Permite que express-rate-limit use o IP real do usuário via X-Forwarded-For
+app.set('trust proxy', 1);
+
 // ── Segurança: headers HTTP ──────────────────────────────────────────────────
 app.use(
   helmet({
@@ -63,7 +67,7 @@ const authLimiter = rateLimit({
 
 const globalLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minuto
-  max: process.env.NODE_ENV === 'production' ? 200 : 0,
+  max: process.env.NODE_ENV === 'production' ? 500 : 0,
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: 'Limite de requisições atingido. Tente novamente em breve.' },
