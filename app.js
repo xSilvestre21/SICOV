@@ -82,8 +82,12 @@ if (process.env.NODE_ENV === 'production') {
   const frontendPath = path.join(__dirname, 'SICOV-WEB', 'dist');
   app.use(express.static(frontendPath));
   // Qualquer rota não-API serve o index.html (SPA)
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(frontendPath, 'index.html'));
+  app.use((req, res, next) => {
+    if (req.method === 'GET' && !req.path.startsWith('/auth') && !req.path.startsWith('/users') && !req.path.startsWith('/clients') && !req.path.startsWith('/suppliers') && !req.path.startsWith('/products') && !req.path.startsWith('/orders') && !req.path.startsWith('/quotations') && !req.path.startsWith('/settings') && !req.path.startsWith('/commissions') && !req.path.startsWith('/dashboard')) {
+      res.sendFile(path.join(frontendPath, 'index.html'));
+    } else {
+      next();
+    }
   });
 }
 
