@@ -16,7 +16,7 @@ describe('POST /clients', () => {
     const { token, user } = await createAdminAndLogin();
 
     const res = await request(app)
-      .post('/clients')
+      .post('/api/clients')
       .set('Authorization', `Bearer ${token}`)
       .send({
         name: 'Empresa ABC',
@@ -42,7 +42,7 @@ describe('POST /clients', () => {
     const { token: repToken } = await createRepAndLogin(adminToken);
 
     const res = await request(app)
-      .post('/clients')
+      .post('/api/clients')
       .set('Authorization', `Bearer ${repToken}`)
       .send({ name: 'Empresa', cnpj: '12345678000199' });
 
@@ -53,7 +53,7 @@ describe('POST /clients', () => {
     const { token } = await createAdminAndLogin();
 
     const res = await request(app)
-      .post('/clients')
+      .post('/api/clients')
       .set('Authorization', `Bearer ${token}`)
       .send({ cnpj: '12345678000199' });
 
@@ -62,7 +62,7 @@ describe('POST /clients', () => {
 
   it('retorna 401 sem autenticação', async () => {
     const res = await request(app)
-      .post('/clients')
+      .post('/api/clients')
       .send({ name: 'Empresa', cnpj: '12345678000199' });
 
     expect(res.status).toBe(401);
@@ -80,7 +80,7 @@ describe('GET /clients', () => {
     await createClient(adminToken2, admin2.id, { cnpj: '22222222000122' });
 
     const res = await request(app)
-      .get('/clients')
+      .get('/api/clients')
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -97,7 +97,7 @@ describe('GET /clients', () => {
     await createClient(adminToken, rep.id, { cnpj: '22222222000122' });
 
     const res = await request(app)
-      .get('/clients')
+      .get('/api/clients')
       .set('Authorization', `Bearer ${repToken}`);
 
     expect(res.status).toBe(200);
@@ -116,7 +116,7 @@ describe('GET /clients', () => {
     }
 
     const res = await request(app)
-      .get('/clients?page=2&limit=2')
+      .get('/api/clients?page=2&limit=2')
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -133,7 +133,7 @@ describe('GET /clients', () => {
     await createClient(token, user.id, { name: 'Empresa Beta', cnpj: '22222222000122' });
 
     const res = await request(app)
-      .get('/clients?search=Alpha')
+      .get('/api/clients?search=Alpha')
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -150,7 +150,7 @@ describe('GET /clients/:id', () => {
     const client = await createClient(token, user.id);
 
     const res = await request(app)
-      .get(`/clients/${client._id}`)
+      .get(`/api/clients/${client._id}`)
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -161,7 +161,7 @@ describe('GET /clients/:id', () => {
     const { token } = await createAdminAndLogin();
 
     const res = await request(app)
-      .get('/clients/000000000000000000000000')
+      .get('/api/clients/000000000000000000000000')
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(404);
@@ -175,7 +175,7 @@ describe('GET /clients/:id', () => {
     const client = await createClient(adminToken, admin.id);
 
     const res = await request(app)
-      .get(`/clients/${client._id}`)
+      .get(`/api/clients/${client._id}`)
       .set('Authorization', `Bearer ${repToken}`);
 
     expect(res.status).toBe(404);
@@ -190,7 +190,7 @@ describe('PUT /clients/:id', () => {
     const client = await createClient(token, user.id);
 
     const res = await request(app)
-      .put(`/clients/${client._id}`)
+      .put(`/api/clients/${client._id}`)
       .set('Authorization', `Bearer ${token}`)
       .send({ name: 'Nome Atualizado', state: 'rj' });
 
@@ -203,7 +203,7 @@ describe('PUT /clients/:id', () => {
     const { token } = await createAdminAndLogin();
 
     const res = await request(app)
-      .put('/clients/000000000000000000000000')
+      .put('/api/clients/000000000000000000000000')
       .set('Authorization', `Bearer ${token}`)
       .send({ name: 'Novo Nome' });
 
@@ -219,14 +219,14 @@ describe('PATCH /clients/:id/toggle-active', () => {
     const client = await createClient(token, user.id);
 
     let res = await request(app)
-      .patch(`/clients/${client._id}/toggle-active`)
+      .patch(`/api/clients/${client._id}/toggle-active`)
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
     expect(res.body.client.active).toBe(false);
 
     res = await request(app)
-      .patch(`/clients/${client._id}/toggle-active`)
+      .patch(`/api/clients/${client._id}/toggle-active`)
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -242,7 +242,7 @@ describe('DELETE /clients/:id', () => {
     const client = await createClient(token, user.id);
 
     const res = await request(app)
-      .delete(`/clients/${client._id}`)
+      .delete(`/api/clients/${client._id}`)
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -256,7 +256,7 @@ describe('DELETE /clients/:id', () => {
     const client = await createClient(adminToken, admin.id);
 
     const res = await request(app)
-      .delete(`/clients/${client._id}`)
+      .delete(`/api/clients/${client._id}`)
       .set('Authorization', `Bearer ${repToken}`);
 
     expect(res.status).toBe(403);
@@ -270,7 +270,7 @@ describe('POST /clients — validação de email e CNPJ', () => {
     const { token, user } = await createAdminAndLogin();
 
     const res = await request(app)
-      .post('/clients')
+      .post('/api/clients')
       .set('Authorization', `Bearer ${token}`)
       .send({ name: 'Empresa', email: 'nao-e-email', representativeId: user.id });
 
@@ -282,12 +282,12 @@ describe('POST /clients — validação de email e CNPJ', () => {
     const { token, user } = await createAdminAndLogin();
 
     await request(app)
-      .post('/clients')
+      .post('/api/clients')
       .set('Authorization', `Bearer ${token}`)
       .send({ name: 'Empresa 1', cnpj: '20927468000133', representativeId: user.id });
 
     const res = await request(app)
-      .post('/clients')
+      .post('/api/clients')
       .set('Authorization', `Bearer ${token}`)
       .send({ name: 'Empresa 2', cnpj: '20927468000133', representativeId: user.id });
 
@@ -299,7 +299,7 @@ describe('POST /clients — validação de email e CNPJ', () => {
     const { token, user } = await createAdminAndLogin();
 
     const res = await request(app)
-      .post('/clients')
+      .post('/api/clients')
       .set('Authorization', `Bearer ${token}`)
       .send({ name: 'Empresa', email: 'contato@empresa.com', representativeId: user.id });
 
@@ -313,7 +313,7 @@ describe('PUT /clients/:id — validação de email e CNPJ', () => {
     const client = await createClient(token, user.id);
 
     const res = await request(app)
-      .put(`/clients/${client._id}`)
+      .put(`/api/clients/${client._id}`)
       .set('Authorization', `Bearer ${token}`)
       .send({ email: 'invalido' });
 
@@ -328,7 +328,7 @@ describe('PUT /clients/:id — validação de email e CNPJ', () => {
     const client2 = await createClient(token, user.id, { name: 'Empresa 2', cnpj: '11222333000181' });
 
     const res = await request(app)
-      .put(`/clients/${client2._id}`)
+      .put(`/api/clients/${client2._id}`)
       .set('Authorization', `Bearer ${token}`)
       .send({ cnpj: '20927468000133' });
 

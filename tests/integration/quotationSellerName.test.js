@@ -23,7 +23,7 @@ describe("sellerName em cotacoes", () => {
     const { client, product } = await buildFixture(adminToken, rep.id);
 
     const res = await request(app)
-      .post("/quotations")
+      .post("/api/quotations")
       .set("Authorization", `Bearer ${repToken}`)
       .send({ clientId: client._id, items: [{ productId: product._id, quantity: 10 }], save: true });
 
@@ -36,7 +36,7 @@ describe("sellerName em cotacoes", () => {
     const { client, product } = await buildFixture(adminToken, admin.id);
 
     const res = await request(app)
-      .post("/quotations")
+      .post("/api/quotations")
       .set("Authorization", `Bearer ${adminToken}`)
       .send({ clientId: client._id, items: [{ productId: product._id, quantity: 10 }], save: true });
 
@@ -50,7 +50,7 @@ describe("sellerName em cotacoes", () => {
     const { client, product } = await buildFixture(adminToken, rep.id);
 
     const res = await request(app)
-      .post("/quotations")
+      .post("/api/quotations")
       .set("Authorization", `Bearer ${repToken}`)
       .send({ clientId: client._id, items: [{ productId: product._id, quantity: 10 }], save: true, sellerName: "Nome Customizado" });
 
@@ -64,7 +64,7 @@ describe("sellerName em cotacoes", () => {
     const { client, product } = await buildFixture(adminToken, rep.id);
 
     const res = await request(app)
-      .post("/quotations")
+      .post("/api/quotations")
       .set("Authorization", `Bearer ${repToken}`)
       .send({ clientId: client._id, items: [{ productId: product._id, quantity: 10 }], save: false });
 

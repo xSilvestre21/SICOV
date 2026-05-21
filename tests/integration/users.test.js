@@ -16,7 +16,7 @@ describe('GET /users/me', () => {
     const { token, user } = await createAdminAndLogin();
 
     const res = await request(app)
-      .get('/users/me')
+      .get('/api/users/me')
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -24,7 +24,7 @@ describe('GET /users/me', () => {
   });
 
   it('retorna 401 sem token', async () => {
-    const res = await request(app).get('/users/me');
+    const res = await request(app).get('/api/users/me');
     expect(res.status).toBe(401);
   });
 });
@@ -36,7 +36,7 @@ describe('POST /users/create-representative', () => {
     const { token } = await createAdminAndLogin();
 
     const res = await request(app)
-      .post('/users/create-representative')
+      .post('/api/users/create-representative')
       .set('Authorization', `Bearer ${token}`)
       .send({ name: 'Rep', email: 'rep@test.com', password: 'senha123' });
 
@@ -49,7 +49,7 @@ describe('POST /users/create-representative', () => {
     const { token: repToken } = await createRepAndLogin(adminToken);
 
     const res = await request(app)
-      .post('/users/create-representative')
+      .post('/api/users/create-representative')
       .set('Authorization', `Bearer ${repToken}`)
       .send({ name: 'Rep2', email: 'rep2@test.com', password: 'senha123' });
 
@@ -60,12 +60,12 @@ describe('POST /users/create-representative', () => {
     const { token } = await createAdminAndLogin();
 
     await request(app)
-      .post('/users/create-representative')
+      .post('/api/users/create-representative')
       .set('Authorization', `Bearer ${token}`)
       .send({ name: 'Rep', email: 'rep@test.com', password: 'senha123' });
 
     const res = await request(app)
-      .post('/users/create-representative')
+      .post('/api/users/create-representative')
       .set('Authorization', `Bearer ${token}`)
       .send({ name: 'Rep2', email: 'rep@test.com', password: 'senha456' });
 
@@ -82,7 +82,7 @@ describe('GET /users/representatives', () => {
     await createRepAndLogin(token, 'rep2@test.com');
 
     const res = await request(app)
-      .get('/users/representatives')
+      .get('/api/users/representatives')
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -96,11 +96,11 @@ describe('GET /users/representatives', () => {
 
     // Desativa o representante
     await request(app)
-      .patch(`/users/representatives/${rep.id}/toggle-active`)
+      .patch(`/api/users/representatives/${rep.id}/toggle-active`)
       .set('Authorization', `Bearer ${token}`);
 
     const res = await request(app)
-      .get('/users/representatives?active=true')
+      .get('/api/users/representatives?active=true')
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -116,7 +116,7 @@ describe('PUT /users/representatives/:id', () => {
     const { user: rep } = await createRepAndLogin(token);
 
     const res = await request(app)
-      .put(`/users/representatives/${rep.id}`)
+      .put(`/api/users/representatives/${rep.id}`)
       .set('Authorization', `Bearer ${token}`)
       .send({ name: 'Nome Atualizado' });
 
@@ -130,7 +130,7 @@ describe('PUT /users/representatives/:id', () => {
     const { user: rep2 } = await createRepAndLogin(token, 'rep2@test.com');
 
     const res = await request(app)
-      .put(`/users/representatives/${rep2.id}`)
+      .put(`/api/users/representatives/${rep2.id}`)
       .set('Authorization', `Bearer ${token}`)
       .send({ email: 'rep1@test.com' });
 
@@ -146,7 +146,7 @@ describe('DELETE /users/representatives/:id', () => {
     const { user: rep } = await createRepAndLogin(token);
 
     const res = await request(app)
-      .delete(`/users/representatives/${rep.id}`)
+      .delete(`/api/users/representatives/${rep.id}`)
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -157,7 +157,7 @@ describe('DELETE /users/representatives/:id', () => {
     const { token } = await createAdminAndLogin();
 
     const res = await request(app)
-      .delete('/users/representatives/000000000000000000000000')
+      .delete('/api/users/representatives/000000000000000000000000')
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(404);
@@ -173,7 +173,7 @@ describe('PATCH /users/representatives/:id/toggle-active', () => {
 
     // Desativa
     let res = await request(app)
-      .patch(`/users/representatives/${rep.id}/toggle-active`)
+      .patch(`/api/users/representatives/${rep.id}/toggle-active`)
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -181,7 +181,7 @@ describe('PATCH /users/representatives/:id/toggle-active', () => {
 
     // Reativa
     res = await request(app)
-      .patch(`/users/representatives/${rep.id}/toggle-active`)
+      .patch(`/api/users/representatives/${rep.id}/toggle-active`)
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -193,11 +193,11 @@ describe('PATCH /users/representatives/:id/toggle-active', () => {
     const { user: rep } = await createRepAndLogin(token, 'rep@test.com');
 
     await request(app)
-      .patch(`/users/representatives/${rep.id}/toggle-active`)
+      .patch(`/api/users/representatives/${rep.id}/toggle-active`)
       .set('Authorization', `Bearer ${token}`);
 
     const loginRes = await request(app)
-      .post('/auth/login')
+      .post('/api/auth/login')
       .send({ email: 'rep@test.com', password: 'senha123' });
 
     expect(loginRes.status).toBe(403);
@@ -211,7 +211,7 @@ describe('Validação de senha ao criar/atualizar representante', () => {
     const { token } = await createAdminAndLogin();
 
     const res = await request(app)
-      .post('/users/create-representative')
+      .post('/api/users/create-representative')
       .set('Authorization', `Bearer ${token}`)
       .send({ name: 'Rep', email: 'rep@test.com', password: '1234567' });
 
@@ -224,7 +224,7 @@ describe('Validação de senha ao criar/atualizar representante', () => {
     const { user: rep } = await createRepAndLogin(token);
 
     const res = await request(app)
-      .put(`/users/representatives/${rep.id}`)
+      .put(`/api/users/representatives/${rep.id}`)
       .set('Authorization', `Bearer ${token}`)
       .send({ password: '1234567' });
 
@@ -237,7 +237,7 @@ describe('Validação de senha ao criar/atualizar representante', () => {
     const { user: rep } = await createRepAndLogin(token);
 
     const res = await request(app)
-      .put(`/users/representatives/${rep.id}`)
+      .put(`/api/users/representatives/${rep.id}`)
       .set('Authorization', `Bearer ${token}`)
       .send({ password: '12345678' });
 
@@ -252,7 +252,7 @@ describe('Validação de email ao criar/atualizar representante', () => {
     const { token } = await createAdminAndLogin();
 
     const res = await request(app)
-      .post('/users/create-representative')
+      .post('/api/users/create-representative')
       .set('Authorization', `Bearer ${token}`)
       .send({ name: 'Rep', email: 'nao-e-email', password: '12345678' });
 
@@ -265,7 +265,7 @@ describe('Validação de email ao criar/atualizar representante', () => {
     const { user: rep } = await createRepAndLogin(token);
 
     const res = await request(app)
-      .put(`/users/representatives/${rep.id}`)
+      .put(`/api/users/representatives/${rep.id}`)
       .set('Authorization', `Bearer ${token}`)
       .send({ email: 'invalido' });
 
@@ -278,7 +278,7 @@ describe('Validação de email ao criar/atualizar representante', () => {
     const { user: rep } = await createRepAndLogin(token);
 
     const res = await request(app)
-      .put(`/users/representatives/${rep.id}`)
+      .put(`/api/users/representatives/${rep.id}`)
       .set('Authorization', `Bearer ${token}`)
       .send({ email: 'novo@empresa.com' });
 

@@ -43,7 +43,7 @@ describe('POST /orders', () => {
     const { supplier, client, product } = await buildOrderFixture(token, user.id);
 
     const res = await request(app)
-      .post('/orders')
+      .post('/api/orders')
       .set('Authorization', `Bearer ${token}`)
       .send({
         clientId: client._id,
@@ -71,12 +71,12 @@ describe('POST /orders', () => {
     const { client, product } = await buildOrderFixture(token, user.id);
 
     const res1 = await request(app)
-      .post('/orders')
+      .post('/api/orders')
       .set('Authorization', `Bearer ${token}`)
       .send({ clientId: client._id, items: [{ productId: product._id, quantity: 10 }] });
 
     const res2 = await request(app)
-      .post('/orders')
+      .post('/api/orders')
       .set('Authorization', `Bearer ${token}`)
       .send({ clientId: client._id, items: [{ productId: product._id, quantity: 20 }] });
 
@@ -89,7 +89,7 @@ describe('POST /orders', () => {
     const { token } = await createAdminAndLogin();
 
     const res = await request(app)
-      .post('/orders')
+      .post('/api/orders')
       .set('Authorization', `Bearer ${token}`)
       .send({ items: [{ productId: 'abc', quantity: 10 }] });
 
@@ -102,7 +102,7 @@ describe('POST /orders', () => {
     const { client } = await buildOrderFixture(token, user.id);
 
     const res = await request(app)
-      .post('/orders')
+      .post('/api/orders')
       .set('Authorization', `Bearer ${token}`)
       .send({ clientId: client._id, items: [] });
 
@@ -114,7 +114,7 @@ describe('POST /orders', () => {
     const { token } = await createAdminAndLogin();
 
     const res = await request(app)
-      .post('/orders')
+      .post('/api/orders')
       .set('Authorization', `Bearer ${token}`)
       .send({
         clientId: '000000000000000000000000',
@@ -126,7 +126,7 @@ describe('POST /orders', () => {
 
   it('retorna 401 sem autenticação', async () => {
     const res = await request(app)
-      .post('/orders')
+      .post('/api/orders')
       .send({ clientId: 'abc', items: [] });
 
     expect(res.status).toBe(401);
@@ -141,17 +141,17 @@ describe('GET /orders', () => {
     const { client, product } = await buildOrderFixture(token, user.id);
 
     await request(app)
-      .post('/orders')
+      .post('/api/orders')
       .set('Authorization', `Bearer ${token}`)
       .send({ clientId: client._id, items: [{ productId: product._id, quantity: 10 }] });
 
     await request(app)
-      .post('/orders')
+      .post('/api/orders')
       .set('Authorization', `Bearer ${token}`)
       .send({ clientId: client._id, items: [{ productId: product._id, quantity: 20 }] });
 
     const res = await request(app)
-      .get('/orders')
+      .get('/api/orders')
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -170,18 +170,18 @@ describe('GET /orders', () => {
 
     // Pedido do admin
     await request(app)
-      .post('/orders')
+      .post('/api/orders')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ clientId: clientAdmin._id, items: [{ productId: productAdmin._id, quantity: 10 }] });
 
     // Pedido do representante
     await request(app)
-      .post('/orders')
+      .post('/api/orders')
       .set('Authorization', `Bearer ${repToken}`)
       .send({ clientId: clientRep._id, items: [{ productId: productRep._id, quantity: 10 }] });
 
     const res = await request(app)
-      .get('/orders')
+      .get('/api/orders')
       .set('Authorization', `Bearer ${repToken}`);
 
     expect(res.status).toBe(200);
@@ -193,16 +193,16 @@ describe('GET /orders', () => {
     const { client, product } = await buildOrderFixture(token, user.id);
 
     const orderRes = await request(app)
-      .post('/orders')
+      .post('/api/orders')
       .set('Authorization', `Bearer ${token}`)
       .send({ clientId: client._id, items: [{ productId: product._id, quantity: 10 }] });
 
     await request(app)
-      .patch(`/orders/${orderRes.body.order._id}/cancel`)
+      .patch(`/api/orders/${orderRes.body.order._id}/cancel`)
       .set('Authorization', `Bearer ${token}`);
 
     const res = await request(app)
-      .get('/orders?status=cancelled')
+      .get('/api/orders?status=cancelled')
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -219,12 +219,12 @@ describe('GET /orders/:id', () => {
     const { client, product } = await buildOrderFixture(token, user.id);
 
     const orderRes = await request(app)
-      .post('/orders')
+      .post('/api/orders')
       .set('Authorization', `Bearer ${token}`)
       .send({ clientId: client._id, items: [{ productId: product._id, quantity: 10 }] });
 
     const res = await request(app)
-      .get(`/orders/${orderRes.body.order._id}`)
+      .get(`/api/orders/${orderRes.body.order._id}`)
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -237,12 +237,12 @@ describe('GET /orders/:id', () => {
     const { client, product } = await buildOrderFixture(adminToken, admin.id);
 
     const orderRes = await request(app)
-      .post('/orders')
+      .post('/api/orders')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ clientId: client._id, items: [{ productId: product._id, quantity: 10 }] });
 
     const res = await request(app)
-      .get(`/orders/${orderRes.body.order._id}`)
+      .get(`/api/orders/${orderRes.body.order._id}`)
       .set('Authorization', `Bearer ${repToken}`);
 
     expect(res.status).toBe(403);
@@ -257,12 +257,12 @@ describe('PUT /orders/:id', () => {
     const { client, product } = await buildOrderFixture(token, user.id);
 
     const orderRes = await request(app)
-      .post('/orders')
+      .post('/api/orders')
       .set('Authorization', `Bearer ${token}`)
       .send({ clientId: client._id, items: [{ productId: product._id, quantity: 100 }] });
 
     const res = await request(app)
-      .put(`/orders/${orderRes.body.order._id}`)
+      .put(`/api/orders/${orderRes.body.order._id}`)
       .set('Authorization', `Bearer ${token}`)
       .send({
         items: [{ productId: product._id, quantity: 200 }],
@@ -280,16 +280,16 @@ describe('PUT /orders/:id', () => {
     const { client, product } = await buildOrderFixture(token, user.id);
 
     const orderRes = await request(app)
-      .post('/orders')
+      .post('/api/orders')
       .set('Authorization', `Bearer ${token}`)
       .send({ clientId: client._id, items: [{ productId: product._id, quantity: 10 }] });
 
     await request(app)
-      .patch(`/orders/${orderRes.body.order._id}/cancel`)
+      .patch(`/api/orders/${orderRes.body.order._id}/cancel`)
       .set('Authorization', `Bearer ${token}`);
 
     const res = await request(app)
-      .put(`/orders/${orderRes.body.order._id}`)
+      .put(`/api/orders/${orderRes.body.order._id}`)
       .set('Authorization', `Bearer ${token}`)
       .send({ items: [{ productId: product._id, quantity: 50 }] });
 
@@ -302,16 +302,16 @@ describe('PUT /orders/:id', () => {
     const { client, product } = await buildOrderFixture(token, user.id);
 
     const orderRes = await request(app)
-      .post('/orders')
+      .post('/api/orders')
       .set('Authorization', `Bearer ${token}`)
       .send({ clientId: client._id, items: [{ productId: product._id, quantity: 10 }] });
 
     await request(app)
-      .patch(`/orders/${orderRes.body.order._id}/sent-to-supplier`)
+      .patch(`/api/orders/${orderRes.body.order._id}/sent-to-supplier`)
       .set('Authorization', `Bearer ${token}`);
 
     const res = await request(app)
-      .put(`/orders/${orderRes.body.order._id}`)
+      .put(`/api/orders/${orderRes.body.order._id}`)
       .set('Authorization', `Bearer ${token}`)
       .send({ items: [{ productId: product._id, quantity: 50 }] });
 
@@ -328,12 +328,12 @@ describe('PATCH /orders/:id/cancel', () => {
     const { client, product } = await buildOrderFixture(token, user.id);
 
     const orderRes = await request(app)
-      .post('/orders')
+      .post('/api/orders')
       .set('Authorization', `Bearer ${token}`)
       .send({ clientId: client._id, items: [{ productId: product._id, quantity: 10 }] });
 
     const res = await request(app)
-      .patch(`/orders/${orderRes.body.order._id}/cancel`)
+      .patch(`/api/orders/${orderRes.body.order._id}/cancel`)
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -346,16 +346,16 @@ describe('PATCH /orders/:id/cancel', () => {
     const { client, product } = await buildOrderFixture(token, user.id);
 
     const orderRes = await request(app)
-      .post('/orders')
+      .post('/api/orders')
       .set('Authorization', `Bearer ${token}`)
       .send({ clientId: client._id, items: [{ productId: product._id, quantity: 10 }] });
 
     await request(app)
-      .patch(`/orders/${orderRes.body.order._id}/cancel`)
+      .patch(`/api/orders/${orderRes.body.order._id}/cancel`)
       .set('Authorization', `Bearer ${token}`);
 
     const res = await request(app)
-      .patch(`/orders/${orderRes.body.order._id}/cancel`)
+      .patch(`/api/orders/${orderRes.body.order._id}/cancel`)
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(400);
@@ -367,12 +367,12 @@ describe('PATCH /orders/:id/cancel', () => {
     const { client, product } = await buildOrderFixture(adminToken, admin.id);
 
     const orderRes = await request(app)
-      .post('/orders')
+      .post('/api/orders')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ clientId: client._id, items: [{ productId: product._id, quantity: 10 }] });
 
     const res = await request(app)
-      .patch(`/orders/${orderRes.body.order._id}/cancel`)
+      .patch(`/api/orders/${orderRes.body.order._id}/cancel`)
       .set('Authorization', `Bearer ${repToken}`);
 
     expect(res.status).toBe(403);
@@ -387,12 +387,12 @@ describe('PATCH /orders/:id/sent-to-supplier', () => {
     const { client, product } = await buildOrderFixture(token, user.id);
 
     const orderRes = await request(app)
-      .post('/orders')
+      .post('/api/orders')
       .set('Authorization', `Bearer ${token}`)
       .send({ clientId: client._id, items: [{ productId: product._id, quantity: 10 }] });
 
     let res = await request(app)
-      .patch(`/orders/${orderRes.body.order._id}/sent-to-supplier`)
+      .patch(`/api/orders/${orderRes.body.order._id}/sent-to-supplier`)
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -400,7 +400,7 @@ describe('PATCH /orders/:id/sent-to-supplier', () => {
     expect(res.body.order.sentToSupplierAt).toBeTruthy();
 
     res = await request(app)
-      .patch(`/orders/${orderRes.body.order._id}/sent-to-supplier`)
+      .patch(`/api/orders/${orderRes.body.order._id}/sent-to-supplier`)
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -417,7 +417,7 @@ describe('GET /orders/:id/duplicate-template', () => {
     const { client, product } = await buildOrderFixture(token, user.id);
 
     const orderRes = await request(app)
-      .post('/orders')
+      .post('/api/orders')
       .set('Authorization', `Bearer ${token}`)
       .send({
         clientId: client._id,
@@ -426,7 +426,7 @@ describe('GET /orders/:id/duplicate-template', () => {
       });
 
     const res = await request(app)
-      .get(`/orders/${orderRes.body.order._id}/duplicate-template`)
+      .get(`/api/orders/${orderRes.body.order._id}/duplicate-template`)
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -445,12 +445,12 @@ describe('GET /orders/:id/pdf', () => {
     const { client, product } = await buildOrderFixture(adminToken, admin.id);
 
     const orderRes = await request(app)
-      .post('/orders')
+      .post('/api/orders')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ clientId: client._id, items: [{ productId: product._id, quantity: 10 }] });
 
     const res = await request(app)
-      .get(`/orders/${orderRes.body.order._id}/pdf`)
+      .get(`/api/orders/${orderRes.body.order._id}/pdf`)
       .set('Authorization', `Bearer ${repToken}`);
 
     expect(res.status).toBe(403);
@@ -461,12 +461,12 @@ describe('GET /orders/:id/pdf', () => {
     const { client, product } = await buildOrderFixture(token, user.id);
 
     const orderRes = await request(app)
-      .post('/orders')
+      .post('/api/orders')
       .set('Authorization', `Bearer ${token}`)
       .send({ clientId: client._id, items: [{ productId: product._id, quantity: 10 }] });
 
     const res = await request(app)
-      .get(`/orders/${orderRes.body.order._id}/pdf`)
+      .get(`/api/orders/${orderRes.body.order._id}/pdf`)
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -484,7 +484,7 @@ describe('POST /orders — validações adicionais', () => {
     const { client } = await buildOrderFixture(token, user.id);
 
     const res = await request(app)
-      .post('/orders')
+      .post('/api/orders')
       .set('Authorization', `Bearer ${token}`)
       .send({
         clientId: client._id,
@@ -502,14 +502,14 @@ describe('GET /orders — filtros adicionais', () => {
     const { client, product } = await buildOrderFixture(token, user.id);
 
     const orderRes = await request(app)
-      .post('/orders')
+      .post('/api/orders')
       .set('Authorization', `Bearer ${token}`)
       .send({ clientId: client._id, items: [{ productId: product._id, quantity: 10 }] });
 
     const orderNumber = orderRes.body.order.orderNumber;
 
     const res = await request(app)
-      .get(`/orders?orderNumber=${orderNumber}`)
+      .get(`/api/orders?orderNumber=${orderNumber}`)
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -522,16 +522,16 @@ describe('GET /orders — filtros adicionais', () => {
     const { client, product } = await buildOrderFixture(token, user.id);
 
     const orderRes = await request(app)
-      .post('/orders')
+      .post('/api/orders')
       .set('Authorization', `Bearer ${token}`)
       .send({ clientId: client._id, items: [{ productId: product._id, quantity: 10 }] });
 
     await request(app)
-      .patch(`/orders/${orderRes.body.order._id}/sent-to-supplier`)
+      .patch(`/api/orders/${orderRes.body.order._id}/sent-to-supplier`)
       .set('Authorization', `Bearer ${token}`);
 
     const res = await request(app)
-      .get('/orders?sentToSupplier=true')
+      .get('/api/orders?sentToSupplier=true')
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -545,7 +545,7 @@ describe('GET /orders — filtros adicionais', () => {
 describe('Consistência de comissões ao cancelar/atualizar pedido', () => {
   async function getCommissionForOrder(adminToken, orderId) {
     const listRes = await request(app)
-      .get('/commissions?status=all')
+      .get('/api/commissions?status=all')
       .set('Authorization', `Bearer ${adminToken}`);
     return listRes.body.commissions.find(
       (c) => c.orderId === orderId || c.orderId?.toString() === orderId?.toString(),
@@ -557,7 +557,7 @@ describe('Consistência de comissões ao cancelar/atualizar pedido', () => {
     const { client, product } = await buildOrderFixture(token, user.id);
 
     const orderRes = await request(app)
-      .post('/orders')
+      .post('/api/orders')
       .set('Authorization', `Bearer ${token}`)
       .send({ clientId: client._id, items: [{ productId: product._id, quantity: 100 }] });
 
@@ -570,7 +570,7 @@ describe('Consistência de comissões ao cancelar/atualizar pedido', () => {
 
     // Cancela o pedido
     await request(app)
-      .patch(`/orders/${orderId}/cancel`)
+      .patch(`/api/orders/${orderId}/cancel`)
       .set('Authorization', `Bearer ${token}`);
 
     // Verifica que a comissão foi marcada como cancelled
@@ -583,7 +583,7 @@ describe('Consistência de comissões ao cancelar/atualizar pedido', () => {
     const { client, product } = await buildOrderFixture(token, user.id);
 
     const orderRes = await request(app)
-      .post('/orders')
+      .post('/api/orders')
       .set('Authorization', `Bearer ${token}`)
       .send({ clientId: client._id, items: [{ productId: product._id, quantity: 100 }] });
 
@@ -593,7 +593,7 @@ describe('Consistência de comissões ao cancelar/atualizar pedido', () => {
 
     // Atualiza com quantidade diferente (dobro)
     await request(app)
-      .put(`/orders/${orderId}`)
+      .put(`/api/orders/${orderId}`)
       .set('Authorization', `Bearer ${token}`)
       .send({ items: [{ productId: product._id, quantity: 200 }] });
 

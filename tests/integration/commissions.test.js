@@ -40,11 +40,11 @@ async function buildCommissionContext() {
  */
 async function getCommissionForOrder(adminToken, orderId) {
   const res = await request(app)
-    .get(`/commissions?orderId=${orderId}`)
+    .get(`/api/commissions?orderId=${orderId}`)
     .set('Authorization', `Bearer ${adminToken}`);
   // Fallback: busca na listagem geral e filtra pelo orderId (inclui todas)
   const listRes = await request(app)
-    .get('/commissions?status=all')
+    .get('/api/commissions?status=all')
     .set('Authorization', `Bearer ${adminToken}`);
   return listRes.body.commissions.find(
     (c) => c.orderId === orderId || c.orderId?.toString() === orderId?.toString(),
@@ -62,7 +62,7 @@ describe('PUT /commissions/:id', () => {
     const newRepPercentage = 60;
 
     const res = await request(app)
-      .put(`/commissions/${commission._id}`)
+      .put(`/api/commissions/${commission._id}`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ representativePercentage: newRepPercentage });
 
@@ -91,7 +91,7 @@ describe('PUT /commissions/:id', () => {
     const adminPercentage = commission.adminPercentage;
 
     const res = await request(app)
-      .put(`/commissions/${commission._id}`)
+      .put(`/api/commissions/${commission._id}`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ realReceivedValue: newRealReceivedValue });
 
@@ -126,7 +126,7 @@ describe('PUT /commissions/:id', () => {
     const originalAdminComm = commission.adminCommission;
 
     const res = await request(app)
-      .put(`/commissions/${commission._id}`)
+      .put(`/api/commissions/${commission._id}`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ realDeliveryDate: '2026-05-20' });
 
@@ -144,7 +144,7 @@ describe('PUT /commissions/:id', () => {
     const commission = await getCommissionForOrder(adminToken, order._id);
 
     const res = await request(app)
-      .put(`/commissions/${commission._id}`)
+      .put(`/api/commissions/${commission._id}`)
       .set('Authorization', `Bearer ${repToken}`)
       .send({ representativePercentage: 60 });
 
@@ -155,7 +155,7 @@ describe('PUT /commissions/:id', () => {
     const { adminToken } = await buildCommissionContext();
 
     const res = await request(app)
-      .put('/commissions/000000000000000000000001')
+      .put('/api/commissions/000000000000000000000001')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ representativePercentage: 60 });
 
@@ -167,7 +167,7 @@ describe('PUT /commissions/:id', () => {
     const commission = await getCommissionForOrder(adminToken, order._id);
 
     const res = await request(app)
-      .put(`/commissions/${commission._id}`)
+      .put(`/api/commissions/${commission._id}`)
       .send({ representativePercentage: 60 });
 
     expect(res.status).toBe(401);
@@ -182,14 +182,14 @@ describe('DELETE /commissions/:id', () => {
     const commission = await getCommissionForOrder(adminToken, order._id);
 
     const deleteRes = await request(app)
-      .delete(`/commissions/${commission._id}`)
+      .delete(`/api/commissions/${commission._id}`)
       .set('Authorization', `Bearer ${adminToken}`);
 
     expect(deleteRes.status).toBe(200);
     expect(deleteRes.body.message).toMatch(/sucesso/i);
 
     const getRes = await request(app)
-      .get(`/commissions/${commission._id}`)
+      .get(`/api/commissions/${commission._id}`)
       .set('Authorization', `Bearer ${adminToken}`);
 
     expect(getRes.status).toBe(404);
@@ -200,7 +200,7 @@ describe('DELETE /commissions/:id', () => {
     const commission = await getCommissionForOrder(adminToken, order._id);
 
     const res = await request(app)
-      .delete(`/commissions/${commission._id}`)
+      .delete(`/api/commissions/${commission._id}`)
       .set('Authorization', `Bearer ${repToken}`);
 
     expect(res.status).toBe(403);
@@ -221,7 +221,7 @@ describe('DELETE /commissions/:id', () => {
     const commission = await getCommissionForOrder(adminToken, order._id);
 
     const res = await request(app)
-      .delete(`/commissions/${commission._id}`);
+      .delete(`/api/commissions/${commission._id}`);
 
     expect(res.status).toBe(401);
   });
@@ -248,7 +248,7 @@ describe('Criação automática de comissão ao criar pedido', () => {
     const { adminToken, order } = await buildCommissionContext();
 
     const res = await request(app)
-      .post('/commissions')
+      .post('/api/commissions')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ orderId: order._id, representativePercentage: 50 });
 
@@ -273,7 +273,7 @@ describe('GET /commissions', () => {
     await createOrder(repToken, clientRep._id, supplier._id, productRep._id);
 
     const res = await request(app)
-      .get('/commissions')
+      .get('/api/commissions')
       .set('Authorization', `Bearer ${adminToken}`);
 
     expect(res.status).toBe(200);
@@ -295,7 +295,7 @@ describe('GET /commissions', () => {
     await createOrder(repToken, clientRep._id, supplier._id, productRep._id);
 
     const res = await request(app)
-      .get('/commissions')
+      .get('/api/commissions')
       .set('Authorization', `Bearer ${repToken}`);
 
     expect(res.status).toBe(200);
@@ -312,7 +312,7 @@ describe('GET /commissions', () => {
     await createOrder(repToken, client._id, supplier._id, product._id);
 
     const res = await request(app)
-      .get('/commissions')
+      .get('/api/commissions')
       .set('Authorization', `Bearer ${repToken}`);
 
     expect(res.status).toBe(200);
@@ -334,7 +334,7 @@ describe('GET /commissions', () => {
     await createOrder(adminToken, client._id, supplier._id, product._id, { deliveryDate: '2024-02-20' });
 
     const res = await request(app)
-      .get('/commissions?month=1&year=2024')
+      .get('/api/commissions?month=1&year=2024')
       .set('Authorization', `Bearer ${adminToken}`);
 
     expect(res.status).toBe(200);
@@ -348,7 +348,7 @@ describe('GET /commissions', () => {
     const commission = await getCommissionForOrder(adminToken, order._id);
 
     const res = await request(app)
-      .get(`/commissions?orderNumber=${order.orderNumber}`)
+      .get(`/api/commissions?orderNumber=${order.orderNumber}`)
       .set('Authorization', `Bearer ${adminToken}`);
 
     expect(res.status).toBe(200);
@@ -370,7 +370,7 @@ describe('GET /commissions', () => {
     });
 
     const res = await request(app)
-      .get('/commissions?customerPurchaseOrder=PC-2026-001')
+      .get('/api/commissions?customerPurchaseOrder=PC-2026-001')
       .set('Authorization', `Bearer ${adminToken}`);
 
     expect(res.status).toBe(200);
@@ -398,12 +398,12 @@ describe('GET /commissions', () => {
     const { adminToken, order } = await buildCommissionContext();
     const commission = await getCommissionForOrder(adminToken, order._id);
 
-    await request(app).post(`/commissions/${commission._id}/installments`)
+    await request(app).post(`/api/commissions/${commission._id}/installments`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ intervals: [28, 35, 42], representativePercentage: 50 });
 
     const res = await request(app)
-      .get('/commissions?projected=true')
+      .get('/api/commissions?projected=true')
       .set('Authorization', `Bearer ${adminToken}`);
 
     expect(res.status).toBe(200);
@@ -422,7 +422,7 @@ describe('GET /commissions', () => {
     }
 
     const res = await request(app)
-      .get('/commissions?page=1&limit=2')
+      .get('/api/commissions?page=1&limit=2')
       .set('Authorization', `Bearer ${adminToken}`);
 
     expect(res.status).toBe(200);
@@ -434,7 +434,7 @@ describe('GET /commissions', () => {
   });
 
   it('retorna 401 sem autenticação', async () => {
-    const res = await request(app).get('/commissions');
+    const res = await request(app).get('/api/commissions');
     expect(res.status).toBe(401);
   });
 });
@@ -447,7 +447,7 @@ describe('GET /commissions/:id', () => {
     const commission = await getCommissionForOrder(adminToken, order._id);
 
     const res = await request(app)
-      .get(`/commissions/${commission._id}`)
+      .get(`/api/commissions/${commission._id}`)
       .set('Authorization', `Bearer ${adminToken}`);
 
     expect(res.status).toBe(200);
@@ -467,7 +467,7 @@ describe('GET /commissions/:id', () => {
     const commission = await getCommissionForOrder(adminToken, order._id);
 
     const res = await request(app)
-      .get(`/commissions/${commission._id}`)
+      .get(`/api/commissions/${commission._id}`)
       .set('Authorization', `Bearer ${repToken}`);
 
     expect(res.status).toBe(200);
@@ -491,7 +491,7 @@ describe('GET /commissions/:id', () => {
     const commission = await getCommissionForOrder(adminToken, order._id);
 
     const res = await request(app)
-      .get(`/commissions/${commission._id}`)
+      .get(`/api/commissions/${commission._id}`)
       .set('Authorization', `Bearer ${repToken}`);
 
     expect(res.status).toBe(403);
@@ -501,7 +501,7 @@ describe('GET /commissions/:id', () => {
     const { adminToken } = await buildCommissionContext();
 
     const res = await request(app)
-      .get('/commissions/000000000000000000000001')
+      .get('/api/commissions/000000000000000000000001')
       .set('Authorization', `Bearer ${adminToken}`);
 
     expect(res.status).toBe(404);
@@ -511,7 +511,7 @@ describe('GET /commissions/:id', () => {
     const { adminToken, order } = await buildCommissionContext();
     const commission = await getCommissionForOrder(adminToken, order._id);
 
-    const res = await request(app).get(`/commissions/${commission._id}`);
+    const res = await request(app).get(`/api/commissions/${commission._id}`);
     expect(res.status).toBe(401);
   });
 });
@@ -533,7 +533,7 @@ describe('POST /commissions/:id/installments', () => {
     const orderValue = commission.orderValueWithoutIpi;
 
     const res = await request(app)
-      .post(`/commissions/${commId}/installments`)
+      .post(`/api/commissions/${commId}/installments`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ intervals: [28, 35, 42], representativePercentage: 50, adminPercentage: 5 });
 
@@ -568,7 +568,7 @@ describe('POST /commissions/:id/installments', () => {
 
     // Atualiza o valor real recebido
     await request(app)
-      .put(`/commissions/${commission._id}`)
+      .put(`/api/commissions/${commission._id}`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ realReceivedValue: 400 });
 
@@ -576,7 +576,7 @@ describe('POST /commissions/:id/installments', () => {
     const pendingBalance = orderValue - 400;
 
     const res = await request(app)
-      .post(`/commissions/${commission._id}/installments`)
+      .post(`/api/commissions/${commission._id}/installments`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ intervals: [28], representativePercentage: 50 });
 
@@ -589,7 +589,7 @@ describe('POST /commissions/:id/installments', () => {
     const commission = await getCommissionForOrder(adminToken, order._id);
 
     const res = await request(app)
-      .post(`/commissions/${commission._id}/installments`)
+      .post(`/api/commissions/${commission._id}/installments`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ intervals: [], representativePercentage: 50 });
 
@@ -601,7 +601,7 @@ describe('POST /commissions/:id/installments', () => {
     const commission = await getCommissionForOrder(adminToken, order._id);
 
     const res = await request(app)
-      .post(`/commissions/${commission._id}/installments`)
+      .post(`/api/commissions/${commission._id}/installments`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ intervals: [28, 0], representativePercentage: 50 });
 
@@ -613,7 +613,7 @@ describe('POST /commissions/:id/installments', () => {
     const commission = await getCommissionForOrder(adminToken, order._id);
 
     const res = await request(app)
-      .post(`/commissions/${commission._id}/installments`)
+      .post(`/api/commissions/${commission._id}/installments`)
       .set('Authorization', `Bearer ${repToken}`)
       .send({ intervals: [28, 35], representativePercentage: 50 });
 
@@ -625,7 +625,7 @@ describe('POST /commissions/:id/installments', () => {
     const commission = await getCommissionForOrder(adminToken, order._id);
 
     const res = await request(app)
-      .post(`/commissions/${commission._id}/installments`)
+      .post(`/api/commissions/${commission._id}/installments`)
       .send({ intervals: [28], representativePercentage: 50 });
 
     expect(res.status).toBe(401);
@@ -645,7 +645,7 @@ describe('GET /commissions/summary', () => {
     await createOrder(adminToken, client._id, supplier._id, product._id, { deliveryDate: '2025-03-20' });
 
     const res = await request(app)
-      .get('/commissions/summary?month=3&year=2025')
+      .get('/api/commissions/summary?month=3&year=2025')
       .set('Authorization', `Bearer ${adminToken}`);
 
     expect(res.status).toBe(200);
@@ -679,7 +679,7 @@ describe('GET /commissions/summary', () => {
     await createOrder(repToken, client._id, supplier._id, product._id, { deliveryDate: '2025-04-15' });
 
     const res = await request(app)
-      .get('/commissions/summary')
+      .get('/api/commissions/summary')
       .set('Authorization', `Bearer ${repToken}`);
 
     expect(res.status).toBe(200);
@@ -702,7 +702,7 @@ describe('GET /commissions/summary', () => {
     await createOrder(adminToken, client._id, supplier._id, product._id, { deliveryDate: '2025-02-10' });
 
     const res = await request(app)
-      .get('/commissions/summary?month=1&year=2025')
+      .get('/api/commissions/summary?month=1&year=2025')
       .set('Authorization', `Bearer ${adminToken}`);
 
     expect(res.status).toBe(200);
@@ -712,7 +712,7 @@ describe('GET /commissions/summary', () => {
   });
 
   it('retorna 401 sem autenticação', async () => {
-    const res = await request(app).get('/commissions/summary');
+    const res = await request(app).get('/api/commissions/summary');
     expect(res.status).toBe(401);
   });
 });
@@ -725,7 +725,7 @@ describe('PUT /commissions/:id — validação de realReceivedValue', () => {
     const commission = await getCommissionForOrder(adminToken, order._id);
 
     const res = await request(app)
-      .put(`/commissions/${commission._id}`)
+      .put(`/api/commissions/${commission._id}`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ realReceivedValue: -100 });
 
@@ -738,7 +738,7 @@ describe('PUT /commissions/:id — validação de realReceivedValue', () => {
     const commission = await getCommissionForOrder(adminToken, order._id);
 
     const res = await request(app)
-      .put(`/commissions/${commission._id}`)
+      .put(`/api/commissions/${commission._id}`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ realReceivedValue: 'abc' });
 
@@ -750,7 +750,7 @@ describe('PUT /commissions/:id — validação de realReceivedValue', () => {
     const commission = await getCommissionForOrder(adminToken, order._id);
 
     const res = await request(app)
-      .put(`/commissions/${commission._id}`)
+      .put(`/api/commissions/${commission._id}`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ realReceivedValue: 0 });
 
@@ -764,13 +764,13 @@ describe('PUT /commissions/:id — validação de realReceivedValue', () => {
 
     // Primeiro define um valor
     await request(app)
-      .put(`/commissions/${commission._id}`)
+      .put(`/api/commissions/${commission._id}`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ realReceivedValue: 500 });
 
     // Depois limpa
     const res = await request(app)
-      .put(`/commissions/${commission._id}`)
+      .put(`/api/commissions/${commission._id}`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ realReceivedValue: null });
 
@@ -792,12 +792,12 @@ describe('GET /commissions — filtro por status', () => {
 
     // Cancela o pedido (marca comissão como cancelled)
     await request(app)
-      .patch(`/orders/${order._id}/cancel`)
+      .patch(`/api/orders/${order._id}/cancel`)
       .set('Authorization', `Bearer ${adminToken}`);
 
     // Listagem padrão não deve retornar a comissão cancelada
     const listRes = await request(app)
-      .get('/commissions')
+      .get('/api/commissions')
       .set('Authorization', `Bearer ${adminToken}`);
 
     const ids = listRes.body.commissions.map((c) => c._id);
@@ -809,11 +809,11 @@ describe('GET /commissions — filtro por status', () => {
     const commission = await getCommissionForOrder(adminToken, order._id);
 
     await request(app)
-      .patch(`/orders/${order._id}/cancel`)
+      .patch(`/api/orders/${order._id}/cancel`)
       .set('Authorization', `Bearer ${adminToken}`);
 
     const res = await request(app)
-      .get('/commissions?status=cancelled')
+      .get('/api/commissions?status=cancelled')
       .set('Authorization', `Bearer ${adminToken}`);
 
     expect(res.status).toBe(200);
@@ -833,11 +833,11 @@ describe('GET /commissions — filtro por status', () => {
 
     // Cancela o primeiro
     await request(app)
-      .patch(`/orders/${order1._id}/cancel`)
+      .patch(`/api/orders/${order1._id}/cancel`)
       .set('Authorization', `Bearer ${adminToken}`);
 
     const res = await request(app)
-      .get('/commissions?status=all')
+      .get('/api/commissions?status=all')
       .set('Authorization', `Bearer ${adminToken}`);
 
     expect(res.status).toBe(200);
@@ -857,7 +857,7 @@ describe('GET /commissions/summary — paginação', () => {
     await createOrder(adminToken, client._id, supplier._id, product._id, { deliveryDate: '2025-06-10' });
 
     const res = await request(app)
-      .get('/commissions/summary?month=6&year=2025&page=1&limit=5')
+      .get('/api/commissions/summary?month=6&year=2025&page=1&limit=5')
       .set('Authorization', `Bearer ${adminToken}`);
 
     expect(res.status).toBe(200);

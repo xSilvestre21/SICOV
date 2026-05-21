@@ -16,7 +16,7 @@ describe('GET /settings', () => {
     const { token, user } = await createAdminAndLogin();
 
     const res = await request(app)
-      .get('/settings')
+      .get('/api/settings')
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -31,7 +31,7 @@ describe('GET /settings', () => {
     const { token: repToken, user: rep } = await createRepAndLogin(adminToken);
 
     const res = await request(app)
-      .get('/settings')
+      .get('/api/settings')
       .set('Authorization', `Bearer ${repToken}`);
 
     expect(res.status).toBe(200);
@@ -42,7 +42,7 @@ describe('GET /settings', () => {
     const { token } = await createAdminAndLogin();
 
     const res = await request(app)
-      .get('/settings')
+      .get('/api/settings')
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -53,7 +53,7 @@ describe('GET /settings', () => {
   });
 
   it('retorna 401 sem autenticação', async () => {
-    const res = await request(app).get('/settings');
+    const res = await request(app).get('/api/settings');
     expect(res.status).toBe(401);
   });
 });
@@ -66,7 +66,7 @@ describe('PUT /settings', () => {
     const novoTexto = 'Pagamento: 30 dias\nFrete: FOB\nICMS incluso';
 
     const res = await request(app)
-      .put('/settings')
+      .put('/api/settings')
       .set('Authorization', `Bearer ${token}`)
       .send({ defaultObservations: novoTexto });
 
@@ -79,7 +79,7 @@ describe('PUT /settings', () => {
     const { token } = await createAdminAndLogin();
 
     const res = await request(app)
-      .put('/settings')
+      .put('/api/settings')
       .set('Authorization', `Bearer ${token}`)
       .send({ defaultSellerName: 'Maria Administradora' });
 
@@ -91,7 +91,7 @@ describe('PUT /settings', () => {
     const { token } = await createAdminAndLogin();
 
     const res = await request(app)
-      .put('/settings')
+      .put('/api/settings')
       .set('Authorization', `Bearer ${token}`)
       .send({
         defaultObservations: 'Novo texto',
@@ -107,12 +107,12 @@ describe('PUT /settings', () => {
     const { token } = await createAdminAndLogin();
 
     await request(app)
-      .put('/settings')
+      .put('/api/settings')
       .set('Authorization', `Bearer ${token}`)
       .send({ defaultObservations: 'Texto personalizado', defaultSellerName: 'Vendedora X' });
 
     const res = await request(app)
-      .get('/settings')
+      .get('/api/settings')
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.body.defaultObservations).toBe('Texto personalizado');
@@ -123,7 +123,7 @@ describe('PUT /settings', () => {
     const { token } = await createAdminAndLogin();
 
     const res = await request(app)
-      .put('/settings')
+      .put('/api/settings')
       .set('Authorization', `Bearer ${token}`)
       .send({});
 
@@ -135,7 +135,7 @@ describe('PUT /settings', () => {
     const { token: repToken } = await createRepAndLogin(adminToken);
 
     const res = await request(app)
-      .put('/settings')
+      .put('/api/settings')
       .set('Authorization', `Bearer ${repToken}`)
       .send({ defaultObservations: 'Tentativa indevida' });
 
@@ -144,7 +144,7 @@ describe('PUT /settings', () => {
 
   it('retorna 401 sem autenticação', async () => {
     const res = await request(app)
-      .put('/settings')
+      .put('/api/settings')
       .send({ defaultObservations: 'Texto' });
 
     expect(res.status).toBe(401);
@@ -155,12 +155,12 @@ describe('PUT /settings', () => {
     const textoComQuebras = 'Linha 1\nLinha 2\nLinha 3';
 
     await request(app)
-      .put('/settings')
+      .put('/api/settings')
       .set('Authorization', `Bearer ${token}`)
       .send({ defaultObservations: textoComQuebras });
 
     const res = await request(app)
-      .get('/settings')
+      .get('/api/settings')
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.body.defaultObservations).toBe(textoComQuebras);

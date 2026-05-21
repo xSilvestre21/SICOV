@@ -9,12 +9,12 @@ const TEST_ADMIN_SECRET = process.env.ADMIN_REGISTER_SECRET || 'test-secret';
  */
 async function createAdminAndLogin(email = 'admin@test.com', password = 'senha123') {
   await request(app)
-    .post('/auth/register-admin')
+    .post('/api/auth/register-admin')
     .set('x-admin-secret', TEST_ADMIN_SECRET)
     .send({ name: 'Admin Teste', email, password });
 
   const res = await request(app)
-    .post('/auth/login')
+    .post('/api/auth/login')
     .send({ email, password });
 
   return { token: res.body.token, user: res.body.user };
@@ -25,12 +25,12 @@ async function createAdminAndLogin(email = 'admin@test.com', password = 'senha12
  */
 async function createRepAndLogin(adminToken, email = 'rep@test.com', password = 'senha123') {
   await request(app)
-    .post('/users/create-representative')
+    .post('/api/users/create-representative')
     .set('Authorization', `Bearer ${adminToken}`)
     .send({ name: 'Representante Teste', email, password });
 
   const res = await request(app)
-    .post('/auth/login')
+    .post('/api/auth/login')
     .send({ email, password });
 
   return { token: res.body.token, user: res.body.user };
@@ -49,7 +49,7 @@ async function createSupplier(adminToken, overrides = {}) {
   };
 
   const res = await request(app)
-    .post('/suppliers')
+    .post('/api/suppliers')
     .set('Authorization', `Bearer ${adminToken}`)
     .send(payload);
 
@@ -69,7 +69,7 @@ async function createClient(adminToken, representativeId, overrides = {}) {
   };
 
   const res = await request(app)
-    .post('/clients')
+    .post('/api/clients')
     .set('Authorization', `Bearer ${adminToken}`)
     .send(payload);
 
@@ -92,7 +92,7 @@ async function createProduct(adminToken, clientId, supplierId, overrides = {}) {
   };
 
   const res = await request(app)
-    .post('/products')
+    .post('/api/products')
     .set('Authorization', `Bearer ${adminToken}`)
     .send(payload);
 
@@ -112,7 +112,7 @@ async function createQuotation(token, clientId, supplierId, productId, overrides
   };
 
   const res = await request(app)
-    .post('/quotations')
+    .post('/api/quotations')
     .set('Authorization', `Bearer ${token}`)
     .send(payload);
 
@@ -130,7 +130,7 @@ async function createOrder(adminToken, clientId, supplierId, productId, override
   };
 
   const res = await request(app)
-    .post('/orders')
+    .post('/api/orders')
     .set('Authorization', `Bearer ${adminToken}`)
     .send(payload);
 

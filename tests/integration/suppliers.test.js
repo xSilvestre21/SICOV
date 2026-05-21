@@ -16,7 +16,7 @@ describe('POST /suppliers', () => {
     const { token } = await createAdminAndLogin();
 
     const res = await request(app)
-      .post('/suppliers')
+      .post('/api/suppliers')
       .set('Authorization', `Bearer ${token}`)
       .send({
         name: 'Qualyplast',
@@ -38,7 +38,7 @@ describe('POST /suppliers', () => {
     const { token: repToken } = await createRepAndLogin(adminToken);
 
     const res = await request(app)
-      .post('/suppliers')
+      .post('/api/suppliers')
       .set('Authorization', `Bearer ${repToken}`)
       .send({ name: 'Fornecedor', cnpj: '12345678000199', ipi: 0 });
 
@@ -49,7 +49,7 @@ describe('POST /suppliers', () => {
     const { token } = await createAdminAndLogin();
 
     const res = await request(app)
-      .post('/suppliers')
+      .post('/api/suppliers')
       .set('Authorization', `Bearer ${token}`)
       .send({ name: 'Fornecedor', cnpj: '12345678000199', ipi: 'invalido' });
 
@@ -61,7 +61,7 @@ describe('POST /suppliers', () => {
     const { token } = await createAdminAndLogin();
 
     const res = await request(app)
-      .post('/suppliers')
+      .post('/api/suppliers')
       .set('Authorization', `Bearer ${token}`)
       .send({
         name: 'Fornecedor',
@@ -82,7 +82,7 @@ describe('POST /suppliers', () => {
     await createSupplier(token, { cnpj: '08819970000125' });
 
     const res = await request(app)
-      .post('/suppliers')
+      .post('/api/suppliers')
       .set('Authorization', `Bearer ${token}`)
       .send({ name: 'Outro', cnpj: '08819970000125', ipi: 0 });
 
@@ -99,7 +99,7 @@ describe('GET /suppliers', () => {
     await createSupplier(token, { cnpj: '22222222000122', name: 'Fornecedor B' });
 
     const res = await request(app)
-      .get('/suppliers')
+      .get('/api/suppliers')
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -121,7 +121,7 @@ describe('GET /suppliers', () => {
     });
 
     const res = await request(app)
-      .get('/suppliers')
+      .get('/api/suppliers')
       .set('Authorization', `Bearer ${repToken}`);
 
     expect(res.status).toBe(200);
@@ -138,7 +138,7 @@ describe('GET /suppliers/:id', () => {
     const supplier = await createSupplier(token);
 
     const res = await request(app)
-      .get(`/suppliers/${supplier._id}`)
+      .get(`/api/suppliers/${supplier._id}`)
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -149,7 +149,7 @@ describe('GET /suppliers/:id', () => {
     const { token } = await createAdminAndLogin();
 
     const res = await request(app)
-      .get('/suppliers/000000000000000000000000')
+      .get('/api/suppliers/000000000000000000000000')
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(404);
@@ -164,7 +164,7 @@ describe('PUT /suppliers/:id', () => {
     const supplier = await createSupplier(token);
 
     const res = await request(app)
-      .put(`/suppliers/${supplier._id}`)
+      .put(`/api/suppliers/${supplier._id}`)
       .set('Authorization', `Bearer ${token}`)
       .send({ name: 'Nome Atualizado', ipi: 5 });
 
@@ -179,7 +179,7 @@ describe('PUT /suppliers/:id', () => {
     const supplierB = await createSupplier(token, { cnpj: '22222222000122', name: 'Fornecedor B' });
 
     const res = await request(app)
-      .put(`/suppliers/${supplierB._id}`)
+      .put(`/api/suppliers/${supplierB._id}`)
       .set('Authorization', `Bearer ${token}`)
       .send({ cnpj: '11111111000111' });
 
@@ -195,14 +195,14 @@ describe('PATCH /suppliers/:id/toggle-active', () => {
     const supplier = await createSupplier(token);
 
     let res = await request(app)
-      .patch(`/suppliers/${supplier._id}/toggle-active`)
+      .patch(`/api/suppliers/${supplier._id}/toggle-active`)
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
     expect(res.body.supplier.active).toBe(false);
 
     res = await request(app)
-      .patch(`/suppliers/${supplier._id}/toggle-active`)
+      .patch(`/api/suppliers/${supplier._id}/toggle-active`)
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -218,7 +218,7 @@ describe('DELETE /suppliers/:id', () => {
     const supplier = await createSupplier(token);
 
     const res = await request(app)
-      .delete(`/suppliers/${supplier._id}`)
+      .delete(`/api/suppliers/${supplier._id}`)
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);

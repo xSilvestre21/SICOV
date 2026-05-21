@@ -54,12 +54,12 @@ describe('POST /quotations', () => {
 
     // Captura currentOrderNumber antes
     const supplierBefore = await request(app)
-      .get(`/suppliers/${supplier._id}`)
+      .get(`/api/suppliers/${supplier._id}`)
       .set('Authorization', `Bearer ${token}`);
     const orderNumberBefore = supplierBefore.body.currentOrderNumber;
 
     const res = await request(app)
-      .post('/quotations')
+      .post('/api/quotations')
       .set('Authorization', `Bearer ${token}`)
       .send({
         clientId: client._id,
@@ -73,7 +73,7 @@ describe('POST /quotations', () => {
 
     // Verifica que currentOrderNumber NÃO foi incrementado
     const supplierAfter = await request(app)
-      .get(`/suppliers/${supplier._id}`)
+      .get(`/api/suppliers/${supplier._id}`)
       .set('Authorization', `Bearer ${token}`);
     expect(supplierAfter.body.currentOrderNumber).toBe(orderNumberBefore);
   });
@@ -83,7 +83,7 @@ describe('POST /quotations', () => {
     const { client, product } = await buildQuotationFixture(token, user.id);
 
     const res = await request(app)
-      .post('/quotations')
+      .post('/api/quotations')
       .set('Authorization', `Bearer ${token}`)
       .send({
         clientId: client._id,
@@ -98,7 +98,7 @@ describe('POST /quotations', () => {
 
     // Confirma que não há orçamentos no banco
     const listRes = await request(app)
-      .get('/quotations')
+      .get('/api/quotations')
       .set('Authorization', `Bearer ${token}`);
     expect(listRes.body.total).toBe(0);
   });
@@ -108,7 +108,7 @@ describe('POST /quotations', () => {
     const { client, product } = await buildQuotationFixture(token, user.id);
 
     const res = await request(app)
-      .post('/quotations')
+      .post('/api/quotations')
       .set('Authorization', `Bearer ${token}`)
       .send({
         clientId: client._id,
@@ -133,7 +133,7 @@ describe('POST /quotations', () => {
     };
 
     const res = await request(app)
-      .post('/quotations')
+      .post('/api/quotations')
       .set('Authorization', `Bearer ${token}`)
       .send({
         adHocClient,
@@ -151,7 +151,7 @@ describe('POST /quotations', () => {
     const { token } = await createAdminAndLogin();
 
     const res = await request(app)
-      .post('/quotations')
+      .post('/api/quotations')
       .set('Authorization', `Bearer ${token}`)
       .send({ items: [{ productId: '000000000000000000000001', quantity: 10 }] });
 
@@ -164,7 +164,7 @@ describe('POST /quotations', () => {
     const { client } = await buildQuotationFixture(token, user.id);
 
     const res = await request(app)
-      .post('/quotations')
+      .post('/api/quotations')
       .set('Authorization', `Bearer ${token}`)
       .send({ clientId: client._id, items: [] });
 
@@ -174,7 +174,7 @@ describe('POST /quotations', () => {
 
   it('HTTP 401 sem autenticação', async () => {
     const res = await request(app)
-      .post('/quotations')
+      .post('/api/quotations')
       .send({ adHocClient: { name: 'Avulso' }, items: [] });
 
     expect(res.status).toBe(401);
@@ -185,7 +185,7 @@ describe('POST /quotations', () => {
     const { supplier } = await buildQuotationFixture(token, user.id);
 
     const res = await request(app)
-      .post('/quotations')
+      .post('/api/quotations')
       .set('Authorization', `Bearer ${token}`)
       .send({
         adHocClient: { name: 'Empresa Avulsa', city: 'SP' },
@@ -219,7 +219,7 @@ describe('POST /quotations', () => {
     const { client, product } = await buildQuotationFixture(token, user.id, { ipi: 10 });
 
     const res = await request(app)
-      .post('/quotations')
+      .post('/api/quotations')
       .set('Authorization', `Bearer ${token}`)
       .send({
         clientId: client._id,
@@ -246,7 +246,7 @@ describe('POST /quotations/pdf', () => {
 
     // Primeiro calcula o orçamento sem salvar
     const calcRes = await request(app)
-      .post('/quotations')
+      .post('/api/quotations')
       .set('Authorization', `Bearer ${token}`)
       .send({
         clientId: client._id,
@@ -258,7 +258,7 @@ describe('POST /quotations/pdf', () => {
 
     // Envia os dados calculados para gerar o PDF
     const pdfRes = await request(app)
-      .post('/quotations/pdf')
+      .post('/api/quotations/pdf')
       .set('Authorization', `Bearer ${token}`)
       .send(calcRes.body.quotation);
 
@@ -267,14 +267,14 @@ describe('POST /quotations/pdf', () => {
 
     // Confirma que nenhum orçamento foi salvo no banco
     const listRes = await request(app)
-      .get('/quotations')
+      .get('/api/quotations')
       .set('Authorization', `Bearer ${token}`);
     expect(listRes.body.total).toBe(0);
   });
 
   it('HTTP 401 sem autenticação', async () => {
     const res = await request(app)
-      .post('/quotations/pdf')
+      .post('/api/quotations/pdf')
       .send({});
 
     expect(res.status).toBe(401);
@@ -291,12 +291,12 @@ describe('POST /quotations/:id/convert-to-order', () => {
 
     // Captura orderNumber antes
     const supplierBefore = await request(app)
-      .get(`/suppliers/${supplier._id}`)
+      .get(`/api/suppliers/${supplier._id}`)
       .set('Authorization', `Bearer ${token}`);
     const orderNumberBefore = supplierBefore.body.currentOrderNumber;
 
     const res = await request(app)
-      .post(`/quotations/${quotation._id}/convert-to-order`)
+      .post(`/api/quotations/${quotation._id}/convert-to-order`)
       .set('Authorization', `Bearer ${token}`)
       .send({
         deliveryDate: '2026-06-30',
@@ -325,7 +325,7 @@ describe('POST /quotations/:id/convert-to-order', () => {
     const quotation = await createQuotation(token, client._id, null, product._id);
 
     const res = await request(app)
-      .post(`/quotations/${quotation._id}/convert-to-order`)
+      .post(`/api/quotations/${quotation._id}/convert-to-order`)
       .set('Authorization', `Bearer ${token}`)
       .send({});
 
@@ -339,7 +339,7 @@ describe('POST /quotations/:id/convert-to-order', () => {
 
     // Cria cotação com cliente avulso
     const quotationRes = await request(app)
-      .post('/quotations')
+      .post('/api/quotations')
       .set('Authorization', `Bearer ${token}`)
       .send({
         adHocClient: { name: 'Avulso' },
@@ -348,7 +348,7 @@ describe('POST /quotations/:id/convert-to-order', () => {
       });
 
     const res = await request(app)
-      .post(`/quotations/${quotationRes.body.quotation._id}/convert-to-order`)
+      .post(`/api/quotations/${quotationRes.body.quotation._id}/convert-to-order`)
       .set('Authorization', `Bearer ${token}`)
       .send({});
 
@@ -362,7 +362,7 @@ describe('POST /quotations/:id/convert-to-order', () => {
 
     // Cria cotação com item avulso
     const quotationRes = await request(app)
-      .post('/quotations')
+      .post('/api/quotations')
       .set('Authorization', `Bearer ${token}`)
       .send({
         clientId: client._id,
@@ -376,7 +376,7 @@ describe('POST /quotations/:id/convert-to-order', () => {
       });
 
     const res = await request(app)
-      .post(`/quotations/${quotationRes.body.quotation._id}/convert-to-order`)
+      .post(`/api/quotations/${quotationRes.body.quotation._id}/convert-to-order`)
       .set('Authorization', `Bearer ${token}`)
       .send({});
 
@@ -391,7 +391,7 @@ describe('POST /quotations/:id/convert-to-order', () => {
     const quotation = await createQuotation(adminToken, client._id, null, product._id);
 
     const res = await request(app)
-      .post(`/quotations/${quotation._id}/convert-to-order`)
+      .post(`/api/quotations/${quotation._id}/convert-to-order`)
       .set('Authorization', `Bearer ${repToken}`)
       .send({});
 
@@ -402,7 +402,7 @@ describe('POST /quotations/:id/convert-to-order', () => {
     const { token } = await createAdminAndLogin();
 
     const res = await request(app)
-      .post('/quotations/000000000000000000000000/convert-to-order')
+      .post('/api/quotations/000000000000000000000000/convert-to-order')
       .set('Authorization', `Bearer ${token}`)
       .send({});
 
@@ -412,7 +412,7 @@ describe('POST /quotations/:id/convert-to-order', () => {
 
   it('HTTP 401 sem autenticação', async () => {
     const res = await request(app)
-      .post('/quotations/000000000000000000000000/convert-to-order')
+      .post('/api/quotations/000000000000000000000000/convert-to-order')
       .send({});
 
     expect(res.status).toBe(401);
@@ -428,7 +428,7 @@ describe('PUT /quotations/:id', () => {
     const quotation = await createQuotation(token, client._id, null, product._id);
 
     const res = await request(app)
-      .put(`/quotations/${quotation._id}`)
+      .put(`/api/quotations/${quotation._id}`)
       .set('Authorization', `Bearer ${token}`)
       .send({
         attn: 'Maria Contato',
@@ -453,12 +453,12 @@ describe('PUT /quotations/:id', () => {
     const quotation = await createQuotation(token, client._id, null, product._id);
 
     await request(app)
-      .put(`/quotations/${quotation._id}`)
+      .put(`/api/quotations/${quotation._id}`)
       .set('Authorization', `Bearer ${token}`)
       .send({ attn: 'Contato 1', changes: 'Primeira edição' });
 
     const res = await request(app)
-      .put(`/quotations/${quotation._id}`)
+      .put(`/api/quotations/${quotation._id}`)
       .set('Authorization', `Bearer ${token}`)
       .send({ attn: 'Contato 2', changes: 'Segunda edição' });
 
@@ -473,7 +473,7 @@ describe('PUT /quotations/:id', () => {
     const quotation = await createQuotation(token, client._id, null, product._id);
 
     const res = await request(app)
-      .put(`/quotations/${quotation._id}`)
+      .put(`/api/quotations/${quotation._id}`)
       .set('Authorization', `Bearer ${token}`)
       .send({
         items: [{ productId: product._id, quantity: 200 }],
@@ -494,7 +494,7 @@ describe('PUT /quotations/:id', () => {
     const quotation = await createQuotation(adminToken, client._id, null, product._id);
 
     const res = await request(app)
-      .put(`/quotations/${quotation._id}`)
+      .put(`/api/quotations/${quotation._id}`)
       .set('Authorization', `Bearer ${repToken}`)
       .send({ observations: 'Tentativa indevida' });
 
@@ -506,7 +506,7 @@ describe('PUT /quotations/:id', () => {
     const { token } = await createAdminAndLogin();
 
     const res = await request(app)
-      .put('/quotations/000000000000000000000000')
+      .put('/api/quotations/000000000000000000000000')
       .set('Authorization', `Bearer ${token}`)
       .send({ observations: 'x' });
 
@@ -516,7 +516,7 @@ describe('PUT /quotations/:id', () => {
 
   it('HTTP 401 sem autenticação', async () => {
     const res = await request(app)
-      .put('/quotations/000000000000000000000000')
+      .put('/api/quotations/000000000000000000000000')
       .send({});
 
     expect(res.status).toBe(401);
@@ -534,7 +534,7 @@ describe('GET /quotations', () => {
     await createQuotation(token, client._id, null, product._id);
 
     const res = await request(app)
-      .get('/quotations?page=1&limit=10')
+      .get('/api/quotations?page=1&limit=10')
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -571,7 +571,7 @@ describe('GET /quotations', () => {
     await createQuotation(repToken, clientRep._id, null, productRep._id);
 
     const res = await request(app)
-      .get('/quotations')
+      .get('/api/quotations')
       .set('Authorization', `Bearer ${repToken}`);
 
     expect(res.status).toBe(200);
@@ -601,7 +601,7 @@ describe('GET /quotations', () => {
     await createQuotation(repToken, clientRep._id, null, productRep._id);
 
     const res = await request(app)
-      .get('/quotations')
+      .get('/api/quotations')
       .set('Authorization', `Bearer ${adminToken}`);
 
     expect(res.status).toBe(200);
@@ -632,7 +632,7 @@ describe('GET /quotations', () => {
     await createQuotation(token, client2._id, null, product2._id);
 
     const res = await request(app)
-      .get(`/quotations?supplierId=${supplier1._id}`)
+      .get(`/api/quotations?supplierId=${supplier1._id}`)
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -668,7 +668,7 @@ describe('GET /quotations', () => {
     await createQuotation(token, clientB._id, null, productB._id);
 
     const res = await request(app)
-      .get('/quotations?search=Alpha')
+      .get('/api/quotations?search=Alpha')
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -677,7 +677,7 @@ describe('GET /quotations', () => {
   });
 
   it('HTTP 401 sem autenticação', async () => {
-    const res = await request(app).get('/quotations');
+    const res = await request(app).get('/api/quotations');
     expect(res.status).toBe(401);
   });
 });
@@ -692,7 +692,7 @@ describe('GET /quotations/:id', () => {
     const quotation = await createQuotation(token, client._id, null, product._id);
 
     const res = await request(app)
-      .get(`/quotations/${quotation._id}`)
+      .get(`/api/quotations/${quotation._id}`)
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -709,7 +709,7 @@ describe('GET /quotations/:id', () => {
 
     // Representante tenta acessar
     const res = await request(app)
-      .get(`/quotations/${quotation._id}`)
+      .get(`/api/quotations/${quotation._id}`)
       .set('Authorization', `Bearer ${repToken}`);
 
     expect(res.status).toBe(403);
@@ -733,7 +733,7 @@ describe('GET /quotations/:id', () => {
 
     // Admin acessa
     const res = await request(app)
-      .get(`/quotations/${quotation._id}`)
+      .get(`/api/quotations/${quotation._id}`)
       .set('Authorization', `Bearer ${adminToken}`);
 
     expect(res.status).toBe(200);
@@ -744,7 +744,7 @@ describe('GET /quotations/:id', () => {
     const { token } = await createAdminAndLogin();
 
     const res = await request(app)
-      .get('/quotations/000000000000000000000000')
+      .get('/api/quotations/000000000000000000000000')
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(404);
@@ -762,7 +762,7 @@ describe('GET /quotations/:id/pdf', () => {
     const quotation = await createQuotation(token, client._id, null, product._id);
 
     const res = await request(app)
-      .get(`/quotations/${quotation._id}/pdf`)
+      .get(`/api/quotations/${quotation._id}/pdf`)
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -777,7 +777,7 @@ describe('GET /quotations/:id/pdf', () => {
     const quotation = await createQuotation(adminToken, client._id, null, product._id);
 
     const res = await request(app)
-      .get(`/quotations/${quotation._id}/pdf`)
+      .get(`/api/quotations/${quotation._id}/pdf`)
       .set('Authorization', `Bearer ${repToken}`);
 
     expect(res.status).toBe(403);
@@ -786,7 +786,7 @@ describe('GET /quotations/:id/pdf', () => {
 
   it('HTTP 401 sem autenticação', async () => {
     const res = await request(app)
-      .get('/quotations/000000000000000000000000/pdf');
+      .get('/api/quotations/000000000000000000000000/pdf');
 
     expect(res.status).toBe(401);
   });
@@ -800,7 +800,7 @@ describe('GET /quotations/client-products', () => {
     const { client, product } = await buildQuotationFixture(token, user.id);
 
     const res = await request(app)
-      .get(`/quotations/client-products?clientId=${client._id}`)
+      .get(`/api/quotations/client-products?clientId=${client._id}`)
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -828,7 +828,7 @@ describe('GET /quotations/client-products', () => {
     });
 
     const res = await request(app)
-      .get(`/quotations/client-products?clientId=${client._id}&supplierId=${supplier1._id}`)
+      .get(`/api/quotations/client-products?clientId=${client._id}&supplierId=${supplier1._id}`)
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -840,7 +840,7 @@ describe('GET /quotations/client-products', () => {
     const { token } = await createAdminAndLogin();
 
     const res = await request(app)
-      .get('/quotations/client-products?clientId=000000000000000000000000')
+      .get('/api/quotations/client-products?clientId=000000000000000000000000')
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(404);
@@ -852,7 +852,7 @@ describe('GET /quotations/client-products', () => {
     const { client } = await buildQuotationFixture(token, user.id);
 
     const res = await request(app)
-      .get(`/quotations/client-products?clientId=${client._id}`)
+      .get(`/api/quotations/client-products?clientId=${client._id}`)
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -869,7 +869,7 @@ describe('GET /quotations/client-products', () => {
 
   it('HTTP 401 sem autenticação', async () => {
     const res = await request(app)
-      .get('/quotations/client-products?clientId=abc');
+      .get('/api/quotations/client-products?clientId=abc');
 
     expect(res.status).toBe(401);
   });

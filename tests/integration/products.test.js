@@ -24,7 +24,7 @@ describe('POST /products', () => {
     const client = await createClient(token, user.id);
 
     const res = await request(app)
-      .post('/products')
+      .post('/api/products')
       .set('Authorization', `Bearer ${token}`)
       .send({
         clientId: client._id,
@@ -49,7 +49,7 @@ describe('POST /products', () => {
     const client = await createClient(token, user.id);
 
     const res = await request(app)
-      .post('/products')
+      .post('/api/products')
       .set('Authorization', `Bearer ${token}`)
       .send({
         clientId: client._id,
@@ -77,7 +77,7 @@ describe('POST /products', () => {
     const client = await createClient(token, user.id);
 
     const res = await request(app)
-      .post('/products')
+      .post('/api/products')
       .set('Authorization', `Bearer ${token}`)
       .send({
         clientId: client._id,
@@ -99,7 +99,7 @@ describe('POST /products', () => {
     const { token } = await createAdminAndLogin();
 
     const res = await request(app)
-      .post('/products')
+      .post('/api/products')
       .set('Authorization', `Bearer ${token}`)
       .send({ name: 'Produto Incompleto' });
 
@@ -112,7 +112,7 @@ describe('POST /products', () => {
     const client = await createClient(token, user.id);
 
     const res = await request(app)
-      .post('/products')
+      .post('/api/products')
       .set('Authorization', `Bearer ${token}`)
       .send({
         clientId: client._id,
@@ -136,7 +136,7 @@ describe('POST /products', () => {
     const client = await createClient(token, user.id);
 
     const res = await request(app)
-      .post('/products')
+      .post('/api/products')
       .set('Authorization', `Bearer ${token}`)
       .send({
         clientId: client._id,
@@ -163,7 +163,7 @@ describe('POST /products', () => {
     const client = await createClient(adminToken, admin.id);
 
     const res = await request(app)
-      .post('/products')
+      .post('/api/products')
       .set('Authorization', `Bearer ${repToken}`)
       .send({
         clientId: client._id,
@@ -191,7 +191,7 @@ describe('GET /products', () => {
     await createProduct(token, client._id, supplier._id, { name: 'Produto B' });
 
     const res = await request(app)
-      .get('/products?limit=1&page=1')
+      .get('/api/products?limit=1&page=1')
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -211,7 +211,7 @@ describe('GET /products', () => {
     await createProduct(adminToken, clientRep._id, supplier._id, { name: 'Produto Rep' });
 
     const res = await request(app)
-      .get('/products')
+      .get('/api/products')
       .set('Authorization', `Bearer ${repToken}`);
 
     expect(res.status).toBe(200);
@@ -240,7 +240,7 @@ describe('GET /products', () => {
     });
 
     const res = await request(app)
-      .get('/products?productType=stretch')
+      .get('/api/products?productType=stretch')
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -259,7 +259,7 @@ describe('GET /products/:id', () => {
     const product = await createProduct(token, client._id, supplier._id);
 
     const res = await request(app)
-      .get(`/products/${product._id}`)
+      .get(`/api/products/${product._id}`)
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -270,7 +270,7 @@ describe('GET /products/:id', () => {
     const { token } = await createAdminAndLogin();
 
     const res = await request(app)
-      .get('/products/000000000000000000000000')
+      .get('/api/products/000000000000000000000000')
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(404);
@@ -287,7 +287,7 @@ describe('PUT /products/:id', () => {
     const product = await createProduct(token, client._id, supplier._id);
 
     const res = await request(app)
-      .put(`/products/${product._id}`)
+      .put(`/api/products/${product._id}`)
       .set('Authorization', `Bearer ${token}`)
       .send({ name: 'Nome Atualizado', commercialData: { basePrice: 15 } });
 
@@ -307,14 +307,14 @@ describe('PATCH /products/:id/toggle-active', () => {
     const product = await createProduct(token, client._id, supplier._id);
 
     let res = await request(app)
-      .patch(`/products/${product._id}/toggle-active`)
+      .patch(`/api/products/${product._id}/toggle-active`)
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
     expect(res.body.product.active).toBe(false);
 
     res = await request(app)
-      .patch(`/products/${product._id}/toggle-active`)
+      .patch(`/api/products/${product._id}/toggle-active`)
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -332,7 +332,7 @@ describe('DELETE /products/:id', () => {
     const product = await createProduct(token, client._id, supplier._id);
 
     const res = await request(app)
-      .delete(`/products/${product._id}`)
+      .delete(`/api/products/${product._id}`)
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);

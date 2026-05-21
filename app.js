@@ -66,24 +66,25 @@ app.get('/', (req, res) => {
   res.json({ message: 'API do gerenciador de vendas rodando!' });
 });
 
-app.use('/auth', authLimiter, authRoutes);
-app.use('/users', userRoutes);
-app.use('/clients', clientRoutes);
-app.use('/suppliers', supplierRoutes);
-app.use('/products', productRoutes);
-app.use('/orders', orderRoutes);
-app.use('/quotations', quotationRoutes);
-app.use('/settings', settingsRoutes);
-app.use('/commissions', commissionRoutes);
-app.use('/dashboard', dashboardRoutes);
+app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/clients', clientRoutes);
+app.use('/api/suppliers', supplierRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/quotations', quotationRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/commissions', commissionRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // ── Servir frontend em produção ──────────────────────────────────────────────
-if (process.env.NODE_ENV === 'production') {
-  const frontendPath = path.join(__dirname, 'SICOV-WEB', 'dist');
+const frontendPath = path.join(__dirname, 'SICOV-WEB', 'dist');
+const fs = require('fs');
+if (fs.existsSync(frontendPath)) {
   app.use(express.static(frontendPath));
-  // Qualquer rota não-API serve o index.html (SPA)
   app.use((req, res, next) => {
-    if (req.method === 'GET' && !req.path.startsWith('/auth') && !req.path.startsWith('/users') && !req.path.startsWith('/clients') && !req.path.startsWith('/suppliers') && !req.path.startsWith('/products') && !req.path.startsWith('/orders') && !req.path.startsWith('/quotations') && !req.path.startsWith('/settings') && !req.path.startsWith('/commissions') && !req.path.startsWith('/dashboard')) {
+    // Se não é uma rota da API, serve o index.html (SPA fallback)
+    if (req.method === 'GET' && !req.path.startsWith('/api/')) {
       res.sendFile(path.join(frontendPath, 'index.html'));
     } else {
       next();
