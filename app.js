@@ -17,7 +17,12 @@ const dashboardRoutes = require('./src/routes/dashboardRoutes');
 const app = express();
 
 // ── Segurança: headers HTTP ──────────────────────────────────────────────────
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+  }),
+);
 
 // ── CORS: restringir origens permitidas ──────────────────────────────────────
 const allowedOrigins = process.env.ALLOWED_ORIGINS
