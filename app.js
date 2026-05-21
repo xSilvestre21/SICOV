@@ -79,7 +79,7 @@ const fs = require('fs');
 if (fs.existsSync(frontendPath)) {
   app.use(express.static(frontendPath));
   // SPA fallback: qualquer GET que não seja /api/* serve o index.html
-  app.get('*', (req, res) => {
+  app.get('/{*splat}', (req, res) => {
     if (req.path.startsWith('/api/')) return res.status(404).json({ message: 'Rota não encontrada.' });
     res.sendFile(path.join(frontendPath, 'index.html'));
   });
