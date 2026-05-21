@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const path = require('path');
+const fs = require('fs');
 const rateLimit = require('express-rate-limit');
 const authRoutes = require('./src/routes/authRoutes');
 const userRoutes = require('./src/routes/userRoutes');
@@ -24,12 +25,20 @@ app.use(
   }),
 );
 
-// ── CORS: restringir origens permitidas ──────────────────────────────────────
+// ── Servir frontend (arquivos estáticos) ANTES de CORS/rate-limit ────────────
+const frontendPath = path.join(__dirname, 'SICOV-WEB', 'dist');
+const hasFrontend = fs.existsSync(frontendPath);
+if (hasFrontend) {
+  app.use(express.static(frontendPath));
+}
+
+// ── CORS: restringir origens permitidas (apenas para rotas /api) ─────────────
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
   : [];
 
 app.use(
+  '/api',
   cors({
     origin: (origin, callback) => {
       // Permite requisições sem origin (ex: Postman, mobile apps, server-to-server)
@@ -61,7 +70,7 @@ const globalLimiter = rateLimit({
   skip: () => process.env.NODE_ENV !== 'production',
 });
 
-app.use(globalLimiter);
+app.use('/api', globalLimiter);
 
 // ── Body parser: limite de tamanho para evitar DoS ──────────────────────────
 app.use(express.json({ limit: '1mb' }));
@@ -78,30 +87,22 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/commissions', commissionRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
-// ── Servir frontend (SPA) ────────────────────────────────────────────────────
-const frontendPath = path.join(__dirname, 'SICOV-WEB', 'dist');
-const fs = require('fs');
-if (fs.existsSync(frontendPath)) {
-  app.use(express.static(frontendPath));
-  // SPA fallback: qualquer GET que não seja /api/* serve o index.html
+// ── SPA fallback ─────────────────────────────────────────────────────────────
+if (hasFrontend) {
   app.get('/{*splat}', (req, res) => {
-    if (req.path.startsWith('/api/')) return res.status(404).json({ message: 'Rota não encontrada.' });
     res.sendFile(path.join(frontendPath, 'index.html'));
   });
 } else {
-  // Sem frontend buildado — apenas mostra status da API
   app.get('/', (req, res) => {
     res.json({ message: 'API do gerenciador de vendas rodando!' });
   });
 }
 
 // ── Middleware de erro centralizado ──────────────────────────────────────────
-// Captura erros não tratados e evita vazar detalhes internos
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
   const isDev = process.env.NODE_ENV === 'development';
 
-  // Erro de CORS gerado acima
   if (err.message && err.message.startsWith('Origem não permitida')) {
     return res.status(403).json({ message: err.message });
   }
