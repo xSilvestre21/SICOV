@@ -61,11 +61,7 @@ app.use(globalLimiter);
 // ── Body parser: limite de tamanho para evitar DoS ──────────────────────────
 app.use(express.json({ limit: '1mb' }));
 
-// ── Rotas ────────────────────────────────────────────────────────────────────
-app.get('/', (req, res) => {
-  res.json({ message: 'API do gerenciador de vendas rodando!' });
-});
-
+// ── Rotas da API ─────────────────────────────────────────────────────────────
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/clients', clientRoutes);
@@ -77,18 +73,20 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/commissions', commissionRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
-// ── Servir frontend em produção ──────────────────────────────────────────────
+// ── Servir frontend (SPA) ────────────────────────────────────────────────────
 const frontendPath = path.join(__dirname, 'SICOV-WEB', 'dist');
 const fs = require('fs');
 if (fs.existsSync(frontendPath)) {
   app.use(express.static(frontendPath));
-  app.use((req, res, next) => {
-    // Se não é uma rota da API, serve o index.html (SPA fallback)
-    if (req.method === 'GET' && !req.path.startsWith('/api/')) {
-      res.sendFile(path.join(frontendPath, 'index.html'));
-    } else {
-      next();
-    }
+  // SPA fallback: qualquer GET que não seja /api/* serve o index.html
+  app.get('*', (req, res) => {
+    if (req.path.startsWith('/api/')) return res.status(404).json({ message: 'Rota não encontrada.' });
+    res.sendFile(path.join(frontendPath, 'index.html'));
+  });
+} else {
+  // Sem frontend buildado — apenas mostra status da API
+  app.get('/', (req, res) => {
+    res.json({ message: 'API do gerenciador de vendas rodando!' });
   });
 }
 
