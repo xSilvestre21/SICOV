@@ -15,10 +15,26 @@ export function LoginPage() {
   const [countdown, setCountdown] = useState(0);
   const timerRef = useRef(null);
 
+  // Ao montar, verifica se há bloqueio salvo no localStorage
+  useEffect(() => {
+    const blockedUntil = localStorage.getItem('sicov_blocked_until');
+    if (blockedUntil) {
+      const remaining = Math.floor((Number(blockedUntil) - Date.now()) / 1000);
+      if (remaining > 0) {
+        setBlocked(true);
+        setCountdown(remaining);
+        setError('Conta bloqueada temporariamente.');
+      } else {
+        localStorage.removeItem('sicov_blocked_until');
+      }
+    }
+  }, []);
+
   // Countdown timer
   useEffect(() => {
     if (countdown <= 0) {
       setBlocked(false);
+      localStorage.removeItem('sicov_blocked_until');
       if (timerRef.current) clearInterval(timerRef.current);
       return;
     }
@@ -27,6 +43,7 @@ export function LoginPage() {
         if (prev <= 1) {
           setBlocked(false);
           setError('');
+          localStorage.removeItem('sicov_blocked_until');
           clearInterval(timerRef.current);
           return 0;
         }
@@ -55,7 +72,9 @@ export function LoginPage() {
       const message = err.response?.data?.message || 'Erro ao fazer login.';
 
       if (status === 429) {
-        // Bloqueado pelo rate limiter
+        // Bloqueado pelo rate limiter — salva no localStorage para persistir entre reloads
+        const blockedUntil = Date.now() + 15 * 60 * 1000;
+        localStorage.setItem('sicov_blocked_until', String(blockedUntil));
         setBlocked(true);
         setCountdown(15 * 60); // 15 minutos
         setError('Conta bloqueada temporariamente.');
