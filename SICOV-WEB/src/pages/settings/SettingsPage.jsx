@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Save, Settings, Moon, Sun, Monitor, HardDrive } from 'lucide-react';
+import { Save, Settings, Moon, Sun, Monitor, HardDrive, Lock } from 'lucide-react';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -98,6 +98,9 @@ export function SettingsPage() {
         </CardBody>
       </Card>
 
+      {/* Alterar Senha */}
+      <ChangePasswordCard isDark={isDark} />
+
       {isAdmin && (
       <form onSubmit={handleSubmit} className="space-y-4">
         <Card>
@@ -185,5 +188,51 @@ export function SettingsPage() {
       </Card>
       )}
     </div>
+  );
+}
+
+
+function ChangePasswordCard({ isDark }) {
+  const [form, setForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [msgType, setMsgType] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setMsg('');
+    if (form.newPassword.length < 8) { setMsg('A nova senha deve ter pelo menos 8 caracteres.'); setMsgType('error'); return; }
+    if (form.newPassword !== form.confirmPassword) { setMsg('As senhas não coincidem.'); setMsgType('error'); return; }
+
+    setLoading(true);
+    try {
+      const { default: api } = await import('../../lib/api');
+      await api.post('/auth/change-password', { currentPassword: form.currentPassword, newPassword: form.newPassword });
+      setMsg('Senha alterada com sucesso!');
+      setMsgType('success');
+      setForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (err) {
+      setMsg(err.response?.data?.message || 'Erro ao alterar senha.');
+      setMsgType('error');
+    } finally { setLoading(false); setTimeout(() => setMsg(''), 5000); }
+  };
+
+  return (
+    <Card>
+      <CardHeader><h2 className={`text-sm font-semibold ${isDark ? 'text-[#d4e4d1]' : 'text-[#4b5757]'}`}>Alterar Senha</h2></CardHeader>
+      <CardBody>
+        <form onSubmit={handleSubmit} className="space-y-3 max-w-sm">
+          <div className="flex items-center gap-2 mb-2">
+            <Lock size={16} className={isDark ? 'text-[#9cb3a0]' : 'text-[#7c8a6e]'} />
+            <p className={`text-xs ${isDark ? 'text-[#6b8a6e]' : 'text-[#7c8a6e]'}`}>Defina uma nova senha para sua conta</p>
+          </div>
+          <Input label="Senha atual" type="password" value={form.currentPassword} onChange={(e) => setForm(f => ({ ...f, currentPassword: e.target.value }))} required />
+          <Input label="Nova senha" type="password" value={form.newPassword} onChange={(e) => setForm(f => ({ ...f, newPassword: e.target.value }))} placeholder="Mínimo 8 caracteres" required />
+          <Input label="Confirmar nova senha" type="password" value={form.confirmPassword} onChange={(e) => setForm(f => ({ ...f, confirmPassword: e.target.value }))} required />
+          {msg && <p className={`text-xs ${msgType === 'error' ? 'text-red-500' : isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>{msg}</p>}
+          <Button type="submit" size="sm" loading={loading}><Lock size={14} /> Alterar Senha</Button>
+        </form>
+      </CardBody>
+    </Card>
   );
 }

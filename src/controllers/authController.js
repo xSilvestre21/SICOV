@@ -1,6 +1,7 @@
 const argon2 = require('argon2');
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
+const { sendPasswordResetEmail } = require('../utils/mailer');
 
 /** Valida formato básico de email. */
 function isValidEmail(email) {
@@ -94,7 +95,11 @@ async function login(req, res) {
 
     // Resposta genérica para não revelar se o email existe
     if (!user) {
-      return res.status(401).json({ message: 'Credenciais inválidas.' });
+      const remaining = res.getHeader('RateLimit-Remaining');
+      const msg = remaining !== undefined && Number(remaining) <= 3
+        ? `Credenciais inválidas. ${remaining} tentativa${Number(remaining) !== 1 ? 's' : ''} restante${Number(remaining) !== 1 ? 's' : ''} antes do bloqueio.`
+        : 'Credenciais inválidas.';
+      return res.status(401).json({ message: msg, remaining: Number(remaining) });
     }
 
     if (!user.active) {
@@ -106,7 +111,11 @@ async function login(req, res) {
     const validPassword = await argon2.verify(user.password, password);
 
     if (!validPassword) {
-      return res.status(401).json({ message: 'Credenciais inválidas.' });
+      const remaining = res.getHeader('RateLimit-Remaining');
+      const msg = remaining !== undefined && Number(remaining) <= 3
+        ? `Credenciais inválidas. ${remaining} tentativa${Number(remaining) !== 1 ? 's' : ''} restante${Number(remaining) !== 1 ? 's' : ''} antes do bloqueio.`
+        : 'Credenciais inválidas.';
+      return res.status(401).json({ message: msg, remaining: Number(remaining) });
     }
 
     // Access token (4h) + Refresh token (7 dias)
@@ -183,4 +192,133 @@ module.exports = {
   registerAdmin,
   login,
   refreshAccessToken,
+  forgotPassword,
+  resetPassword,
+  changePassword,
 };
+
+/**
+ * POST /auth/forgot-password
+ * Envia email com link de redefinição de senha.
+ * Body: { email }
+ */
+async function forgotPassword(req, res) {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: 'Email é obrigatório.' });
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+
+    // Verifica se o email existe no sistema
+    if (!user) {
+      return res.status(404).json({ message: 'Email não encontrado no sistema.' });
+    }
+
+    // Gera token de reset (expira em 1h)
+    const resetToken = jwt.sign(
+      { id: user._id, type: 'password-reset' },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' },
+    );
+
+    // Monta o link de reset
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const resetLink = `${frontendUrl}/reset-password?token=${resetToken}`;
+
+    // Envia email
+    try {
+      await sendPasswordResetEmail(user.email, resetLink, user.name);
+    } catch (mailErr) {
+      console.error('[forgotPassword] Erro ao enviar email:', mailErr.message);
+      return res.status(500).json({ message: 'Erro ao enviar email. Tente novamente.' });
+    }
+
+    return res.json({ message: 'Se o email estiver cadastrado, você receberá um link de redefinição.' });
+  } catch (err) {
+    console.error('[forgotPassword]', err.message);
+    return res.status(500).json({ message: 'Erro ao processar solicitação.' });
+  }
+}
+
+/**
+ * POST /auth/reset-password
+ * Redefine a senha usando o token enviado por email.
+ * Body: { token, newPassword }
+ */
+async function resetPassword(req, res) {
+  try {
+    const { token, newPassword } = req.body;
+    if (!token || !newPassword) {
+      return res.status(400).json({ message: 'Token e nova senha são obrigatórios.' });
+    }
+    if (newPassword.length < 8) {
+      return res.status(400).json({ message: 'A senha deve ter pelo menos 8 caracteres.' });
+    }
+
+    // Verifica o token
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+      if (err.name === 'TokenExpiredError') {
+        return res.status(401).json({ message: 'Link expirado. Solicite um novo.' });
+      }
+      return res.status(401).json({ message: 'Link inválido.' });
+    }
+
+    if (decoded.type !== 'password-reset') {
+      return res.status(401).json({ message: 'Token inválido.' });
+    }
+
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(404).json({ message: 'Usuário não encontrado.' });
+    }
+
+    // Atualiza a senha
+    user.password = await argon2.hash(newPassword);
+    await user.save();
+
+    return res.json({ message: 'Senha redefinida com sucesso!' });
+  } catch (err) {
+    console.error('[resetPassword]', err.message);
+    return res.status(500).json({ message: 'Erro ao redefinir senha.' });
+  }
+}
+
+/**
+ * POST /auth/change-password
+ * Altera a senha do usuário logado (requer autenticação).
+ * Body: { currentPassword, newPassword }
+ */
+async function changePassword(req, res) {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Senha atual e nova senha são obrigatórias.' });
+    }
+    if (newPassword.length < 8) {
+      return res.status(400).json({ message: 'A nova senha deve ter pelo menos 8 caracteres.' });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'Usuário não encontrado.' });
+    }
+
+    // Verifica senha atual
+    const valid = await argon2.verify(user.password, currentPassword);
+    if (!valid) {
+      return res.status(401).json({ message: 'Senha atual incorreta.' });
+    }
+
+    // Atualiza
+    user.password = await argon2.hash(newPassword);
+    await user.save();
+
+    return res.json({ message: 'Senha alterada com sucesso!' });
+  } catch (err) {
+    console.error('[changePassword]', err.message);
+    return res.status(500).json({ message: 'Erro ao alterar senha.' });
+  }
+}

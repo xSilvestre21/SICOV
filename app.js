@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const path = require('path');
 const rateLimit = require('express-rate-limit');
 const authRoutes = require('./src/routes/authRoutes');
 const userRoutes = require('./src/routes/userRoutes');
@@ -39,11 +40,11 @@ app.use(
 // ── Rate limiting: proteção contra brute force e abuso ───────────────────────
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: process.env.NODE_ENV === 'production' ? 20 : 0,
+  max: 5,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { message: 'Muitas tentativas. Tente novamente em 15 minutos.' },
-  skip: () => process.env.NODE_ENV !== 'production',
+  message: { message: 'Conta bloqueada temporariamente. Tente novamente em 15 minutos.' },
+  skip: () => process.env.NODE_ENV === 'test',
 });
 
 const globalLimiter = rateLimit({
@@ -75,6 +76,16 @@ app.use('/quotations', quotationRoutes);
 app.use('/settings', settingsRoutes);
 app.use('/commissions', commissionRoutes);
 app.use('/dashboard', dashboardRoutes);
+
+// ── Servir frontend em produção ──────────────────────────────────────────────
+if (process.env.NODE_ENV === 'production') {
+  const frontendPath = path.join(__dirname, 'SICOV-WEB', 'dist');
+  app.use(express.static(frontendPath));
+  // Qualquer rota não-API serve o index.html (SPA)
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(frontendPath, 'index.html'));
+  });
+}
 
 // ── Middleware de erro centralizado ──────────────────────────────────────────
 // Captura erros não tratados e evita vazar detalhes internos

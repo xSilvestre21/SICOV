@@ -11,7 +11,9 @@
         "test:unit": "jest --runInBand --forceExit --testPathPatterns tests/utils tests/middlewares tests/controllers",
         "test:integration": "jest --runInBand --forceExit --testPathPatterns tests/integration",
         "test:coverage": "jest --runInBand --forceExit --coverage",
-        "start": "nodemon server.js"
+        "start": "node server.js",
+        "dev": "nodemon server.js",
+        "build": "cd SICOV-WEB && npm install && npx vite build"
     },
     "dependencies": {
         "@aws-sdk/client-s3": "^3.1049.0",

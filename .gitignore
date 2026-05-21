@@ -1,6 +1,7 @@
 node_modules
 .env
-
-
-# Backups locais
+coverage
 backups/
+SICOV-WEB/node_modules
+SICOV-WEB/dist
+*.log

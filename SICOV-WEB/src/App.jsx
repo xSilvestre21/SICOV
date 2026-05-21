@@ -1,4 +1,4 @@
-import { lazy } from 'react';
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -8,6 +8,8 @@ import { LoginPage } from './pages/LoginPage';
 import { DashboardPage as HomePage } from './pages/DashboardPage';
 
 // Lazy-loaded pages (code splitting)
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage').then(m => ({ default: m.ForgotPasswordPage })));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage').then(m => ({ default: m.ResetPasswordPage })));
 const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage'));
 const OrdersListPage = lazy(() => import('./pages/orders/OrdersListPage').then(m => ({ default: m.OrdersListPage })));
 const NewOrderPage = lazy(() => import('./pages/orders/NewOrderPage').then(m => ({ default: m.NewOrderPage })));
@@ -40,6 +42,8 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+      <Route path="/forgot-password" element={<PublicRoute><Suspense fallback={null}><ForgotPasswordPage /></Suspense></PublicRoute>} />
+      <Route path="/reset-password" element={<PublicRoute><Suspense fallback={null}><ResetPasswordPage /></Suspense></PublicRoute>} />
 
       <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
         <Route index element={<HomePage />} />
