@@ -11,5 +11,6 @@ router.get('/representatives-performance', dashboardController.getRepresentative
 router.get('/top-clients', dashboardController.getTopClients);
 router.get('/client/:clientId', dashboardController.getClientDetail);
 router.get('/cancelled-orders', dashboardController.getCancelledOrders);
+router.get('/suppliers-comparison', dashboardController.getSuppliersComparison);
 
 module.exports = router;

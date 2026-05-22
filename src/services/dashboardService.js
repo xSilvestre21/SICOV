@@ -782,6 +782,75 @@ async function aggregateCancelledOrders({ month, year, granularity, groupBy = 'p
   };
 }
 
+/**
+ * Agrega comparação entre fornecedores: receita total, comissão total e percentual de comissão.
+ * Usa comissões como fonte de verdade para determinar quais pedidos pertencem ao período.
+ *
+ * @param {object} params
+ * @param {number} [params.month] - Mês (1-12)
+ * @param {number} [params.year] - Ano (2000-2100)
+ * @param {string} [params.granularity] - 'monthly' ou 'annual'
+ * @returns {Promise<Array<{supplierId, supplierName, totalRevenue, totalCommission, commissionPercentage, orderCount}>>}
+ */
+async function aggregateSuppliersComparison({ month, year, granularity }) {
+  const commissionPeriodFilter = granularity === 'annual'
+    ? buildPeriodFilter(month, year, 'annual')
+    : buildPeriodFilter(month, year);
+
+  const pipeline = [
+    {
+      $match: {
+        status: { $ne: 'cancelled' },
+        installmentIndex: null,
+        ...commissionPeriodFilter,
+      },
+    },
+    {
+      $lookup: {
+        from: 'orders',
+        localField: 'orderId',
+        foreignField: '_id',
+        as: 'order',
+      },
+    },
+    { $unwind: { path: '$order', preserveNullAndEmptyArrays: false } },
+    { $match: { 'order.status': 'active' } },
+    {
+      $group: {
+        _id: '$order.supplierId',
+        supplierName: { $first: '$order.supplierSnapshot.name' },
+        totalRevenue: { $sum: '$order.subtotal' },
+        totalAdminCommission: { $sum: '$adminCommission' },
+        totalRepresentativeCommission: { $sum: '$representativeCommission' },
+        totalPool: { $sum: '$pool' },
+        orderCount: { $addToSet: '$orderId' },
+      },
+    },
+    { $sort: { totalRevenue: -1 } },
+    {
+      $project: {
+        _id: 0,
+        supplierId: '$_id',
+        supplierName: { $ifNull: ['$supplierName', 'Desconhecido'] },
+        totalRevenue: { $round: ['$totalRevenue', 2] },
+        totalAdminCommission: { $round: ['$totalAdminCommission', 2] },
+        totalRepresentativeCommission: { $round: ['$totalRepresentativeCommission', 2] },
+        totalPool: { $round: ['$totalPool', 2] },
+        orderCount: { $size: '$orderCount' },
+        commissionPercentage: {
+          $cond: [
+            { $gt: ['$totalRevenue', 0] },
+            { $round: [{ $multiply: [{ $divide: ['$totalPool', '$totalRevenue'] }, 100] }, 1] },
+            0,
+          ],
+        },
+      },
+    },
+  ];
+
+  return Commission.aggregate(pipeline);
+}
+
 module.exports = {
   buildPeriodFilter,
   buildOrderPeriodFilter,
@@ -795,4 +864,5 @@ module.exports = {
   aggregateClientDetail,
   aggregateCommissionsOverview,
   aggregateCancelledOrders,
+  aggregateSuppliersComparison,
 };

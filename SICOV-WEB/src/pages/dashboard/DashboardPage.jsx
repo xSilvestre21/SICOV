@@ -10,6 +10,7 @@ import { CommissionsVariationChart } from './charts/CommissionsVariationChart';
 import { RepresentativesPerformanceChart } from './charts/RepresentativesPerformanceChart';
 import { TopClientsChart } from './charts/TopClientsChart';
 import { CancelledOrdersChart } from './charts/CancelledOrdersChart';
+import { SuppliersComparisonChart } from './charts/SuppliersComparisonChart';
 import { ClientIndividualView } from './charts/ClientIndividualView';
 import api from '../../lib/api';
 
@@ -145,6 +146,7 @@ function DashboardContent() {
 
         <TopClientsChart />
         {isAdmin && <CancelledOrdersChart />}
+        {isAdmin && <SuppliersComparisonChart />}
       </div>
     </div>
   );

@@ -9,6 +9,7 @@ const {
   aggregateTopClients,
   aggregateClientDetail,
   aggregateCancelledOrders,
+  aggregateSuppliersComparison,
   sanitizeForRepresentative,
 } = require('../services/dashboardService');
 
@@ -259,6 +260,37 @@ async function getCancelledOrders(req, res) {
   }
 }
 
+/**
+ * GET /dashboard/suppliers-comparison
+ * Query params: month (1-12), year (4 digits), granularity ('monthly'|'annual')
+ * Returns: { data: [{ supplierId, supplierName, totalRevenue, totalAdminCommission, totalRepresentativeCommission, totalPool, commissionPercentage, orderCount }] }
+ * Admin only.
+ */
+async function getSuppliersComparison(req, res) {
+  try {
+    if (req.user.profile !== 'admin') {
+      return res.status(403).json({ message: 'Acesso restrito ao administrador.' });
+    }
+
+    const errors = validateDashboardParams(req.query);
+    if (errors.length > 0) {
+      return res.status(400).json({ message: errors.join('; ') });
+    }
+
+    const { granularity } = req.query;
+    const { month: defaultMonth, year: defaultYear } = getDefaultPeriod();
+    const month = req.query.month ? Number(req.query.month) : defaultMonth;
+    const year = req.query.year ? Number(req.query.year) : defaultYear;
+
+    const result = await aggregateSuppliersComparison({ month, year, granularity });
+
+    return res.json({ data: result });
+  } catch (err) {
+    console.error('[getSuppliersComparison]', err.message);
+    return res.status(500).json({ message: 'Erro ao buscar dados do dashboard' });
+  }
+}
+
 module.exports = {
   getClientsRevenue,
   getCommissionsOverview,
@@ -266,4 +298,5 @@ module.exports = {
   getTopClients,
   getClientDetail,
   getCancelledOrders,
+  getSuppliersComparison,
 };
