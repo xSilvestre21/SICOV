@@ -31,6 +31,7 @@ const calculationModes = [
   { value: 'boxes_times_box_price', label: 'Caixas × Preço/Caixa' },
   { value: 'boxes_times_units_per_box_times_unit_price', label: 'Caixas × Un/Caixa × Preço Unitário' },
   { value: 'dimensions_density_factor', label: 'Dimensões × Densidade × Fator' },
+  { value: 'pallet', label: 'Palete (Qtd × Peso × Preço/kg)' },
   { value: 'manual_price', label: 'Preço Manual' },
 ];
 
@@ -160,6 +161,7 @@ export function ProductFormPage() {
     saleMode: 'kg', calculationMode: 'weight_times_price_per_kg', unitLabel: '', notes: '',
     width: '', length: '', thickness: '', gusset: '', height: '', diameter: '', weight: '',
     unitsPerBox: '', basePrice: '', density: '', factorKg: '', unitPrice: '', boxPrice: '',
+    palletQuantity: '', palletWeight: '',
     selectedExtras: [],
   });
   const [loading, setLoading] = useState(false);
@@ -195,6 +197,7 @@ export function ProductFormPage() {
           unitsPerBox: p.technicalData?.unitsPerBox ?? '',
           basePrice: cd.basePrice ?? '', density: cd.density ?? '',
           factorKg: cd.factorKg ?? '', unitPrice: cd.unitPrice ?? '', boxPrice: cd.boxPrice ?? '',
+          palletQuantity: cd.palletQuantity ?? '', palletWeight: cd.palletWeight ?? '',
           selectedExtras: p.selectedExtras || [],
         });
       })
@@ -291,6 +294,8 @@ export function ProductFormPage() {
           ...(form.factorKg !== '' && { factorKg: form.factorKg }),
           ...(form.unitPrice !== '' && { unitPrice: form.unitPrice }),
           ...(form.boxPrice !== '' && { boxPrice: form.boxPrice }),
+          ...(form.palletQuantity !== '' && { palletQuantity: form.palletQuantity }),
+          ...(form.palletWeight !== '' && { palletWeight: form.palletWeight }),
         },
         selectedExtras: form.selectedExtras.filter((ex) => ex.name && ex.value),
       };
@@ -484,6 +489,13 @@ export function ProductFormPage() {
             )}
             {form.calculationMode === 'manual_price' && (
               <Input label="Preço Manual" type="number" step="any" value={form.unitPrice} onChange={set('unitPrice')} />
+            )}
+            {form.calculationMode === 'pallet' && (
+              <>
+                <Input label="Qtd por Palete" type="number" step="1" value={form.palletQuantity} onChange={set('palletQuantity')} />
+                <Input label="Peso (kg)" type="number" step="any" value={form.palletWeight} onChange={set('palletWeight')} />
+                <Input label="Preço/kg (R$)" type="number" step="any" value={form.basePrice} onChange={set('basePrice')} />
+              </>
             )}
           </CardBody>
         </Card>

@@ -97,6 +97,7 @@ const productSchema = new mongoose.Schema(
         'boxes_times_units_per_box_times_unit_price',
         'boxes_times_box_price',
         'manual_price',
+        'pallet',
       ],
       required: true,
     },
@@ -151,6 +152,14 @@ const productSchema = new mongoose.Schema(
         min: 0,
       },
       boxPrice: {
+        type: Number,
+        min: 0,
+      },
+      palletQuantity: {
+        type: Number,
+        min: 0,
+      },
+      palletWeight: {
         type: Number,
         min: 0,
       },

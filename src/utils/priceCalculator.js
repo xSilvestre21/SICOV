@@ -57,6 +57,21 @@ function calculateProductPrice(product, quantity) {
     unitPrice = cd.basePrice || cd.unitPrice || cd.boxPrice || 0;
   }
 
+  if (product.calculationMode === 'pallet') {
+    // Preço do palete = quantidade_por_palete × peso × preço_por_kg
+    const palletQty = cd.palletQuantity || 0;
+    const palletWeight = cd.palletWeight || 0;
+    const pricePerKg = cd.basePrice || 0;
+
+    if (!palletQty || !palletWeight || !pricePerKg) {
+      throw new Error(
+        `Produto ${product.name} não possui dados completos para cálculo por palete (quantidade, peso e preço/kg)`,
+      );
+    }
+
+    unitPrice = palletQty * palletWeight * pricePerKg;
+  }
+
   // Aplica extras ao preço unitário
   for (const extra of selectedExtras) {
     if (!extra.value || extra.value <= 0) continue;

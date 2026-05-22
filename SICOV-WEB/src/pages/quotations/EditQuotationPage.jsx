@@ -40,6 +40,12 @@ function calcAdHocUnitPrice(item) {
   if (cm === 'boxes_times_box_price') return boxPrice;
   if (cm === 'boxes_times_units_per_box_times_unit_price') return unitsPerBox * unitPriceManual;
   if (cm === 'manual_price') return unitPriceManual || basePrice;
+  if (cm === 'pallet') {
+    const palletQty = parseNum(item.palletQuantity);
+    const palletWeight = parseNum(item.palletWeight);
+    if (palletQty && palletWeight && basePrice) return palletQty * palletWeight * basePrice;
+    return 0;
+  }
   return unitPriceManual;
 }
 
@@ -328,6 +334,7 @@ export function EditQuotationPage() {
                         <option value="quantity_times_unit_price">Qtd × Preço Unitário</option>
                         <option value="boxes_times_box_price">Caixas × Preço/Caixa</option>
                         <option value="boxes_times_units_per_box_times_unit_price">Caixas × Un/Cx × Preço Un.</option>
+                        <option value="pallet">Palete (Qtd × Peso × Preço/kg)</option>
                         <option value="manual_price">Preço Manual</option>
                       </select>
                     </div>
@@ -353,6 +360,14 @@ export function EditQuotationPage() {
                     <div className="grid grid-cols-2 gap-2">
                       <Input label="Un/Caixa" type="number" step="1" value={item.unitsPerBox || ''} onChange={(e) => updateItem(i, 'unitsPerBox', e.target.value)} />
                       <Input label="Preço Unitário (R$)" type="number" step="any" value={item.unitPrice || ''} onChange={(e) => updateItem(i, 'unitPrice', e.target.value)} />
+                    </div>
+                  )}
+
+                  {item.calculationMode === 'pallet' && (
+                    <div className="grid grid-cols-3 gap-2">
+                      <Input label="Qtd por Palete" type="number" step="1" value={item.palletQuantity || ''} onChange={(e) => updateItem(i, 'palletQuantity', e.target.value)} />
+                      <Input label="Peso (kg)" type="number" step="any" value={item.palletWeight || ''} onChange={(e) => updateItem(i, 'palletWeight', e.target.value)} />
+                      <Input label="Preço/kg (R$)" type="number" step="any" value={item.basePrice || ''} onChange={(e) => updateItem(i, 'basePrice', e.target.value)} />
                     </div>
                   )}
 
