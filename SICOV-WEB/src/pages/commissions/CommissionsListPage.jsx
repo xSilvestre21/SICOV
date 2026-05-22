@@ -348,7 +348,7 @@ export function CommissionsListPage() {
                       </span>
                     </div>
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-1 sm:gap-2">
                         <p className="text-sm font-medium text-[#4b5757]">
                           Pedido #{c.orderNumber ?? '—'}
                         </p>
@@ -361,7 +361,7 @@ export function CommissionsListPage() {
                         {c.projected && !c.installmentsCreated && <Badge variant="pending">Parcela {c.installmentIndex || ''}</Badge>}
                         {c.status === 'cancelled' && <Badge variant="cancelled">Cancelada</Badge>}
                       </div>
-                      <p className="text-xs text-gray-400 mt-0.5">
+                      <p className="text-xs text-gray-400 mt-0.5 truncate">
                         {c.supplierName ? `${c.supplierName}` : ''}
                         {c.customerPurchaseOrder ? ` · PC: ${c.customerPurchaseOrder}` : ''}
                         {' · '}{c.deliveryDate ? new Date(c.deliveryDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : `${c.period?.month}/${c.period?.year}`}

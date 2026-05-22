@@ -212,15 +212,15 @@ export function CancelledOrdersChart() {
       <CardBody>
         {/* Group By Selector */}
         {!loading && !error && (
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex flex-wrap items-center gap-2 mb-4">
             <span className="text-xs text-[#7c8a6e]">Agrupar:</span>
-            <div className="inline-flex items-center gap-1 rounded-lg bg-[#e3e3d1]/50 p-1">
+            <div className="inline-flex flex-wrap items-center gap-1 rounded-lg bg-[#e3e3d1]/50 p-1">
               {GROUP_BY_OPTIONS.map(({ value, label }) => (
                 <button
                   key={value}
                   type="button"
                   onClick={() => setGroupBy(value)}
-                  className={`px-2 py-1 text-xs rounded-md transition-colors ${
+                  className={`px-2 py-1 text-xs rounded-md transition-colors whitespace-nowrap ${
                     groupBy === value
                       ? 'bg-[#58706d] text-white shadow-sm'
                       : 'text-[#4b5757] hover:bg-[#e3e3d1]'
@@ -235,14 +235,14 @@ export function CancelledOrdersChart() {
 
         {/* Overall Metrics */}
         {!loading && !error && chartData.length > 0 && (
-          <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
             <div className="bg-[#e3e3d1]/30 rounded-lg p-3 text-center">
               <p className="text-xs text-[#7c8a6e]">Qtd. Cancelados</p>
               <p className="text-lg font-semibold text-[#4b5757]">{cancelledCount}</p>
             </div>
             <div className="bg-[#e3e3d1]/30 rounded-lg p-3 text-center">
               <p className="text-xs text-[#7c8a6e]">Valor Cancelado</p>
-              <p className="text-lg font-semibold text-[#4b5757]">
+              <p className="text-base sm:text-lg font-semibold text-[#4b5757]">
                 {formatCurrency(cancelledValue)}
               </p>
             </div>
