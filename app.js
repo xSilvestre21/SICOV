@@ -58,10 +58,10 @@ app.use(
 // ── Rate limiting: proteção contra brute force e abuso ───────────────────────
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 5,
+  max: 30, // Proteção contra bots — controle fino é feito no frontend por email
   standardHeaders: true,
   legacyHeaders: false,
-  message: { message: 'Conta bloqueada temporariamente. Tente novamente em 15 minutos.' },
+  message: { message: 'Muitas tentativas. Tente novamente mais tarde.' },
   skip: () => process.env.NODE_ENV === 'test',
 });
 

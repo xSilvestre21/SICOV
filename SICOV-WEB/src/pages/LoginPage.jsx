@@ -1,8 +1,46 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
+
+const MAX_ATTEMPTS = 5;
+const BLOCK_DURATION_MS = 15 * 60 * 1000; // 15 minutos
+
+/** Retorna a chave do localStorage para tentativas de um email */
+function attemptsKey(email) {
+  return `sicov_attempts_${email.toLowerCase().trim()}`;
+}
+
+/** Retorna a chave do localStorage para bloqueio de um email */
+function blockKey(email) {
+  return `sicov_blocked_${email.toLowerCase().trim()}`;
+}
+
+/** Retorna dados de tentativas do localStorage */
+function getAttempts(email) {
+  try {
+    const raw = localStorage.getItem(attemptsKey(email));
+    if (!raw) return 0;
+    return Number(raw);
+  } catch { return 0; }
+}
+
+/** Retorna timestamp de bloqueio (ou null se não bloqueado) */
+function getBlockedUntil(email) {
+  try {
+    const raw = localStorage.getItem(blockKey(email));
+    if (!raw) return null;
+    const until = Number(raw);
+    if (Date.now() >= until) {
+      // Expirou — limpa
+      localStorage.removeItem(blockKey(email));
+      localStorage.removeItem(attemptsKey(email));
+      return null;
+    }
+    return until;
+  } catch { return null; }
+}
 
 export function LoginPage() {
   const { login } = useAuth();
@@ -15,43 +53,49 @@ export function LoginPage() {
   const [countdown, setCountdown] = useState(0);
   const timerRef = useRef(null);
 
-  // Ao montar, verifica se há bloqueio salvo no localStorage
-  useEffect(() => {
-    const blockedUntil = localStorage.getItem('sicov_blocked_until');
-    if (blockedUntil) {
-      const remaining = Math.floor((Number(blockedUntil) - Date.now()) / 1000);
-      if (remaining > 0) {
-        setBlocked(true);
-        setCountdown(remaining);
-        setError('Conta bloqueada temporariamente.');
-      } else {
-        localStorage.removeItem('sicov_blocked_until');
-      }
+  // Verifica bloqueio ao digitar email
+  const checkBlock = useCallback((email) => {
+    if (!email) { setBlocked(false); setCountdown(0); setError(''); return; }
+    const until = getBlockedUntil(email);
+    if (until) {
+      const remaining = Math.ceil((until - Date.now()) / 1000);
+      setBlocked(true);
+      setCountdown(remaining);
+      setError('Conta bloqueada temporariamente neste dispositivo.');
+    } else {
+      setBlocked(false);
+      setCountdown(0);
     }
   }, []);
 
+  // Ao montar ou trocar email, verifica bloqueio
+  useEffect(() => {
+    checkBlock(form.email);
+  }, [form.email, checkBlock]);
+
   // Countdown timer
   useEffect(() => {
-    if (countdown <= 0) {
-      setBlocked(false);
-      localStorage.removeItem('sicov_blocked_until');
-      if (timerRef.current) clearInterval(timerRef.current);
-      return;
-    }
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (!blocked || countdown <= 0) return;
+
     timerRef.current = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
           setBlocked(false);
           setError('');
-          localStorage.removeItem('sicov_blocked_until');
+          if (form.email) {
+            localStorage.removeItem(blockKey(form.email));
+            localStorage.removeItem(attemptsKey(form.email));
+          }
           clearInterval(timerRef.current);
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
+
     return () => clearInterval(timerRef.current);
-  }, [blocked]);
+  }, [blocked, form.email]);
 
   const formatTime = (seconds) => {
     const min = Math.floor(seconds / 60);
@@ -64,20 +108,39 @@ export function LoginPage() {
     if (blocked) return;
     setError('');
     setLoading(true);
+
+    const email = form.email.toLowerCase().trim();
+
     try {
-      await login(form.email, form.password);
+      await login(email, form.password);
+      // Login OK — limpa tentativas
+      localStorage.removeItem(attemptsKey(email));
+      localStorage.removeItem(blockKey(email));
       navigate('/');
     } catch (err) {
       const status = err.response?.status;
       const message = err.response?.data?.message || 'Erro ao fazer login.';
 
-      if (status === 429) {
-        // Bloqueado pelo rate limiter — salva no localStorage para persistir entre reloads
-        const blockedUntil = Date.now() + 15 * 60 * 1000;
-        localStorage.setItem('sicov_blocked_until', String(blockedUntil));
-        setBlocked(true);
-        setCountdown(15 * 60); // 15 minutos
-        setError('Conta bloqueada temporariamente.');
+      if (status === 401 || status === 429) {
+        // Incrementa tentativas no localStorage
+        const attempts = getAttempts(email) + 1;
+        localStorage.setItem(attemptsKey(email), String(attempts));
+
+        if (attempts >= MAX_ATTEMPTS) {
+          // Bloqueia
+          const until = Date.now() + BLOCK_DURATION_MS;
+          localStorage.setItem(blockKey(email), String(until));
+          setBlocked(true);
+          setCountdown(Math.ceil(BLOCK_DURATION_MS / 1000));
+          setError('Conta bloqueada temporariamente neste dispositivo.');
+        } else {
+          const remaining = MAX_ATTEMPTS - attempts;
+          if (remaining <= 3) {
+            setError(`Credenciais inválidas. ${remaining} tentativa${remaining !== 1 ? 's' : ''} restante${remaining !== 1 ? 's' : ''} antes do bloqueio.`);
+          } else {
+            setError('Credenciais inválidas.');
+          }
+        }
       } else {
         setError(message);
       }
