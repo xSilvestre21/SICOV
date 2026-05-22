@@ -710,58 +710,34 @@ async function aggregateCommissionsOverview({ month, year, granularity, represen
  * @param {string} [params.representativeId] - ID do representante (para controle de acesso)
  * @returns {Promise<{cancelledCount: number, cancelledValue: number, cancellationRate: number, data: Array}>}
  */
-async function aggregateCancelledOrders({ month, year, granularity, groupBy = 'period', representativeId }) {
-  // Usa comissões como fonte de verdade para determinar quais pedidos pertencem ao período
-  const commissionPeriodFilter = granularity === 'annual'
-    ? buildPeriodFilter(month, year, 'annual')
-    : buildPeriodFilter(month, year);
+async function aggregateCancelledOrders({ month, year, granularity, representativeId }) {
+  // Busca diretamente os pedidos cancelados do período usando deliveryDate/createdAt
+  const periodFilter = buildOrderPeriodFilter(month, year, granularity);
   const repFilter = representativeId ? { representativeId: toObjectId(representativeId) } : {};
 
-  // Step 1: Buscar todos os orderIds de comissões do período (excluindo parcelas para não duplicar)
-  const allOrdersPipeline = [
-    {
-      $match: {
-        installmentIndex: null, // Exclui parcelas
-        ...commissionPeriodFilter,
-        ...repFilter,
-      },
-    },
-    { $group: { _id: null, orderIds: { $addToSet: '$orderId' } } },
-  ];
+  // Total de pedidos no período (ativos + cancelados)
+  const totalOrders = await Order.countDocuments({ ...periodFilter, ...repFilter });
 
-  const allResult = await Commission.aggregate(allOrdersPipeline);
-  const allOrderIds = allResult.length > 0 ? allResult[0].orderIds : [];
-
-  if (allOrderIds.length === 0) {
+  if (totalOrders === 0) {
     return { cancelledCount: 0, cancelledValue: 0, cancellationRate: 0, data: [] };
   }
 
-  // Step 2: Contar total de pedidos no período
-  const totalOrders = await Order.countDocuments({ _id: { $in: allOrderIds } });
-
-  // Step 3: Determine groupBy field for aggregation
-  // Usa createdAt como referência para agrupamento por período (sempre válido)
-  const groupByField = {
-    period: { month: { $month: '$createdAt' }, year: { $year: '$createdAt' } },
-    client: '$clientId',
-    representative: '$representativeId',
-  }[groupBy];
-
-  // Step 4: Get cancelled orders metrics
+  // Pedidos cancelados agrupados por cliente
   const pipeline = [
-    { $match: { _id: { $in: allOrderIds }, status: 'cancelled' } },
+    { $match: { status: 'cancelled', ...periodFilter, ...repFilter } },
     {
       $group: {
-        _id: groupByField,
+        _id: '$clientId',
+        clientName: { $first: '$clientSnapshot.tradeName' },
         cancelledCount: { $sum: 1 },
         cancelledValue: { $sum: '$subtotal' },
       },
     },
+    { $sort: { cancelledValue: -1 } },
   ];
 
   const results = await Order.aggregate(pipeline);
 
-  // Step 5: Calculate overall metrics
   const totalCancelled = results.reduce((sum, r) => sum + r.cancelledCount, 0);
   const totalCancelledValue = results.reduce((sum, r) => sum + r.cancelledValue, 0);
   const cancellationRate =
@@ -772,12 +748,10 @@ async function aggregateCancelledOrders({ month, year, granularity, groupBy = 'p
     cancelledValue: Math.round(totalCancelledValue * 100) / 100,
     cancellationRate,
     data: results.map((r) => ({
-      groupKey: JSON.stringify(r._id),
-      groupLabel: '',
+      clientId: r._id,
+      clientName: r.clientName || 'Desconhecido',
       cancelledCount: r.cancelledCount,
       cancelledValue: Math.round(r.cancelledValue * 100) / 100,
-      cancellationRate:
-        totalOrders > 0 ? Math.round((r.cancelledCount / totalOrders) * 1000) / 10 : 0,
     })),
   };
 }

@@ -215,8 +215,8 @@ async function getClientDetail(req, res) {
 
 /**
  * GET /dashboard/cancelled-orders
- * Query params: month (1-12), year (4 digits), groupBy ('period'|'client'|'representative')
- * Returns: { cancelledCount, cancelledValue, cancellationRate, data }
+ * Query params: month (1-12), year (4 digits), granularity ('monthly'|'annual')
+ * Returns: { cancelledCount, cancelledValue, cancellationRate, data: [{clientId, clientName, cancelledCount, cancelledValue}] }
  */
 async function getCancelledOrders(req, res) {
   try {
@@ -225,13 +225,7 @@ async function getCancelledOrders(req, res) {
       return res.status(400).json({ message: errors.join('; ') });
     }
 
-    const { groupBy, granularity } = req.query;
-    if (groupBy && !['period', 'client', 'representative'].includes(groupBy)) {
-      return res.status(400).json({
-        message: 'groupBy deve ser "period", "client" ou "representative"',
-      });
-    }
-
+    const { granularity } = req.query;
     const { month: defaultMonth, year: defaultYear } = getDefaultPeriod();
     const month = req.query.month ? Number(req.query.month) : defaultMonth;
     const year = req.query.year ? Number(req.query.year) : defaultYear;
@@ -242,18 +236,10 @@ async function getCancelledOrders(req, res) {
       month,
       year,
       granularity,
-      groupBy: groupBy || 'period',
       representativeId,
     });
 
-    const sanitizedData = sanitizeForRepresentative(result.data, req.user.profile);
-
-    return res.json({
-      cancelledCount: result.cancelledCount,
-      cancelledValue: result.cancelledValue,
-      cancellationRate: result.cancellationRate,
-      data: sanitizedData,
-    });
+    return res.json(result);
   } catch (err) {
     console.error('[getCancelledOrders]', err.message);
     return res.status(500).json({ message: 'Erro ao buscar dados do dashboard' });

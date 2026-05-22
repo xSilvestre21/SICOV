@@ -31,12 +31,6 @@ const CHART_STYLES = [
   { id: 'pie', label: 'Pizza', icon: PieChartIcon },
 ];
 
-const GROUP_BY_OPTIONS = [
-  { value: 'period', label: 'Por Período' },
-  { value: 'client', label: 'Por Cliente' },
-  { value: 'representative', label: 'Por Representante' },
-];
-
 const COLORS = [
   '#1E40AF', '#9F1239', '#065F46', '#EAB308', '#6D28D9',
   '#155E75', '#7C2D12', '#1E3A5F', '#831843', '#334155',
@@ -61,15 +55,12 @@ function CustomTooltip({ active, payload }) {
   const item = payload[0].payload;
   return (
     <div className="bg-white border border-[#e3e3d1] rounded-lg shadow-lg px-3 py-2">
-      <p className="text-sm font-medium text-[#4b5757]">{item.groupLabel}</p>
+      <p className="text-sm font-medium text-[#4b5757]">{item.clientName}</p>
       <p className="text-sm text-[#7c8a6e]">
         Quantidade: {item.cancelledCount}
       </p>
       <p className="text-sm text-[#7c8a6e]">
         Valor: {formatCurrency(item.cancelledValue)}
-      </p>
-      <p className="text-sm text-[#7c8a6e]">
-        Taxa: {formatRate(item.cancellationRate)}
       </p>
     </div>
   );
@@ -95,19 +86,22 @@ function SkeletonChart() {
 function BarChartView({ data }) {
   return (
     <ResponsiveContainer width="100%" height={300}>
-      <BarChart data={data} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+      <BarChart data={data} margin={{ top: 10, right: 10, left: 10, bottom: 40 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e3e3d1" />
         <XAxis
-          dataKey="groupLabel"
+          dataKey="clientName"
           tick={{ fontSize: 11, fill: '#4b5757' }}
           interval={0}
           angle={-20}
           textAnchor="end"
           height={60}
         />
-        <YAxis tick={{ fontSize: 11, fill: '#4b5757' }} allowDecimals={false} />
+        <YAxis
+          tick={{ fontSize: 11, fill: '#4b5757' }}
+          tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`}
+        />
         <Tooltip content={<CustomTooltip />} />
-        <Bar dataKey="cancelledCount" radius={[4, 4, 0, 0]} name="Cancelados">
+        <Bar dataKey="cancelledValue" radius={[4, 4, 0, 0]} name="Valor Cancelado">
           {data.map((_, index) => (
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
           ))}
@@ -120,26 +114,29 @@ function BarChartView({ data }) {
 function LineChartView({ data }) {
   return (
     <ResponsiveContainer width="100%" height={300}>
-      <LineChart data={data} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+      <LineChart data={data} margin={{ top: 10, right: 10, left: 10, bottom: 40 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e3e3d1" />
         <XAxis
-          dataKey="groupLabel"
+          dataKey="clientName"
           tick={{ fontSize: 11, fill: '#4b5757' }}
           interval={0}
           angle={-20}
           textAnchor="end"
           height={60}
         />
-        <YAxis tick={{ fontSize: 11, fill: '#4b5757' }} allowDecimals={false} />
+        <YAxis
+          tick={{ fontSize: 11, fill: '#4b5757' }}
+          tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`}
+        />
         <Tooltip content={<CustomTooltip />} />
         <Line
           type="monotone"
-          dataKey="cancelledCount"
+          dataKey="cancelledValue"
           stroke="#9F1239"
           strokeWidth={2}
           dot={{ fill: '#9F1239', r: 4 }}
           activeDot={{ r: 6 }}
-          name="Cancelados"
+          name="Valor Cancelado"
         />
       </LineChart>
     </ResponsiveContainer>
@@ -152,13 +149,13 @@ function PieChartView({ data }) {
       <PieChart>
         <Pie
           data={data}
-          dataKey="cancelledCount"
-          nameKey="groupLabel"
+          dataKey="cancelledValue"
+          nameKey="clientName"
           cx="50%"
           cy="50%"
           outerRadius={100}
-          label={({ groupLabel, percent }) =>
-            `${groupLabel?.substring(0, 12)}${groupLabel?.length > 12 ? '…' : ''} (${(percent * 100).toFixed(0)}%)`
+          label={({ clientName, percent }) =>
+            `${clientName?.substring(0, 12)}${clientName?.length > 12 ? '…' : ''} (${(percent * 100).toFixed(0)}%)`
           }
           labelLine={{ stroke: '#b0b087' }}
         >
@@ -179,14 +176,12 @@ function PieChartView({ data }) {
 
 export function CancelledOrdersChart() {
   const { month, year, granularity } = useDashboardFilters();
-  const [groupBy, setGroupBy] = useState('period');
   const [chartStyle, setChartStyle] = useState('bar');
 
   const { data, loading, error, retry } = useDashboardData('/dashboard/cancelled-orders', {
     month,
     year,
     granularity,
-    groupBy,
   });
 
   const chartData = data?.data || [];
@@ -210,29 +205,6 @@ export function CancelledOrdersChart() {
       </CardHeader>
 
       <CardBody>
-        {/* Group By Selector */}
-        {!loading && !error && (
-          <div className="flex flex-wrap items-center gap-2 mb-4">
-            <span className="text-xs text-[#7c8a6e]">Agrupar:</span>
-            <div className="inline-flex flex-wrap items-center gap-1 rounded-lg bg-[#e3e3d1]/50 p-1">
-              {GROUP_BY_OPTIONS.map(({ value, label }) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setGroupBy(value)}
-                  className={`px-2 py-1 text-xs rounded-md transition-colors whitespace-nowrap ${
-                    groupBy === value
-                      ? 'bg-[#58706d] text-white shadow-sm'
-                      : 'text-[#4b5757] hover:bg-[#e3e3d1]'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Overall Metrics */}
         {!loading && !error && chartData.length > 0 && (
           <div className="grid grid-cols-1 gap-2 mb-4">
