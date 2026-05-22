@@ -235,20 +235,20 @@ export function CancelledOrdersChart() {
 
         {/* Overall Metrics */}
         {!loading && !error && chartData.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+          <div className="grid grid-cols-3 gap-2 mb-4">
             <div className="bg-[#e3e3d1]/30 rounded-lg p-3 text-center">
               <p className="text-xs text-[#7c8a6e]">Qtd. Cancelados</p>
-              <p className="text-lg font-semibold text-[#4b5757]">{cancelledCount}</p>
+              <p className="text-xl font-semibold text-[#4b5757]">{cancelledCount}</p>
             </div>
-            <div className="bg-[#e3e3d1]/30 rounded-lg p-3 text-center">
+            <div className="bg-[#e3e3d1]/30 rounded-lg p-3 text-center overflow-hidden">
               <p className="text-xs text-[#7c8a6e]">Valor Cancelado</p>
-              <p className="text-base sm:text-lg font-semibold text-[#4b5757]">
+              <p className="text-sm font-semibold text-[#4b5757] truncate">
                 {formatCurrency(cancelledValue)}
               </p>
             </div>
             <div className="bg-[#e3e3d1]/30 rounded-lg p-3 text-center">
-              <p className="text-xs text-[#7c8a6e]">Taxa de Cancelamento</p>
-              <p className="text-lg font-semibold text-[#4b5757]">
+              <p className="text-xs text-[#7c8a6e]">Taxa</p>
+              <p className="text-xl font-semibold text-[#4b5757]">
                 {formatRate(cancellationRate)}
               </p>
             </div>
