@@ -39,6 +39,13 @@ function formatCurrency(value) {
   });
 }
 
+function formatCurrencyShort(value) {
+  const num = Number(value || 0);
+  if (num >= 1000000) return `R$${(num / 1000000).toFixed(1)}M`;
+  if (num >= 1000) return `R$${(num / 1000).toFixed(1)}k`;
+  return `R$${num.toFixed(0)}`;
+}
+
 function CustomTooltip({ active, payload }) {
   if (!active || !payload || !payload.length) return null;
 
@@ -47,8 +54,7 @@ function CustomTooltip({ active, payload }) {
     <div className="bg-white border border-[#e3e3d1] rounded-lg shadow-lg px-3 py-2 max-w-xs">
       <p className="text-sm font-medium text-[#4b5757]">{item.supplierName}</p>
       <p className="text-sm text-[#7c8a6e]">Receita: {formatCurrency(item.totalRevenue)}</p>
-      <p className="text-sm text-[#7c8a6e]">Comissão Total: {formatCurrency(item.totalPool)}</p>
-      <p className="text-sm text-[#7c8a6e]">% Comissão: {item.commissionPercentage}%</p>
+      <p className="text-sm text-[#7c8a6e]">Comissão: {formatCurrency(item.totalPool)} ({item.commissionPercentage}%)</p>
       <p className="text-sm text-[#7c8a6e]">Admin: {formatCurrency(item.totalAdminCommission)}</p>
       <p className="text-sm text-[#7c8a6e]">Rep: {formatCurrency(item.totalRepresentativeCommission)}</p>
       <p className="text-sm text-[#7c8a6e]">Pedidos: {item.orderCount}</p>
@@ -76,19 +82,20 @@ function SkeletonChart() {
 function VerticalBarChart({ data }) {
   return (
     <ResponsiveContainer width="100%" height={300}>
-      <BarChart data={data} margin={{ top: 10, right: 10, left: 10, bottom: 40 }}>
+      <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 40 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e3e3d1" />
         <XAxis
           dataKey="supplierName"
-          tick={{ fontSize: 11, fill: '#4b5757' }}
+          tick={{ fontSize: 10, fill: '#4b5757' }}
           angle={-35}
           textAnchor="end"
           interval={0}
           height={60}
         />
         <YAxis
-          tick={{ fontSize: 11, fill: '#4b5757' }}
-          tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`}
+          tick={{ fontSize: 10, fill: '#4b5757' }}
+          tickFormatter={formatCurrencyShort}
+          width={55}
         />
         <Tooltip content={<CustomTooltip />} />
         <Bar dataKey="totalRevenue" radius={[4, 4, 0, 0]} name="Receita">
@@ -103,23 +110,23 @@ function VerticalBarChart({ data }) {
 
 function HorizontalBarChart({ data }) {
   return (
-    <ResponsiveContainer width="100%" height={Math.max(300, data.length * 40)}>
+    <ResponsiveContainer width="100%" height={Math.max(250, data.length * 50)}>
       <BarChart
         data={data}
         layout="vertical"
-        margin={{ top: 10, right: 10, left: 10, bottom: 10 }}
+        margin={{ top: 10, right: 10, left: 0, bottom: 10 }}
       >
         <CartesianGrid strokeDasharray="3 3" stroke="#e3e3d1" />
         <XAxis
           type="number"
-          tick={{ fontSize: 11, fill: '#4b5757' }}
-          tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`}
+          tick={{ fontSize: 10, fill: '#4b5757' }}
+          tickFormatter={formatCurrencyShort}
         />
         <YAxis
           type="category"
           dataKey="supplierName"
           tick={{ fontSize: 11, fill: '#4b5757' }}
-          width={120}
+          width={80}
         />
         <Tooltip content={<CustomTooltip />} />
         <Bar dataKey="totalRevenue" radius={[0, 4, 4, 0]} name="Receita">
@@ -142,7 +149,7 @@ function PieChartView({ data }) {
           nameKey="supplierName"
           cx="50%"
           cy="50%"
-          outerRadius={100}
+          outerRadius={90}
           label={({ supplierName, percent }) =>
             `${supplierName?.substring(0, 10)}${supplierName?.length > 10 ? '…' : ''} (${(percent * 100).toFixed(0)}%)`
           }
@@ -170,7 +177,7 @@ export function SuppliersComparisonChart() {
     year,
     granularity,
   });
-  const [chartStyle, setChartStyle] = useState('horizontalBar');
+  const [chartStyle, setChartStyle] = useState('bar');
 
   const chartData = data?.data || [];
 
@@ -184,7 +191,7 @@ export function SuppliersComparisonChart() {
     <Card>
       <CardHeader className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-[#4b5757]">Comparativo de Fornecedores</h3>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           {!loading && !error && chartData.length > 0 && (
             <>
               <button
@@ -215,56 +222,23 @@ export function SuppliersComparisonChart() {
       <CardBody>
         {/* Summary metrics */}
         {!loading && !error && chartData.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-            <div className="bg-[#e3e3d1]/30 rounded-lg p-3 text-center">
-              <p className="text-xs text-[#7c8a6e]">Fornecedores</p>
-              <p className="text-lg font-semibold text-[#4b5757]">{chartData.length}</p>
-            </div>
+          <div className="grid grid-cols-2 gap-3 mb-4">
             <div className="bg-[#e3e3d1]/30 rounded-lg p-3 text-center">
               <p className="text-xs text-[#7c8a6e]">Receita Total</p>
-              <p className="text-sm sm:text-base font-semibold text-[#4b5757]">{formatCurrency(totalRevenue)}</p>
+              <p className="text-sm font-semibold text-[#4b5757]">{formatCurrencyShort(totalRevenue)}</p>
             </div>
             <div className="bg-[#e3e3d1]/30 rounded-lg p-3 text-center">
               <p className="text-xs text-[#7c8a6e]">Comissão Total</p>
-              <p className="text-sm sm:text-base font-semibold text-[#4b5757]">{formatCurrency(totalPool)}</p>
+              <p className="text-sm font-semibold text-[#4b5757]">{formatCurrencyShort(totalPool)}</p>
             </div>
             <div className="bg-[#e3e3d1]/30 rounded-lg p-3 text-center">
-              <p className="text-xs text-[#7c8a6e]">% Média</p>
+              <p className="text-xs text-[#7c8a6e]">% Média Comissão</p>
               <p className="text-lg font-semibold text-[#4b5757]">{avgCommission}%</p>
             </div>
-          </div>
-        )}
-
-        {/* Table view with details */}
-        {!loading && !error && chartData.length > 0 && (
-          <div className="overflow-x-auto mb-4">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b border-[#e3e3d1]">
-                  <th className="text-left py-2 px-2 text-[#7c8a6e] font-medium">Fornecedor</th>
-                  <th className="text-right py-2 px-2 text-[#7c8a6e] font-medium">Receita</th>
-                  <th className="text-right py-2 px-2 text-[#7c8a6e] font-medium">Comissão</th>
-                  <th className="text-right py-2 px-2 text-[#7c8a6e] font-medium">%</th>
-                  <th className="text-right py-2 px-2 text-[#7c8a6e] font-medium">Pedidos</th>
-                </tr>
-              </thead>
-              <tbody>
-                {chartData.map((s, i) => (
-                  <tr key={s.supplierId || i} className="border-b border-[#e3e3d1]/50">
-                    <td className="py-2 px-2 text-[#4b5757] font-medium">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                        <span className="truncate max-w-[120px] sm:max-w-none">{s.supplierName}</span>
-                      </div>
-                    </td>
-                    <td className="py-2 px-2 text-right text-[#4b5757]">{formatCurrency(s.totalRevenue)}</td>
-                    <td className="py-2 px-2 text-right text-[#4b5757]">{formatCurrency(s.totalPool)}</td>
-                    <td className="py-2 px-2 text-right text-[#4b5757]">{s.commissionPercentage}%</td>
-                    <td className="py-2 px-2 text-right text-[#4b5757]">{s.orderCount}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="bg-[#e3e3d1]/30 rounded-lg p-3 text-center">
+              <p className="text-xs text-[#7c8a6e]">Total Pedidos</p>
+              <p className="text-lg font-semibold text-[#4b5757]">{totalOrders}</p>
+            </div>
           </div>
         )}
 
@@ -297,6 +271,27 @@ export function SuppliersComparisonChart() {
             {chartStyle === 'pie' && <PieChartView data={chartData} />}
             {chartStyle === 'horizontalBar' && <HorizontalBarChart data={chartData} />}
           </>
+        )}
+
+        {/* Detalhes por fornecedor — cards no mobile, mais legível */}
+        {!loading && !error && chartData.length > 0 && (
+          <div className="mt-4 space-y-2">
+            {chartData.map((s, i) => (
+              <div key={s.supplierId || i} className="flex items-center gap-3 p-3 rounded-lg bg-[#e3e3d1]/20 border border-[#e3e3d1]/50">
+                <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-[#4b5757] truncate">{s.supplierName}</p>
+                  <p className="text-xs text-[#7c8a6e]">
+                    {s.orderCount} pedido{s.orderCount !== 1 ? 's' : ''} · {s.commissionPercentage}% comissão
+                  </p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-sm font-semibold text-[#4b5757]">{formatCurrencyShort(s.totalRevenue)}</p>
+                  <p className="text-xs text-[#7c8a6e]">Com: {formatCurrencyShort(s.totalPool)}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </CardBody>
     </Card>
