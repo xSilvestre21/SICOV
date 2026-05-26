@@ -14,6 +14,21 @@ function formatCnpj(v) {
   return v;
 }
 
+function formatPhone(v) {
+  if (!v) return '—';
+  const d = String(v).replace(/\D/g, '');
+  if (d.length === 11) return d.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3');
+  if (d.length === 10) return d.replace(/^(\d{2})(\d{4})(\d{4})$/, '($1) $2-$3');
+  return v;
+}
+
+function formatCep(v) {
+  if (!v) return '—';
+  const d = String(v).replace(/\D/g, '');
+  if (d.length === 8) return d.replace(/^(\d{5})(\d{3})$/, '$1-$2');
+  return v;
+}
+
 function formatCurrency(v) {
   if (v == null) return '—';
   return Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -83,7 +98,7 @@ export function SupplierDetailPage() {
             <InfoRow label="IPI" value={`${supplier.ipi}%`} />
             <InfoRow label="Nº Pedido Atual" value={supplier.currentOrderNumber} />
             <InfoRow label="Email" value={supplier.email} />
-            <InfoRow label="Telefone" value={supplier.phone} />
+            <InfoRow label="Telefone" value={formatPhone(supplier.phone)} />
           </CardBody>
         </Card>
         <Card>
@@ -91,7 +106,7 @@ export function SupplierDetailPage() {
           <CardBody className="space-y-2 text-sm">
             <InfoRow label="Endereço" value={supplier.address} />
             <InfoRow label="Cidade/UF" value={[supplier.city, supplier.state].filter(Boolean).join('/')} />
-            <InfoRow label="CEP" value={supplier.zipCode} />
+            <InfoRow label="CEP" value={formatCep(supplier.zipCode)} />
             <InfoRow label="Logo" value={supplier.logoUrl} />
           </CardBody>
         </Card>
@@ -106,7 +121,11 @@ export function SupplierDetailPage() {
                 <tr>
                   <th className="text-left px-4 py-2 font-medium text-[#4b5757]">Material</th>
                   <th className="text-right px-4 py-2 font-medium text-[#4b5757]">Fator Kg</th>
+                  <th className="text-right px-4 py-2 font-medium text-[#4b5757]">Limite</th>
                   <th className="text-right px-4 py-2 font-medium text-[#4b5757]">Densidade</th>
+                  {supplier.priceTable.some((r) => r.weightFrom != null || r.weightTo != null) && (
+                    <th className="text-right px-4 py-2 font-medium text-[#4b5757]">Faixa (kg)</th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#e3e3d1]">
@@ -114,7 +133,15 @@ export function SupplierDetailPage() {
                   <tr key={i}>
                     <td className="px-4 py-2 font-medium text-[#4b5757]">{row.material}</td>
                     <td className="px-4 py-2 text-right text-gray-600">{row.factorKg != null ? formatCurrency(row.factorKg) : '—'}</td>
+                    <td className="px-4 py-2 text-right text-gray-600">{row.limitFactorKg != null ? formatCurrency(row.limitFactorKg) : '—'}</td>
                     <td className="px-4 py-2 text-right text-gray-600">{row.density != null ? Number(row.density).toLocaleString('pt-BR', { maximumFractionDigits: 4 }) : '—'}</td>
+                    {supplier.priceTable.some((r) => r.weightFrom != null || r.weightTo != null) && (
+                      <td className="px-4 py-2 text-right text-gray-600">
+                        {row.weightFrom != null || row.weightTo != null
+                          ? `${row.weightFrom ?? 0} – ${row.weightTo ?? '∞'}`
+                          : '—'}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
