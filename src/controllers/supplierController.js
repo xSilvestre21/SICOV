@@ -321,6 +321,7 @@ async function updateSupplier(req, res) {
       currentOrderNumber,
       ipi,
       priceTable,
+      extras,
       minimumOrderTable,
       allowedRepresentatives,
     } = req.body;
