@@ -37,10 +37,40 @@ function normalizePriceTable(priceTable) {
         factorKg = parseBrazilianNumber(item.factorKg);
       }
 
+      let limitFactorKg;
+      if (
+        item.limitFactorKg !== undefined &&
+        item.limitFactorKg !== null &&
+        item.limitFactorKg !== ''
+      ) {
+        limitFactorKg = parseBrazilianNumber(item.limitFactorKg);
+      }
+
+      let weightFrom;
+      if (
+        item.weightFrom !== undefined &&
+        item.weightFrom !== null &&
+        item.weightFrom !== ''
+      ) {
+        weightFrom = parseBrazilianNumber(item.weightFrom);
+      }
+
+      let weightTo;
+      if (
+        item.weightTo !== undefined &&
+        item.weightTo !== null &&
+        item.weightTo !== ''
+      ) {
+        weightTo = parseBrazilianNumber(item.weightTo);
+      }
+
       return {
         material,
         density,
         factorKg,
+        limitFactorKg,
+        weightFrom,
+        weightTo,
       };
     })
     .filter((item) => {
@@ -57,6 +87,10 @@ function normalizePriceTable(priceTable) {
 }
 
 function hasDuplicateMaterials(priceTable) {
+  // Permite mesmo material repetido se tem faixas de peso diferentes
+  const hasWeightRanges = priceTable.some((item) => item.weightFrom != null || item.weightTo != null);
+  if (hasWeightRanges) return false;
+
   const materials = priceTable.map((item) => item.material);
   const uniqueMaterials = new Set(materials);
 
@@ -157,6 +191,7 @@ async function createSupplier(req, res) {
           : 0,
       ipi: parsedIpi,
       priceTable: normalizedPriceTable,
+      extras: Array.isArray(extras) ? extras.filter((e) => e.name && e.value) : [],
       minimumOrderTable: Array.isArray(minimumOrderTable) ? minimumOrderTable : [],
       allowedRepresentatives: validAllowedRepresentatives,
       active: true,
@@ -379,6 +414,10 @@ async function updateSupplier(req, res) {
     supplier.ipi = parsedIpi;
     supplier.priceTable = normalizedPriceTable;
     supplier.allowedRepresentatives = validAllowedRepresentatives;
+
+    if (extras !== undefined) {
+      supplier.extras = Array.isArray(extras) ? extras.filter((e) => e.name && e.value) : [];
+    }
 
     if (minimumOrderTable !== undefined) {
       supplier.minimumOrderTable = Array.isArray(minimumOrderTable) ? minimumOrderTable : [];
