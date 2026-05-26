@@ -253,7 +253,7 @@ export function NewQuotationPage() {
     if (!sup?.priceTable?.length) return {};
     const match = sup.priceTable.find((p) => p.material.toLowerCase() === material.toLowerCase());
     if (!match) return {};
-    return { density: match.density, factorKg: match.factorKg };
+    return { density: match.density, factorKg: match.factorKg, limitFactorKg: match.limitFactorKg };
   };
 
   const selectedSupplierObj = suppliers.find((s) => s._id === supplierId);
@@ -498,6 +498,12 @@ export function NewQuotationPage() {
                       )}
                       <Input label="Densidade" type="number" step="any" value={item.density || ''} onChange={(e) => updateItem(i, 'density', e.target.value)} placeholder={hint.density ? `${Number(hint.density).toLocaleString('pt-BR', { maximumFractionDigits: 4 })}` : ''} />
                       <Input label="Fator Kg (R$)" type="number" step="any" value={item.factorKg || ''} onChange={(e) => updateItem(i, 'factorKg', e.target.value)} placeholder={hint.factorKg ? `Dica: R$ ${Number(hint.factorKg).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : ''} />
+                      {hint.limitFactorKg && item.factorKg && Number(item.factorKg) < Number(hint.limitFactorKg) && (
+                        <div className="col-span-2 sm:col-span-5 flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
+                          <svg className="w-4 h-4 text-amber-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
+                          <p className="text-xs text-amber-700">Fator abaixo do limite (R$ {Number(hint.limitFactorKg).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}). Comissão será de apenas 3%.</p>
+                        </div>
+                      )}
                     </div>
                     );
                   })()}

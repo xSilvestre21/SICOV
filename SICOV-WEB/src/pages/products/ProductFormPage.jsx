@@ -233,14 +233,20 @@ export function ProductFormPage() {
       (item) => item.material && item.material.toLowerCase() === form.material.toLowerCase()
     );
     if (matches.length === 0) return {};
-    // Se tem faixas de peso, pega o primeiro como dica padrão
     const match = matches[0];
     return {
       density: match.density,
       factorKg: match.factorKg,
+      limitFactorKg: match.limitFactorKg,
       hasWeightRanges: matches.some((m) => m.weightFrom != null || m.weightTo != null),
       ranges: matches,
     };
+  })();
+
+  // Alerta quando o fator kg está abaixo do limite do fornecedor
+  const factorBelowLimit = (() => {
+    if (!supplierHint.limitFactorKg || !form.factorKg) return false;
+    return Number(form.factorKg) < Number(supplierHint.limitFactorKg);
   })();
 
   // Gera o nome do produto automaticamente: LARGURAxCOMPRIMENTOxESPESSURA SF SANFONA MATERIAL
@@ -489,6 +495,14 @@ export function ProductFormPage() {
                     return updated;
                   });
                 }} placeholder={supplierHint.factorKg ? `Dica: R$ ${Number(supplierHint.factorKg).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : ''} />
+                {factorBelowLimit && (
+                  <div className="col-span-2 sm:col-span-3 flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
+                    <svg className="w-4 h-4 text-amber-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
+                    <p className="text-xs text-amber-700">
+                      Fator abaixo do limite (R$ {Number(supplierHint.limitFactorKg).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}). Comissão será de apenas 3%.
+                    </p>
+                  </div>
+                )}
               </>
             )}
             {form.calculationMode === 'manual_price' && (

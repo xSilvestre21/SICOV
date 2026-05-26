@@ -23,6 +23,10 @@ const priceTableItemSchema = new mongoose.Schema(
       type: Number,
       min: 0,
     },
+    limitFactorKg: {
+      type: Number,
+      min: 0,
+    },
   },
   { _id: false },
 );
