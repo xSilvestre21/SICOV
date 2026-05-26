@@ -13,10 +13,10 @@ export function AppLayout() {
   const { isDark } = useTheme();
 
   return (
-    <div className={`flex h-screen overflow-hidden ${isDark ? 'bg-[#1e2322]' : 'bg-[#f5f5ee]'}`}>
+    <div className={`fixed inset-0 flex ${isDark ? 'bg-[#1e2322]' : 'bg-[#f5f5ee]'}`}>
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0">
         {/* Topbar mobile */}
         <header className={`lg:hidden flex items-center gap-3 px-4 py-3 border-b shrink-0 ${isDark ? 'bg-[#2a2f2e] border-[#3d4543]' : 'bg-white border-[#e3e3d1]'}`}>
           <button
