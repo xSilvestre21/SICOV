@@ -7,7 +7,7 @@ const api = axios.create({
 
 // Injeta o token JWT em todas as requisições
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('sicov_token');
+  const token = sessionStorage.getItem('sicov_token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -51,7 +51,7 @@ api.interceptors.response.use(
     }
 
     // Tenta renovar o token
-    const refreshToken = localStorage.getItem('sicov_refreshToken');
+    const refreshToken = sessionStorage.getItem('sicov_refreshToken');
     if (!refreshToken) {
       // Sem refresh token — apenas rejeita (ProtectedRoute vai redirecionar)
       return Promise.reject(err);
@@ -63,7 +63,7 @@ api.interceptors.response.use(
     try {
       const { data } = await axios.post('/api/auth/refresh', { refreshToken });
       const newToken = data.token;
-      localStorage.setItem('sicov_token', newToken);
+      sessionStorage.setItem('sicov_token', newToken);
       processQueue(null, newToken);
       originalRequest.headers.Authorization = `Bearer ${newToken}`;
       return api(originalRequest);
