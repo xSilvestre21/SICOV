@@ -19,6 +19,27 @@ const priceTableItemSchema = new mongoose.Schema(
   { _id: false },
 );
 
+const supplierExtraSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    chargeType: {
+      type: String,
+      enum: ['per_kg', 'per_thousand', 'per_unit', 'per_box', 'per_linear_meter', 'fixed'],
+      required: true,
+    },
+    value: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+  },
+  { _id: false },
+);
+
 const supplierSchema = new mongoose.Schema(
   {
     name: {
@@ -81,6 +102,10 @@ const supplierSchema = new mongoose.Schema(
     },
     priceTable: {
       type: [priceTableItemSchema],
+      default: [],
+    },
+    extras: {
+      type: [supplierExtraSchema],
       default: [],
     },
     minimumOrderTable: {

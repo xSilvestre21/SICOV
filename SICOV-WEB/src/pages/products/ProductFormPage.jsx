@@ -504,20 +504,83 @@ export function ProductFormPage() {
         <Card>
           <CardHeader className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-[#4b5757]">Extras</h2>
-            <Button type="button" variant="secondary" size="sm" onClick={addExtra}><Plus size={14} /> Adicionar</Button>
+            <Button type="button" variant="secondary" size="sm" onClick={addExtra}><Plus size={14} /> Manual</Button>
           </CardHeader>
-          <CardBody className="space-y-3">
-            {form.selectedExtras.length === 0 && <p className="text-sm text-gray-400 text-center py-2">Nenhum extra adicionado.</p>}
-            {form.selectedExtras.map((extra, i) => (
-              <div key={i} className="flex flex-col sm:flex-row gap-2 p-3 bg-[#f5f5ee] rounded-lg">
-                <input value={extra.name} onChange={(e) => updateExtra(i, 'name', e.target.value)} placeholder="Nome" className="flex-1 rounded-lg border border-[#b0b087] px-3 py-1.5 text-sm outline-none focus:border-[#58706d]" />
-                <select value={extra.chargeType} onChange={(e) => updateExtra(i, 'chargeType', e.target.value)} className="rounded-lg border border-[#b0b087] px-2 py-1.5 text-sm outline-none focus:border-[#58706d]">
-                  {chargeTypes.map((ct) => <option key={ct.value} value={ct.value}>{ct.label}</option>)}
-                </select>
-                <input type="number" step="any" value={extra.value} onChange={(e) => updateExtra(i, 'value', e.target.value)} placeholder="Valor" className="w-24 rounded-lg border border-[#b0b087] px-3 py-1.5 text-sm outline-none focus:border-[#58706d]" />
-                <button type="button" onClick={() => removeExtra(i)} className="p-1.5 text-red-400 hover:text-red-600"><Trash2 size={16} /></button>
+          <CardBody className="space-y-4">
+            {/* Extras do fornecedor (cards clicáveis) */}
+            {selectedSupplier?.extras?.length > 0 && (
+              <div>
+                <p className="text-xs text-[#7c8a6e] mb-2">Extras do fornecedor (clique para selecionar):</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {selectedSupplier.extras.map((extra, i) => {
+                    const isSelected = form.selectedExtras.some(
+                      (se) => se.source === 'supplier' && se.name === extra.name && se.chargeType === extra.chargeType
+                    );
+                    const chargeLabel = { per_kg: '/kg', per_thousand: '/mil', per_unit: '/un', per_box: '/cx', per_linear_meter: '/m', fixed: ' fixo' }[extra.chargeType] || '';
+                    return (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) {
+                            setForm((f) => ({
+                              ...f,
+                              selectedExtras: f.selectedExtras.filter(
+                                (se) => !(se.source === 'supplier' && se.name === extra.name && se.chargeType === extra.chargeType)
+                              ),
+                            }));
+                          } else {
+                            setForm((f) => ({
+                              ...f,
+                              selectedExtras: [...f.selectedExtras, { name: extra.name, chargeType: extra.chargeType, value: extra.value, source: 'supplier' }],
+                            }));
+                          }
+                        }}
+                        className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-all ${
+                          isSelected
+                            ? 'border-[#58706d] bg-[#58706d]/10'
+                            : 'border-[#e3e3d1] bg-white hover:border-[#b0b087]'
+                        }`}
+                      >
+                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 ${
+                          isSelected ? 'border-[#58706d] bg-[#58706d]' : 'border-[#b0b087]'
+                        }`}>
+                          {isSelected && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-[#4b5757] truncate">{extra.name}</p>
+                          <p className="text-xs text-[#7c8a6e]">R$ {Number(extra.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}{chargeLabel}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            ))}
+            )}
+
+            {/* Extras manuais */}
+            {form.selectedExtras.filter((e) => e.source !== 'supplier').length > 0 && (
+              <div>
+                <p className="text-xs text-[#7c8a6e] mb-2">Extras manuais:</p>
+                {form.selectedExtras.map((extra, i) => {
+                  if (extra.source === 'supplier') return null;
+                  return (
+                    <div key={i} className="flex flex-col sm:flex-row gap-2 p-3 bg-[#f5f5ee] rounded-lg mb-2">
+                      <input value={extra.name} onChange={(e) => updateExtra(i, 'name', e.target.value)} placeholder="Nome" className="flex-1 rounded-lg border border-[#b0b087] px-3 py-1.5 text-sm outline-none focus:border-[#58706d]" />
+                      <select value={extra.chargeType} onChange={(e) => updateExtra(i, 'chargeType', e.target.value)} className="rounded-lg border border-[#b0b087] px-2 py-1.5 text-sm outline-none focus:border-[#58706d]">
+                        {chargeTypes.map((ct) => <option key={ct.value} value={ct.value}>{ct.label}</option>)}
+                      </select>
+                      <input type="number" step="any" value={extra.value} onChange={(e) => updateExtra(i, 'value', e.target.value)} placeholder="Valor" className="w-24 rounded-lg border border-[#b0b087] px-3 py-1.5 text-sm outline-none focus:border-[#58706d]" />
+                      <button type="button" onClick={() => removeExtra(i)} className="p-1.5 text-red-400 hover:text-red-600"><Trash2 size={16} /></button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {form.selectedExtras.length === 0 && !selectedSupplier?.extras?.length && (
+              <p className="text-sm text-gray-400 text-center py-2">Nenhum extra disponível. Adicione manualmente ou cadastre extras no fornecedor.</p>
+            )}
           </CardBody>
         </Card>
 

@@ -42,7 +42,7 @@ export function SupplierFormPage() {
     name: '', tradeName: '', cnpj: '', stateRegistration: '',
     address: '', city: '', state: '', zipCode: '', phone: '', email: '',
     logoUrl: '', currentOrderNumber: '', ipi: '',
-    priceTable: [], minimumOrderTable: [], allowedRepresentatives: [],
+    priceTable: [], extras: [], minimumOrderTable: [], allowedRepresentatives: [],
   });
   const [representatives, setRepresentatives] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -65,6 +65,7 @@ export function SupplierFormPage() {
         phone: maskPhone(s.phone || ''), email: s.email || '', logoUrl: s.logoUrl || '',
         currentOrderNumber: s.currentOrderNumber ?? '', ipi: s.ipi ?? '',
         priceTable: s.priceTable || [],
+        extras: s.extras || [],
         minimumOrderTable: s.minimumOrderTable || [],
         allowedRepresentatives: (s.allowedRepresentatives || []).map((r) => r._id || r),
       }))
@@ -77,6 +78,10 @@ export function SupplierFormPage() {
   const addPriceRow = () => setForm((f) => ({ ...f, priceTable: [...f.priceTable, { material: '', factorKg: '', density: '' }] }));
   const removePriceRow = (i) => setForm((f) => ({ ...f, priceTable: f.priceTable.filter((_, idx) => idx !== i) }));
   const updatePriceRow = (i, field, value) => setForm((f) => ({ ...f, priceTable: f.priceTable.map((row, idx) => idx === i ? { ...row, [field]: value } : row) }));
+
+  const addExtraRow = () => setForm((f) => ({ ...f, extras: [...f.extras, { name: '', chargeType: 'per_kg', value: '' }] }));
+  const removeExtraRow = (i) => setForm((f) => ({ ...f, extras: f.extras.filter((_, idx) => idx !== i) }));
+  const updateExtraRow = (i, field, value) => setForm((f) => ({ ...f, extras: f.extras.map((row, idx) => idx === i ? { ...row, [field]: value } : row) }));
 
   const addMinOrderRow = () => setForm((f) => ({ ...f, minimumOrderTable: [...f.minimumOrderTable, { measureFrom: '', measureTo: '', minimumKg: '' }] }));
   const removeMinOrderRow = (i) => setForm((f) => ({ ...f, minimumOrderTable: f.minimumOrderTable.filter((_, idx) => idx !== i) }));
@@ -101,6 +106,7 @@ export function SupplierFormPage() {
         ipi: form.ipi !== '' ? form.ipi : 0,
         currentOrderNumber: form.currentOrderNumber !== '' ? form.currentOrderNumber : undefined,
         priceTable: form.priceTable.filter((r) => r.material),
+        extras: form.extras.filter((r) => r.name && r.value),
         minimumOrderTable: form.minimumOrderTable.filter((r) => r.minimumKg !== '' && (r.measureFrom !== '' || r.measureTo !== '')),
       };
 
@@ -164,6 +170,32 @@ export function SupplierFormPage() {
                 <input type="number" step="any" value={row.factorKg || ''} onChange={(e) => updatePriceRow(i, 'factorKg', e.target.value)} placeholder="Fator Kg" className="w-28 rounded-lg border border-[#b0b087] px-3 py-1.5 text-sm outline-none focus:border-[#58706d]" />
                 <input type="number" step="any" value={row.density || ''} onChange={(e) => updatePriceRow(i, 'density', e.target.value)} placeholder="Densidade" className="w-28 rounded-lg border border-[#b0b087] px-3 py-1.5 text-sm outline-none focus:border-[#58706d]" />
                 <button type="button" onClick={() => removePriceRow(i)} className="p-1.5 text-red-400 hover:text-red-600"><Trash2 size={16} /></button>
+              </div>
+            ))}
+          </CardBody>
+        </Card>
+
+        {/* Tabela de pedido mínimo */}
+        <Card>
+          <CardHeader className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-[#4b5757]">Extras Disponíveis</h2>
+            <Button type="button" variant="secondary" size="sm" onClick={addExtraRow}><Plus size={14} /> Adicionar</Button>
+          </CardHeader>
+          <CardBody className="space-y-2">
+            {form.extras.length === 0 && <p className="text-sm text-gray-400 text-center py-2">Nenhum extra cadastrado.</p>}
+            {form.extras.map((row, i) => (
+              <div key={i} className="flex flex-col sm:flex-row gap-2 p-3 bg-[#f5f5ee] rounded-lg">
+                <input value={row.name} onChange={(e) => updateExtraRow(i, 'name', e.target.value)} placeholder="Nome do extra" className="flex-1 rounded-lg border border-[#b0b087] px-3 py-1.5 text-sm outline-none focus:border-[#58706d]" />
+                <select value={row.chargeType} onChange={(e) => updateExtraRow(i, 'chargeType', e.target.value)} className="w-36 rounded-lg border border-[#b0b087] px-3 py-1.5 text-sm outline-none focus:border-[#58706d]">
+                  <option value="per_kg">Por Kg</option>
+                  <option value="per_thousand">Por Milheiro</option>
+                  <option value="per_unit">Por Unidade</option>
+                  <option value="per_box">Por Caixa</option>
+                  <option value="per_linear_meter">Por Metro Linear</option>
+                  <option value="fixed">Fixo</option>
+                </select>
+                <input type="number" step="any" value={row.value} onChange={(e) => updateExtraRow(i, 'value', e.target.value)} placeholder="Valor (R$)" className="w-28 rounded-lg border border-[#b0b087] px-3 py-1.5 text-sm outline-none focus:border-[#58706d]" />
+                <button type="button" onClick={() => removeExtraRow(i)} className="p-1.5 text-red-400 hover:text-red-600 self-center"><Trash2 size={16} /></button>
               </div>
             ))}
           </CardBody>
