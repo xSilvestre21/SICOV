@@ -6,6 +6,33 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import api from '../../lib/api';
 
+// Máscaras de formatação
+function maskCnpj(value) {
+  const digits = value.replace(/\D/g, '').slice(0, 14);
+  return digits
+    .replace(/^(\d{2})(\d)/, '$1.$2')
+    .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+    .replace(/\.(\d{3})(\d)/, '.$1/$2')
+    .replace(/(\d{4})(\d)/, '$1-$2');
+}
+
+function maskPhone(value) {
+  const digits = value.replace(/\D/g, '').slice(0, 11);
+  if (digits.length <= 10) {
+    return digits
+      .replace(/^(\d{2})(\d)/, '($1) $2')
+      .replace(/(\d{4})(\d)/, '$1-$2');
+  }
+  return digits
+    .replace(/^(\d{2})(\d)/, '($1) $2')
+    .replace(/(\d{5})(\d)/, '$1-$2');
+}
+
+function maskCep(value) {
+  const digits = value.replace(/\D/g, '').slice(0, 8);
+  return digits.replace(/^(\d{5})(\d)/, '$1-$2');
+}
+
 export function SupplierFormPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -32,10 +59,10 @@ export function SupplierFormPage() {
     if (!isEdit) return;
     api.get(`/suppliers/${id}`)
       .then(({ data: s }) => setForm({
-        name: s.name || '', tradeName: s.tradeName || '', cnpj: s.cnpj || '',
+        name: s.name || '', tradeName: s.tradeName || '', cnpj: maskCnpj(s.cnpj || ''),
         stateRegistration: s.stateRegistration || '', address: s.address || '',
-        city: s.city || '', state: s.state || '', zipCode: s.zipCode || '',
-        phone: s.phone || '', email: s.email || '', logoUrl: s.logoUrl || '',
+        city: s.city || '', state: s.state || '', zipCode: maskCep(s.zipCode || ''),
+        phone: maskPhone(s.phone || ''), email: s.email || '', logoUrl: s.logoUrl || '',
         currentOrderNumber: s.currentOrderNumber ?? '', ipi: s.ipi ?? '',
         priceTable: s.priceTable || [],
         minimumOrderTable: s.minimumOrderTable || [],
@@ -103,10 +130,10 @@ export function SupplierFormPage() {
           <CardBody className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input label="Razão Social *" value={form.name} onChange={set('name')} required />
             <Input label="Nome Fantasia" value={form.tradeName} onChange={set('tradeName')} />
-            <Input label="CNPJ *" value={form.cnpj} onChange={set('cnpj')} />
+            <Input label="CNPJ *" value={form.cnpj} onChange={(e) => setForm((f) => ({ ...f, cnpj: maskCnpj(e.target.value) }))} placeholder="00.000.000/0000-00" />
             <Input label="Inscrição Estadual" value={form.stateRegistration} onChange={set('stateRegistration')} />
             <Input label="Email" type="email" value={form.email} onChange={set('email')} />
-            <Input label="Telefone" value={form.phone} onChange={set('phone')} />
+            <Input label="Telefone" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: maskPhone(e.target.value) }))} placeholder="(00) 00000-0000" />
             <Input label="IPI (%)" type="number" step="any" min="0" value={form.ipi} onChange={set('ipi')} />
             <Input label="Nº Pedido Atual" type="number" min="0" value={form.currentOrderNumber} onChange={set('currentOrderNumber')} />
           </CardBody>
@@ -118,8 +145,8 @@ export function SupplierFormPage() {
             <div className="sm:col-span-2"><Input label="Endereço" value={form.address} onChange={set('address')} /></div>
             <Input label="Cidade" value={form.city} onChange={set('city')} />
             <Input label="UF" value={form.state} onChange={set('state')} maxLength={2} className="uppercase" />
-            <Input label="CEP" value={form.zipCode} onChange={set('zipCode')} />
-            <Input label="URL do Logo" value={form.logoUrl} onChange={set('logoUrl')} placeholder="Ex: src/assets/logos/logo.png" />
+            <Input label="CEP" value={form.zipCode} onChange={(e) => setForm((f) => ({ ...f, zipCode: maskCep(e.target.value) }))} placeholder="00000-000" />
+            <Input label="URL do Logo" value={form.logoUrl} onChange={set('logoUrl')} placeholder="/logos/nome-do-arquivo.png" />
           </CardBody>
         </Card>
 
