@@ -1,4 +1,4 @@
-function calculateProductPrice(product, quantity) {
+function calculateProductPrice(product, quantity, supplierPriceTable) {
   const cd = product.commercialData || {};
   const td = product.technicalData || {};
   const measurements = td.measurements || {};
@@ -9,12 +9,41 @@ function calculateProductPrice(product, quantity) {
   if (product.calculationMode === 'dimensions_density_factor') {
     const { width, length, thickness } = measurements;
 
-    if (!cd.factorKg) {
+    let factorKg = cd.factorKg;
+
+    // Se o fornecedor tem faixas de peso, resolve o fator correto
+    if (supplierPriceTable && supplierPriceTable.length > 0 && product.material) {
+      const materialRows = supplierPriceTable.filter(
+        (row) => row.material && row.material.toLowerCase() === product.material.toLowerCase()
+      );
+
+      if (materialRows.length > 0 && materialRows.some((r) => r.weightFrom != null || r.weightTo != null)) {
+        // Calcula o peso total do pedido
+        let totalWeight = quantity; // default: saleMode kg
+        if (product.saleMode === 'thousand' && width && length && thickness && cd.density) {
+          const kgPerThousand = width * length * thickness * cd.density;
+          totalWeight = quantity * kgPerThousand;
+        }
+
+        // Encontra a faixa correta
+        const matchedRow = materialRows.find((row) => {
+          const from = row.weightFrom ?? 0;
+          const to = row.weightTo ?? Infinity;
+          return totalWeight >= from && totalWeight <= to;
+        });
+
+        if (matchedRow && matchedRow.factorKg) {
+          factorKg = matchedRow.factorKg;
+        }
+      }
+    }
+
+    if (!factorKg) {
       throw new Error(`Produto ${product.name} não possui fator kg`);
     }
 
     if (product.saleMode === 'kg') {
-      unitPrice = cd.factorKg;
+      unitPrice = factorKg;
     }
 
     if (product.saleMode === 'thousand') {
@@ -25,7 +54,7 @@ function calculateProductPrice(product, quantity) {
       }
 
       const kgPerThousand = width * length * thickness * cd.density;
-      unitPrice = kgPerThousand * cd.factorKg;
+      unitPrice = kgPerThousand * factorKg;
     }
   }
 

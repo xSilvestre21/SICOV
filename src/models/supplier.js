@@ -15,6 +15,14 @@ const priceTableItemSchema = new mongoose.Schema(
       type: Number,
       min: 0,
     },
+    weightFrom: {
+      type: Number,
+      min: 0,
+    },
+    weightTo: {
+      type: Number,
+      min: 0,
+    },
   },
   { _id: false },
 );

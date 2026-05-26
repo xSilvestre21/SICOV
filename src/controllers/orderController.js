@@ -93,10 +93,7 @@ async function createOrder(req, res) {
           throw new Error('Todos os produtos devem ser do mesmo fornecedor');
         }
 
-        const { unitPrice, subtotal: itemSubtotal } = calculateProductPrice(
-          product,
-          quantity,
-        );
+        const { unitPrice, subtotal: itemSubtotal } = calculateProductPrice(product, quantity, supplier?.priceTable);
 
         subtotal += itemSubtotal;
 
@@ -527,10 +524,7 @@ async function updateOrder(req, res) {
           );
         }
 
-        const { unitPrice, subtotal: itemSubtotal } = calculateProductPrice(
-          product,
-          quantity,
-        );
+        const { unitPrice, subtotal: itemSubtotal } = calculateProductPrice(product, quantity, supplier?.priceTable);
 
         subtotal += itemSubtotal;
 

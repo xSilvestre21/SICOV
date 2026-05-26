@@ -69,7 +69,9 @@ async function processItems(items) {
 
       let unitPrice, itemSubtotal;
       try {
-        const result = calculateProductPrice(product, quantity);
+        // Busca tabela de preços do fornecedor para resolver faixas de peso
+        const supplier = await Supplier.findById(product.supplierId).select('priceTable').lean();
+        const result = calculateProductPrice(product, quantity, supplier?.priceTable);
         unitPrice = result.unitPrice;
         itemSubtotal = result.subtotal;
       } catch (calcErr) {
@@ -540,7 +542,8 @@ async function convertToOrder(req, res) {
 
       let unitPrice, itemSubtotal;
       try {
-        const result = calculateProductPrice(product, item.quantity);
+        const supplier = await Supplier.findById(product.supplierId).select('priceTable').lean();
+        const result = calculateProductPrice(product, item.quantity, supplier?.priceTable);
         unitPrice    = result.unitPrice;
         itemSubtotal = result.subtotal;
       } catch (calcErr) {

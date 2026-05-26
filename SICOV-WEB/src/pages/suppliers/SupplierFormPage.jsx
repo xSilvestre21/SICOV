@@ -165,10 +165,12 @@ export function SupplierFormPage() {
           <CardBody className="space-y-2">
             {form.priceTable.length === 0 && <p className="text-sm text-gray-400 text-center py-2">Nenhum material cadastrado.</p>}
             {form.priceTable.map((row, i) => (
-              <div key={i} className="flex gap-2 items-center p-2 bg-[#f5f5ee] rounded-lg">
-                <input value={row.material} onChange={(e) => updatePriceRow(i, 'material', e.target.value)} placeholder="Material" className="flex-1 rounded-lg border border-[#b0b087] px-3 py-1.5 text-sm outline-none focus:border-[#58706d] uppercase" />
-                <input type="number" step="any" value={row.factorKg || ''} onChange={(e) => updatePriceRow(i, 'factorKg', e.target.value)} placeholder="Fator Kg" className="w-28 rounded-lg border border-[#b0b087] px-3 py-1.5 text-sm outline-none focus:border-[#58706d]" />
-                <input type="number" step="any" value={row.density || ''} onChange={(e) => updatePriceRow(i, 'density', e.target.value)} placeholder="Densidade" className="w-28 rounded-lg border border-[#b0b087] px-3 py-1.5 text-sm outline-none focus:border-[#58706d]" />
+              <div key={i} className="flex flex-wrap gap-2 items-center p-2 bg-[#f5f5ee] rounded-lg">
+                <input value={row.material} onChange={(e) => updatePriceRow(i, 'material', e.target.value)} placeholder="Material" className="flex-1 min-w-[100px] rounded-lg border border-[#b0b087] px-3 py-1.5 text-sm outline-none focus:border-[#58706d] uppercase" />
+                <input type="number" step="any" value={row.factorKg || ''} onChange={(e) => updatePriceRow(i, 'factorKg', e.target.value)} placeholder="Fator Kg" className="w-24 rounded-lg border border-[#b0b087] px-3 py-1.5 text-sm outline-none focus:border-[#58706d]" />
+                <input type="number" step="any" value={row.density || ''} onChange={(e) => updatePriceRow(i, 'density', e.target.value)} placeholder="Densidade" className="w-24 rounded-lg border border-[#b0b087] px-3 py-1.5 text-sm outline-none focus:border-[#58706d]" />
+                <input type="number" step="any" value={row.weightFrom || ''} onChange={(e) => updatePriceRow(i, 'weightFrom', e.target.value)} placeholder="Peso de (kg)" className="w-28 rounded-lg border border-[#b0b087] px-3 py-1.5 text-sm outline-none focus:border-[#58706d]" />
+                <input type="number" step="any" value={row.weightTo || ''} onChange={(e) => updatePriceRow(i, 'weightTo', e.target.value)} placeholder="Peso até (kg)" className="w-28 rounded-lg border border-[#b0b087] px-3 py-1.5 text-sm outline-none focus:border-[#58706d]" />
                 <button type="button" onClick={() => removePriceRow(i)} className="p-1.5 text-red-400 hover:text-red-600"><Trash2 size={16} /></button>
               </div>
             ))}

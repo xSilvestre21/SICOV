@@ -229,13 +229,17 @@ export function ProductFormPage() {
   // Obtém dicas de fator kg da tabela de preços do fornecedor selecionado
   const supplierHint = (() => {
     if (!selectedSupplier?.priceTable?.length || !form.material) return {};
-    const match = selectedSupplier.priceTable.find(
-      (item) => item.material.toLowerCase() === form.material.toLowerCase()
+    const matches = selectedSupplier.priceTable.filter(
+      (item) => item.material && item.material.toLowerCase() === form.material.toLowerCase()
     );
-    if (!match) return {};
+    if (matches.length === 0) return {};
+    // Se tem faixas de peso, pega o primeiro como dica padrão
+    const match = matches[0];
     return {
       density: match.density,
       factorKg: match.factorKg,
+      hasWeightRanges: matches.some((m) => m.weightFrom != null || m.weightTo != null),
+      ranges: matches,
     };
   })();
 
