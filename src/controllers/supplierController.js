@@ -321,6 +321,7 @@ async function updateSupplier(req, res) {
       phone,
       email,
       logoUrl,
+      notes,
       currentOrderNumber,
       ipi,
       priceTable,
