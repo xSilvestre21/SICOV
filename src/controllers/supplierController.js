@@ -114,6 +114,7 @@ async function createSupplier(req, res) {
       currentOrderNumber,
       ipi,
       priceTable,
+      extras,
       minimumOrderTable,
       allowedRepresentatives,
     } = req.body;
@@ -202,9 +203,10 @@ async function createSupplier(req, res) {
       supplier,
     });
   } catch (err) {
-    console.error('[createSupplier]', err.message);
+    console.error('[createSupplier]', err.message, err.stack);
     return res.status(500).json({
       message: 'Erro ao criar fornecedor',
+      detail: err.message,
     });
   }
 }
