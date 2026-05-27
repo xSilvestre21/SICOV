@@ -195,7 +195,7 @@ export function LoginPage() {
                 className="absolute right-3 top-[34px] text-[#7c8a6e] hover:text-[#4b5757] transition-colors"
                 aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
               >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
               </button>
             </div>
 
