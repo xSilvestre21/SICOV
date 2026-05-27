@@ -111,6 +111,7 @@ async function createSupplier(req, res) {
       phone,
       email,
       logoUrl,
+      notes,
       currentOrderNumber,
       ipi,
       priceTable,
