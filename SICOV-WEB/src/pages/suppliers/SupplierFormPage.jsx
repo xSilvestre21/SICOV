@@ -41,7 +41,7 @@ export function SupplierFormPage() {
   const [form, setForm] = useState({
     name: '', tradeName: '', cnpj: '', stateRegistration: '',
     address: '', city: '', state: '', zipCode: '', phone: '', email: '',
-    logoUrl: '', currentOrderNumber: '', ipi: '',
+    logoUrl: '', currentOrderNumber: '', ipi: '', notes: '',
     priceTable: [], extras: [], minimumOrderTable: [], allowedRepresentatives: [],
   });
   const [representatives, setRepresentatives] = useState([]);
@@ -64,6 +64,7 @@ export function SupplierFormPage() {
         city: s.city || '', state: s.state || '', zipCode: maskCep(s.zipCode || ''),
         phone: maskPhone(s.phone || ''), email: s.email || '', logoUrl: s.logoUrl || '',
         currentOrderNumber: s.currentOrderNumber ?? '', ipi: s.ipi ?? '',
+        notes: s.notes || '',
         priceTable: s.priceTable || [],
         extras: s.extras || [],
         minimumOrderTable: s.minimumOrderTable || [],
@@ -246,6 +247,14 @@ export function SupplierFormPage() {
                 ))}
               </div>
             )}
+          </CardBody>
+        </Card>
+
+        {/* Observações */}
+        <Card>
+          <CardHeader><h2 className="text-sm font-semibold text-[#4b5757]">Observações</h2></CardHeader>
+          <CardBody>
+            <textarea value={form.notes} onChange={set('notes')} rows={3} placeholder="Informações adicionais sobre o fornecedor (opcional)" className="w-full rounded-lg border border-[#b0b087] px-3 py-2 text-sm outline-none focus:border-[#58706d] focus:ring-1 focus:ring-[#58706d] resize-none" />
           </CardBody>
         </Card>
 

@@ -191,6 +191,7 @@ async function createSupplier(req, res) {
           ? parseBrazilianNumber(currentOrderNumber)
           : 0,
       ipi: parsedIpi,
+      notes: notes || '',
       priceTable: normalizedPriceTable,
       extras: Array.isArray(extras) ? extras.filter((e) => e.name && e.value) : [],
       minimumOrderTable: Array.isArray(minimumOrderTable) ? minimumOrderTable : [],
@@ -410,6 +411,7 @@ async function updateSupplier(req, res) {
     supplier.phone = phone !== undefined ? onlyNumbers(phone) : supplier.phone;
     supplier.email = email !== undefined ? email : supplier.email;
     supplier.logoUrl = logoUrl !== undefined ? logoUrl : supplier.logoUrl;
+    supplier.notes = notes !== undefined ? notes : supplier.notes;
     supplier.currentOrderNumber =
       currentOrderNumber !== undefined
         ? parseBrazilianNumber(currentOrderNumber)

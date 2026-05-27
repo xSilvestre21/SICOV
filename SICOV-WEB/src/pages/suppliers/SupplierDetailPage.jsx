@@ -195,6 +195,36 @@ export function SupplierDetailPage() {
           </CardBody>
         </Card>
       )}
+
+      {supplier.extras?.length > 0 && (
+        <Card>
+          <CardHeader><h2 className="text-sm font-semibold text-[#4b5757]">Extras Disponíveis</h2></CardHeader>
+          <CardBody>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {supplier.extras.map((extra, i) => {
+                const chargeLabel = { per_kg: '/kg', per_thousand: '/mil', per_unit: '/un', per_box: '/cx', per_linear_meter: '/m', fixed: ' fixo' }[extra.chargeType] || '';
+                return (
+                  <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-[#e3e3d1]/20 border border-[#e3e3d1]/50">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-[#4b5757]">{extra.name}</p>
+                      <p className="text-xs text-[#7c8a6e]">R$ {Number(extra.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}{chargeLabel}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardBody>
+        </Card>
+      )}
+
+      {supplier.notes && (
+        <Card>
+          <CardHeader><h2 className="text-sm font-semibold text-[#4b5757]">Observações</h2></CardHeader>
+          <CardBody>
+            <p className="text-sm text-[#4b5757] whitespace-pre-wrap">{supplier.notes}</p>
+          </CardBody>
+        </Card>
+      )}
     </div>
   );
 }

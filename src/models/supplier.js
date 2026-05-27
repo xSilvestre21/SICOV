@@ -138,6 +138,10 @@ const supplierSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    notes: {
+      type: String,
+      trim: true,
+    },
   },
   { timestamps: true },
 );
