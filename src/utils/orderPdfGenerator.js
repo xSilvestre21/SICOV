@@ -9,9 +9,14 @@ const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
 function resolveLogoPath(logoUrl) {
   if (!logoUrl || typeof logoUrl !== 'string') return null;
   if (/^https?:\/\//i.test(logoUrl)) return null;
-  if (path.isAbsolute(logoUrl)) return null;
 
-  const resolved = path.resolve(PROJECT_ROOT, logoUrl);
+  // Se começa com /, resolve relativo à pasta public do frontend
+  let relativePath = logoUrl;
+  if (logoUrl.startsWith('/')) {
+    relativePath = path.join('SICOV-WEB', 'public', logoUrl);
+  }
+
+  const resolved = path.resolve(PROJECT_ROOT, relativePath);
   if (!resolved.startsWith(PROJECT_ROOT + path.sep) && resolved !== PROJECT_ROOT) return null;
 
   try {
