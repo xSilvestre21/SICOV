@@ -503,6 +503,7 @@ async function updateOrder(req, res) {
 
     const processedItems = [];
     let subtotal = 0;
+    const supplier = await Supplier.findById(order.supplierId).select('priceTable').lean();
 
     await Promise.all(
       items.map(async (item) => {
