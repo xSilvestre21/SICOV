@@ -503,7 +503,7 @@ async function updateOrder(req, res) {
 
     const processedItems = [];
     let subtotal = 0;
-    const supplier = await Supplier.findById(order.supplierId).select('priceTable').lean();
+    const orderSupplier = await Supplier.findById(order.supplierId).select('priceTable').lean();
 
     await Promise.all(
       items.map(async (item) => {
@@ -525,7 +525,7 @@ async function updateOrder(req, res) {
           );
         }
 
-        const { unitPrice, subtotal: itemSubtotal } = calculateProductPrice(product, quantity, supplier?.priceTable);
+        const { unitPrice, subtotal: itemSubtotal } = calculateProductPrice(product, quantity, orderSupplier?.priceTable);
 
         subtotal += itemSubtotal;
 
