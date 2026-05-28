@@ -114,7 +114,6 @@ export function SupplierDetailPage() {
               <img src={supplier.logoUrl} alt={`Logo ${supplier.tradeName || supplier.name}`} className="h-16 object-contain" />
             </div>
           )}
-          </CardBody>
         </Card>
       </div>
 
