@@ -347,6 +347,14 @@ async function createProduct(req, res) {
       return res.status(400).json({ message: validationError });
     }
 
+    // Verifica duplicidade de código do cliente
+    if (clientCode && clientCode.trim()) {
+      const existingProduct = await Product.findOne({ clientCode: clientCode.trim(), active: true });
+      if (existingProduct) {
+        return res.status(409).json({ message: `Já existe um produto com o código de cliente "${clientCode.trim()}"` });
+      }
+    }
+
     const product = await Product.create({
       clientId,
       supplierId,
@@ -626,6 +634,15 @@ async function updateProduct(req, res) {
     product.supplierId = nextSupplierId;
     product.supplierCode =
       supplierCode !== undefined ? supplierCode : product.supplierCode;
+
+    // Verifica duplicidade de código do cliente (excluindo o próprio produto)
+    const nextClientCode = clientCode !== undefined ? clientCode : product.clientCode;
+    if (nextClientCode && nextClientCode.trim()) {
+      const existingProduct = await Product.findOne({ clientCode: nextClientCode.trim(), active: true, _id: { $ne: id } });
+      if (existingProduct) {
+        return res.status(409).json({ message: `Já existe um produto com o código de cliente "${nextClientCode.trim()}"` });
+      }
+    }
 
     product.clientCode =
       clientCode !== undefined ? clientCode : product.clientCode;
