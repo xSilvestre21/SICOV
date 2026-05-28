@@ -107,7 +107,13 @@ export function SupplierDetailPage() {
             <InfoRow label="Endereço" value={supplier.address} />
             <InfoRow label="Cidade/UF" value={[supplier.city, supplier.state].filter(Boolean).join('/')} />
             <InfoRow label="CEP" value={formatCep(supplier.zipCode)} />
-            <InfoRow label="Logo" value={supplier.logoUrl} />
+          </CardBody>
+          {supplier.logoUrl && (
+            <div className="px-6 pb-4">
+              <p className="text-xs text-gray-400 mb-2">Logo</p>
+              <img src={supplier.logoUrl} alt={`Logo ${supplier.tradeName || supplier.name}`} className="h-16 object-contain" />
+            </div>
+          )}
           </CardBody>
         </Card>
       </div>
