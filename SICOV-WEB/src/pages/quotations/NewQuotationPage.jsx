@@ -504,6 +504,21 @@ export function NewQuotationPage() {
                           <p className="text-xs text-amber-700">Fator abaixo do limite (R$ {Number(hint.limitFactorKg).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}). Comissão será de apenas 3%.</p>
                         </div>
                       )}
+                      {(() => {
+                        const w = Number(item.width) || 0;
+                        const l = Number(item.length) || 0;
+                        const t = Number(item.thickness) || 0;
+                        const d = Number(item.density) || 0;
+                        const kgMil = w * l * t * d;
+                        if (kgMil > 0) {
+                          return (
+                            <div className="col-span-2 sm:col-span-5 px-3 py-2 bg-[#e3e3d1]/30 rounded-lg">
+                              <p className="text-xs text-[#7c8a6e]">Kg/Mil: <span className="font-semibold text-[#4b5757]">{kgMil.toLocaleString('pt-BR', { minimumFractionDigits: 4, maximumFractionDigits: 4 })}</span></p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                     );
                   })()}

@@ -503,6 +503,21 @@ export function ProductFormPage() {
                     </p>
                   </div>
                 )}
+                {(() => {
+                  const w = Number(form.width) || 0;
+                  const l = Number(form.length) || 0;
+                  const t = Number(form.thickness) || 0;
+                  const d = Number(form.density) || 0;
+                  const kgMil = w * l * t * d;
+                  if (kgMil > 0) {
+                    return (
+                      <div className="col-span-2 sm:col-span-3 px-3 py-2 bg-[#e3e3d1]/30 rounded-lg">
+                        <p className="text-xs text-[#7c8a6e]">Kg/Mil: <span className="font-semibold text-[#4b5757]">{kgMil.toLocaleString('pt-BR', { minimumFractionDigits: 4, maximumFractionDigits: 4 })}</span></p>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
               </>
             )}
             {form.calculationMode === 'manual_price' && (
