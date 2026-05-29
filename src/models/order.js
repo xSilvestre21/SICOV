@@ -9,6 +9,8 @@ const orderItemSchema = new mongoose.Schema(
     },
 
     productSnapshot: {
+      supplierCode: String,
+      clientCode: String,
       name: String,
       description: String,
       productType: String,
