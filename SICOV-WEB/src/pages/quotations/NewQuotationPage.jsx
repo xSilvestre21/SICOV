@@ -223,6 +223,8 @@ export function NewQuotationPage() {
       }
       if (updated.gusset) {
         parts.push(`SF ${fmt(updated.gusset)}`);
+      } else if (updated.width && updated.length && updated.thickness) {
+        parts.push('S/SF');
       }
       if (updated.material) {
         parts.push(String(updated.material).toUpperCase());

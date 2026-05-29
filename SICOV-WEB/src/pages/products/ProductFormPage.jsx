@@ -259,6 +259,8 @@ export function ProductFormPage() {
     }
     if (form.gusset) {
       parts.push(`SF ${fmt(form.gusset)}`);
+    } else if (form.width && form.length && form.thickness) {
+      parts.push('S/SF');
     }
     if (form.material) {
       parts.push(form.material.toUpperCase());
