@@ -333,16 +333,18 @@ export function CommissionsListPage() {
                         const expected = new Date(c.dueDate || c.deliveryDate);
                         const actual = new Date(c.realDeliveryDate);
                         const diff = Math.round((actual - expected) / (1000 * 60 * 60 * 24));
+                        if (isDark) return diff === 0 ? 'bg-emerald-900/60' : diff > 0 ? 'bg-red-900/60' : 'bg-blue-900/60';
                         return diff === 0 ? 'bg-emerald-200' : diff > 0 ? 'bg-red-200' : 'bg-blue-200';
-                      })() : 'bg-[#e3e3d1]'
+                      })() : isDark ? 'bg-[#3d4543]' : 'bg-[#e3e3d1]'
                     }`}>
                       <span className={`text-xs font-bold ${
                         c.realDeliveryDate && (c.deliveryDate || c.dueDate) ? (() => {
                           const expected = new Date(c.dueDate || c.deliveryDate);
                           const actual = new Date(c.realDeliveryDate);
                           const diff = Math.round((actual - expected) / (1000 * 60 * 60 * 24));
+                          if (isDark) return diff === 0 ? 'text-emerald-300' : diff > 0 ? 'text-red-300' : 'text-blue-300';
                           return diff === 0 ? 'text-emerald-700' : diff > 0 ? 'text-red-700' : 'text-blue-700';
-                        })() : 'text-[#4b5757]'
+                        })() : isDark ? 'text-[#d4e4d1]' : 'text-[#4b5757]'
                       }`}>
                         #{c.orderNumber ?? '—'}
                       </span>
