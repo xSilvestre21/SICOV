@@ -9,6 +9,7 @@ import {
   ChevronUp,
   Copy,
   Edit,
+  Trash2,
   AlertTriangle,
 } from 'lucide-react';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
@@ -243,6 +244,10 @@ export function OrderDetailPage() {
       if (action === 'cancel') {
         const { data } = await api.patch(`/orders/${id}/cancel`);
         setOrder(data.order);
+      } else if (action === 'delete') {
+        await api.delete(`/orders/${id}`);
+        navigate('/orders');
+        return;
       } else if (action === 'sent') {
         const { data } = await api.patch(`/orders/${id}/sent-to-supplier`);
         setOrder(data.order);
@@ -359,6 +364,21 @@ export function OrderDetailPage() {
             >
               <XCircle size={14} />
               Cancelar
+            </Button>
+          )}
+          {isAdmin && (
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={() => {
+                if (confirm('Tem certeza que deseja APAGAR permanentemente este pedido? Esta ação não pode ser desfeita.')) {
+                  handleAction('delete');
+                }
+              }}
+              loading={actionLoading === 'delete'}
+            >
+              <Trash2 size={14} />
+              Apagar
             </Button>
           )}
         </div>

@@ -744,10 +744,42 @@ async function getOrderPdf(req, res) {
   }
 }
 
+/**
+ * DELETE /orders/:id
+ * Apaga permanentemente um pedido (apenas admin).
+ * Também remove as comissões associadas.
+ */
+async function deleteOrder(req, res) {
+  try {
+    const { id } = req.params;
+
+    if (req.user.profile !== 'admin') {
+      return res.status(403).json({ message: 'Apenas administradores podem apagar pedidos.' });
+    }
+
+    const order = await Order.findById(id);
+    if (!order) {
+      return res.status(404).json({ message: 'Pedido não encontrado.' });
+    }
+
+    // Remove comissões associadas
+    await Commission.deleteMany({ orderId: order._id });
+
+    // Remove o pedido
+    await Order.deleteOne({ _id: order._id });
+
+    return res.json({ message: 'Pedido apagado permanentemente.' });
+  } catch (err) {
+    console.error('[deleteOrder]', err.message);
+    return res.status(500).json({ message: 'Erro ao apagar pedido.' });
+  }
+}
+
 module.exports = {
   createOrder,
   markAsSentToSupplier,
   cancelOrder,
+  deleteOrder,
   getOrders,
   getOrderById,
   updateOrder,
