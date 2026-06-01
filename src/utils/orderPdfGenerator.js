@@ -146,18 +146,19 @@ function field(doc, label, value, x, y, w, gap = 9) {
     .font('Helvetica-Bold')
     .text(label, x, y, { width: w, lineBreak: false });
 
-  // Se o valor é muito longo para a largura, reduz a fonte
   const val = value || '';
-  let fontSize = 9;
   const textWidth = doc.font('Helvetica').fontSize(9).widthOfString(val);
-  if (textWidth > w && val.length > 0) {
-    fontSize = Math.max(7, 9 * (w / textWidth));
-  }
 
-  doc
-    .fontSize(fontSize)
-    .font('Helvetica')
-    .text(val, x, y + gap, { width: w, lineBreak: false });
+  if (textWidth > w * 1.8) {
+    // Muito longo: usa fonte menor E permite quebra de linha
+    doc.fontSize(7.5).font('Helvetica').text(val, x, y + gap, { width: w });
+  } else if (textWidth > w) {
+    // Longo: reduz a fonte para caber em uma linha
+    const fontSize = Math.max(7, 9 * (w / textWidth));
+    doc.fontSize(fontSize).font('Helvetica').text(val, x, y + gap, { width: w, lineBreak: false });
+  } else {
+    doc.fontSize(9).font('Helvetica').text(val, x, y + gap, { width: w, lineBreak: false });
+  }
 }
 
 // ─── Seções reutilizáveis ─────────────────────────────────────────────────────
@@ -261,7 +262,11 @@ function drawClientData(doc, order, startY) {
   field(doc, 'CNPJ/CPF',     formatCnpjCpf(c.cnpj),    COL_B, y, W_B);
   field(doc, 'UF',           c.state,                   COL_C, y, W_C);
   field(doc, 'IE',           c.stateRegistration,       COL_D, y, W_D);
-  y += ROW_STEP;
+
+  // Se o nome é muito longo, dá mais espaço vertical
+  const nameWidth = doc.font('Helvetica').fontSize(9).widthOfString(c.name || '');
+  const row1Height = nameWidth > W_A ? ROW_STEP + 12 : ROW_STEP;
+  y += row1Height;
 
   // ── Linha 2: Endereço | Bairro | CEP ─────────────────────────────────────
   field(doc, 'ENDEREÇO', c.address,                COL_A, y, W_A);
