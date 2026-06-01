@@ -124,7 +124,7 @@ export function DashboardPage() {
             />
             <StatCard
               icon={TrendingUp}
-              label="Comissão Representantes (mês atual)"
+              label="Representantes (mês atual)"
               value={loading ? '...' : formatCurrency(stats?.totalRepComm)}
               color="bg-[#b0b087]"
               to="/commissions"
