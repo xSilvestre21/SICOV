@@ -323,6 +323,44 @@ async function cancelOrder(req, res) {
   }
 }
 
+/**
+ * PATCH /orders/:id/reactivate
+ * Reativa um pedido cancelado (apenas admin).
+ */
+async function reactivateOrder(req, res) {
+  try {
+    const { id } = req.params;
+
+    const order = await Order.findById(id);
+
+    if (!order) {
+      return res.status(404).json({ message: 'Pedido não encontrado' });
+    }
+
+    if (order.status !== 'cancelled') {
+      return res.status(400).json({ message: 'Pedido não está cancelado' });
+    }
+
+    order.status = 'active';
+    await order.save();
+
+    // Reativa as comissões vinculadas
+    try {
+      await Commission.updateMany(
+        { orderId: order._id, status: 'cancelled' },
+        { $set: { status: 'active' } },
+      );
+    } catch (commErr) {
+      console.error('[reactivateOrder] Erro ao reativar comissões:', commErr.message);
+    }
+
+    return res.json({ message: 'Pedido reativado com sucesso', order });
+  } catch (err) {
+    console.error('[reactivateOrder]', err.message);
+    return res.status(500).json({ message: 'Erro ao reativar pedido' });
+  }
+}
+
 async function getOrders(req, res) {
   try {
     const {
@@ -779,6 +817,7 @@ module.exports = {
   createOrder,
   markAsSentToSupplier,
   cancelOrder,
+  reactivateOrder,
   deleteOrder,
   getOrders,
   getOrderById,

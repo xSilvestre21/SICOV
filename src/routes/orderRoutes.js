@@ -5,6 +5,7 @@ const {
   createOrder,
   markAsSentToSupplier,
   cancelOrder,
+  reactivateOrder,
   deleteOrder,
   getOrders,
   getOrderById,
@@ -25,6 +26,8 @@ router.patch(
 );
 
 router.patch('/:id/cancel', authMiddleware, isAdmin, cancelOrder);
+
+router.patch('/:id/reactivate', authMiddleware, isAdmin, reactivateOrder);
 
 router.delete('/:id', authMiddleware, isAdmin, deleteOrder);
 

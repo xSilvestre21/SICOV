@@ -244,6 +244,9 @@ export function OrderDetailPage() {
       if (action === 'cancel') {
         const { data } = await api.patch(`/orders/${id}/cancel`);
         setOrder(data.order);
+      } else if (action === 'reactivate') {
+        const { data } = await api.patch(`/orders/${id}/reactivate`);
+        setOrder(data.order);
       } else if (action === 'delete') {
         await api.delete(`/orders/${id}`);
         navigate('/orders');
@@ -364,6 +367,16 @@ export function OrderDetailPage() {
             >
               <XCircle size={14} />
               Cancelar
+            </Button>
+          )}
+          {isAdmin && isCancelled && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleAction('reactivate')}
+              loading={actionLoading === 'reactivate'}
+            >
+              Reativar
             </Button>
           )}
           {isAdmin && (
