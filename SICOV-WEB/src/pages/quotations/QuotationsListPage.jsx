@@ -113,7 +113,7 @@ export function QuotationsListPage() {
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-xs text-gray-400">{formatDate(q.createdAt)}</span>
                       {q.supplierSnapshot?.name && (
-                        <span className="text-xs text-gray-400">· {q.supplierSnapshot.name}</span>
+                        <span className="text-xs text-gray-400">· {q.supplierSnapshot.tradeName || q.supplierSnapshot.name}</span>
                       )}
                       {isAdmin && q.representativeId?.name && (
                         <span className="text-xs font-medium text-[#58706d]">· {q.representativeId.name}</span>
