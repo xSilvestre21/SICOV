@@ -353,7 +353,7 @@ export function OrderDetailPage() {
           </Button>
           {isAdmin && !isCancelled && (
             <Button
-              variant="danger"
+              variant="outline"
               size="sm"
               onClick={() => {
                 if (confirm('Tem certeza que deseja cancelar este pedido?')) {
@@ -368,7 +368,7 @@ export function OrderDetailPage() {
           )}
           {isAdmin && (
             <Button
-              variant="outline"
+              variant="danger"
               size="sm"
               onClick={() => {
                 if (confirm('Tem certeza que deseja APAGAR permanentemente este pedido? Esta ação não pode ser desfeita.')) {
