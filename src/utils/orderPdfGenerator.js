@@ -146,10 +146,18 @@ function field(doc, label, value, x, y, w, gap = 9) {
     .font('Helvetica-Bold')
     .text(label, x, y, { width: w, lineBreak: false });
 
+  // Se o valor é muito longo para a largura, reduz a fonte
+  const val = value || '';
+  let fontSize = 9;
+  const textWidth = doc.font('Helvetica').fontSize(9).widthOfString(val);
+  if (textWidth > w && val.length > 0) {
+    fontSize = Math.max(7, 9 * (w / textWidth));
+  }
+
   doc
-    .fontSize(9)
+    .fontSize(fontSize)
     .font('Helvetica')
-    .text(value || '', x, y + gap, { width: w, lineBreak: false });
+    .text(val, x, y + gap, { width: w, lineBreak: false });
 }
 
 // ─── Seções reutilizáveis ─────────────────────────────────────────────────────
