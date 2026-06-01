@@ -368,7 +368,7 @@ export function OrderDetailPage() {
           )}
           {isAdmin && (
             <Button
-              variant="danger"
+              variant="ghost"
               size="sm"
               onClick={() => {
                 if (confirm('Tem certeza que deseja APAGAR permanentemente este pedido? Esta ação não pode ser desfeita.')) {
@@ -376,6 +376,7 @@ export function OrderDetailPage() {
                 }
               }}
               loading={actionLoading === 'delete'}
+              className="text-gray-400 hover:text-red-600 hover:bg-red-50"
             >
               <Trash2 size={14} />
               Apagar
