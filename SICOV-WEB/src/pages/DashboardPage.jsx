@@ -204,7 +204,7 @@ export function DashboardPage() {
                           {order.clientSnapshot?.tradeName || order.clientSnapshot?.name}
                         </p>
                         <p className="text-xs text-gray-400">
-                          {order.supplierSnapshot?.name}
+                          {order.supplierSnapshot?.tradeName || order.supplierSnapshot?.name}
                         </p>
                       </div>
                     </div>
