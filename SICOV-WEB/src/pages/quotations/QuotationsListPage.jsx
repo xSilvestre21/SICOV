@@ -100,9 +100,9 @@ export function QuotationsListPage() {
               <Link
                 key={q._id}
                 to={`/quotations/${q._id}`}
-                className="flex items-center justify-between px-4 md:px-6 py-4 hover:bg-[#f5f5ee] transition-colors"
+                className="flex items-center justify-between px-4 md:px-6 py-4 hover:bg-[#f5f5ee] transition-colors gap-3"
               >
-                <div className="flex items-center gap-4 min-w-0">
+                <div className="flex items-center gap-3 min-w-0">
                   <div className="w-10 h-10 rounded-xl bg-[#e3e3d1] flex items-center justify-center shrink-0">
                     <FileText size={18} className="text-[#7c8a6e]" />
                   </div>
@@ -110,25 +110,17 @@ export function QuotationsListPage() {
                     <p className="text-sm font-medium text-[#4b5757] truncate">
                       {q.clientSnapshot?.tradeName || q.clientSnapshot?.name || 'Orçamento'}
                     </p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-xs text-gray-400">{formatDate(q.createdAt)}</span>
-                      {q.supplierSnapshot?.name && (
-                        <span className="text-xs text-gray-400">· {q.supplierSnapshot.tradeName || q.supplierSnapshot.name}</span>
-                      )}
-                      {isAdmin && q.representativeId?.name && (
-                        <span className="text-xs font-medium text-[#58706d]">· {q.representativeId.name}</span>
-                      )}
-                      {q.items?.length > 0 && (
-                        <span className="text-xs text-gray-400">· {q.items.length} ite{q.items.length > 1 ? 'ns' : 'm'}</span>
-                      )}
-                    </div>
+                    <p className="text-xs text-gray-400 mt-0.5 truncate">
+                      {formatDate(q.createdAt)}
+                      {q.supplierSnapshot?.name && ` · ${q.supplierSnapshot.tradeName || q.supplierSnapshot.name}`}
+                      {isAdmin && q.representativeId?.name && ` · ${q.representativeId.name}`}
+                      {q.items?.length > 0 && ` · ${q.items.length} ite${q.items.length > 1 ? 'ns' : 'm'}`}
+                    </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 shrink-0 ml-2">
-                  <span className="text-sm font-semibold text-[#4b5757]">
-                    {formatCurrency(q.total)}
-                  </span>
-                </div>
+                <span className="text-sm font-semibold text-[#4b5757] shrink-0">
+                  {formatCurrency(q.total)}
+                </span>
               </Link>
             ))}
           </div>
