@@ -49,28 +49,28 @@ export function UsersListPage() {
         {loading ? <div className="p-8 text-center text-sm text-gray-400">Carregando...</div> : representatives.length === 0 ? <div className="p-8 text-center text-sm text-gray-400">Nenhum representante cadastrado.</div> : (
           <div className="divide-y divide-[#e3e3d1]">
             {representatives.map((rep) => (
-              <div key={rep._id} className="flex items-center justify-between px-4 md:px-6 py-4 hover:bg-[#f5f5ee] transition-colors">
-                <div className="flex items-center gap-4 min-w-0">
+              <div key={rep._id} className="px-4 md:px-6 py-4 hover:bg-[#f5f5ee] transition-colors">
+                <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-[#7c8a6e] flex items-center justify-center shrink-0">
                     <span className="text-white font-bold text-sm">{rep.name?.[0]?.toUpperCase()}</span>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-[#4b5757] truncate">{rep.name}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-xs text-gray-400">{rep.email}</span>
-                      {rep.defaultCommissionPercentage > 0 && (
-                        <span className="text-xs text-[#7c8a6e]">· {rep.defaultCommissionPercentage}% comissão</span>
-                      )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium text-[#4b5757] truncate">{rep.name}</p>
+                      <Badge variant={rep.active ? 'active' : 'inactive'}>{rep.active ? 'Ativo' : 'Inativo'}</Badge>
                     </div>
+                    <p className="text-xs text-gray-400 truncate mt-0.5">
+                      {rep.email}
+                      {rep.defaultCommissionPercentage > 0 && ` · ${rep.defaultCommissionPercentage}% comissão`}
+                    </p>
                   </div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0 ml-2">
-                  <Badge variant={rep.active ? 'active' : 'inactive'}>{rep.active ? 'Ativo' : 'Inativo'}</Badge>
-                  <Link to={`/users/${rep._id}/edit`}>
-                    <button className="p-1.5 text-gray-400 hover:text-[#58706d] rounded-lg hover:bg-[#e3e3d1] transition-colors"><Edit size={14} /></button>
-                  </Link>
-                  <button onClick={() => handleToggle(rep._id)} className="p-1.5 text-gray-400 hover:text-[#58706d] rounded-lg hover:bg-[#e3e3d1] transition-colors"><Power size={14} /></button>
-                  <button onClick={() => handleDelete(rep._id, rep.name)} className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors"><Trash2 size={14} /></button>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Link to={`/users/${rep._id}/edit`}>
+                      <button className="p-1.5 text-gray-400 hover:text-[#58706d] rounded-lg hover:bg-[#e3e3d1] transition-colors"><Edit size={14} /></button>
+                    </Link>
+                    <button onClick={() => handleToggle(rep._id)} className="p-1.5 text-gray-400 hover:text-[#58706d] rounded-lg hover:bg-[#e3e3d1] transition-colors"><Power size={14} /></button>
+                    <button onClick={() => handleDelete(rep._id, rep.name)} className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors"><Trash2 size={14} /></button>
+                  </div>
                 </div>
               </div>
             ))}
