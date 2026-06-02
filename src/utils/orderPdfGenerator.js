@@ -77,9 +77,15 @@ function formatZipCode(value) {
   return value;
 }
 
+function formatSaleMode(saleMode) {
+  const map = { kg: 'KG', thousand: 'MIL', unit: 'UN', box: 'CX', linear_meter: 'M', manual: '' };
+  return map[saleMode] || saleMode || '';
+}
+
 function sanitize(text) {
   return String(text || '')
     .normalize('NFD')
+
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-zA-Z0-9]/g, '-')
     .replace(/-+/g, '-')
@@ -408,7 +414,7 @@ function generateOrderPdf(order, res) {
       p.clientCode   || '',
       p.description  || p.name || '',
       qtyFormatted,
-      p.unitLabel    || p.saleMode || '',
+      p.unitLabel    || formatSaleMode(p.saleMode) || '',
       formatCurrency(item.unitPrice),
       formatCurrency(item.subtotal),
       formatCurrency(itemIpi),

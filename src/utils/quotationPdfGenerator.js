@@ -30,6 +30,11 @@ function resolveLogoPath(logoUrl) {
   return resolved;
 }
 
+function formatSaleMode(saleMode) {
+  const map = { kg: 'KG', thousand: 'MIL', unit: 'UN', box: 'CX', linear_meter: 'M', manual: '' };
+  return map[saleMode] || saleMode || '';
+}
+
 function formatCurrency(value) {
   return Number(value || 0).toLocaleString('pt-BR', {
     style: 'currency',
@@ -236,7 +241,7 @@ function generateQuotationPdf(quotation, res) {
 
     const values = [
       qtyFormatted,
-      p.unitLabel || p.saleMode || '',
+      p.unitLabel || formatSaleMode(p.saleMode) || '',
       p.clientCode || '',
       p.description || p.name || '',
       formatCurrency(item.unitPrice),
