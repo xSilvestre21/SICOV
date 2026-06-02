@@ -78,19 +78,19 @@ export function SuppliersListPage() {
         {loading ? <div className="p-8 text-center text-sm text-gray-400">Carregando...</div> : suppliers.length === 0 ? <div className="p-8 text-center text-sm text-gray-400">Nenhum fornecedor encontrado.</div> : (
           <div className="divide-y divide-[#e3e3d1]">
             {suppliers.map((s) => (
-              <Link key={s._id} to={`/suppliers/${s._id}`} className="flex items-center justify-between px-4 md:px-6 py-4 hover:bg-[#f5f5ee] transition-colors">
-                <div className="flex items-center gap-4 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-[#e3e3d1] flex items-center justify-center shrink-0"><Truck size={18} className="text-[#7c8a6e]" /></div>
-                  <div className="min-w-0">
+              <Link key={s._id} to={`/suppliers/${s._id}`} className="flex items-center gap-3 px-4 md:px-6 py-4 hover:bg-[#f5f5ee] transition-colors">
+                <div className="w-10 h-10 rounded-xl bg-[#e3e3d1] flex items-center justify-center shrink-0"><Truck size={18} className="text-[#7c8a6e]" /></div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
                     <p className="text-sm font-medium text-[#4b5757] truncate">{s.tradeName || s.name}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-xs text-gray-400">{formatCnpj(s.cnpj)}</span>
-                      {s.city && <span className="text-xs text-gray-400">· {s.city}/{s.state}</span>}
-                      <span className="text-xs text-gray-400">· IPI {s.ipi}%</span>
-                    </div>
+                    <Badge variant={s.active ? 'active' : 'inactive'}>{s.active ? 'Ativo' : 'Inativo'}</Badge>
                   </div>
+                  <p className="text-xs text-gray-400 truncate mt-0.5">
+                    {formatCnpj(s.cnpj)}
+                    {s.city && ` · ${s.city}/${s.state}`}
+                    {` · IPI ${s.ipi}%`}
+                  </p>
                 </div>
-                <Badge variant={s.active ? 'active' : 'inactive'}>{s.active ? 'Ativo' : 'Inativo'}</Badge>
               </Link>
             ))}
           </div>
