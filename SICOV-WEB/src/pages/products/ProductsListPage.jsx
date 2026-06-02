@@ -145,6 +145,9 @@ export function ProductsListPage() {
                       {product.material && (
                         <span className="text-xs text-gray-400">· {product.material}</span>
                       )}
+                      {product.supplierId?.name && (
+                        <span className="text-xs text-gray-400">· {product.supplierId.tradeName || product.supplierId.name}</span>
+                      )}
                       {product.clientId?.name && (
                         <span className="text-xs text-[#7c8a6e]">· {product.clientId.tradeName || product.clientId.name}</span>
                       )}
