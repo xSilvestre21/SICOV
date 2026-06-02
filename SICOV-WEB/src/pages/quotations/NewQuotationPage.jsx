@@ -331,7 +331,7 @@ export function NewQuotationPage() {
           unitPrice: calcAdHocUnitPrice(i),
           quantity: Number(i.quantity),
           hasIpi: i.hasIpi !== false,
-        )));
+        }));
       }
 
       const { data } = await api.post('/quotations', payload);
