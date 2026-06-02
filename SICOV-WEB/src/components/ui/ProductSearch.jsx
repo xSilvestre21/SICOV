@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Search, X } from 'lucide-react';
+import { formatSaleMode } from '../../utils/formatSaleMode';
 
 export function ProductSearch({ products, selectedProductId, onSelect }) {
   const [query, setQuery] = useState('');
@@ -24,7 +25,7 @@ export function ProductSearch({ products, selectedProductId, onSelect }) {
       <div className="flex items-center gap-2 p-2.5 bg-white rounded-lg border border-[#e3e3d1]">
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-[#4b5757] truncate">
-            {selected.name} {selected.description ? `— ${selected.description}` : ''} ({selected.unitLabel || selected.saleMode})
+            {selected.name} {selected.description ? `— ${selected.description}` : ''} ({formatSaleMode(selected.unitLabel || selected.saleMode)})
           </p>
           <p className="text-xs text-gray-400">
             {selected.supplierId?.tradeName || selected.supplierId?.name || ''}
@@ -71,7 +72,7 @@ export function ProductSearch({ products, selectedProductId, onSelect }) {
                   className="w-full text-left px-4 py-2.5 hover:bg-[#f5f5ee] transition-colors border-b border-[#e3e3d1] last:border-b-0"
                 >
                   <p className="text-sm font-medium text-[#4b5757]">
-                    {p.name} {p.description ? `— ${p.description}` : ''} ({p.unitLabel || p.saleMode})
+                    {p.name} {p.description ? `— ${p.description}` : ''} ({formatSaleMode(p.unitLabel || p.saleMode)})
                   </p>
                   <p className="text-xs text-gray-400">
                     {p.supplierId?.tradeName || p.supplierId?.name || ''}

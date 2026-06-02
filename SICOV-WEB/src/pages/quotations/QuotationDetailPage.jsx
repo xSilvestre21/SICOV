@@ -5,6 +5,7 @@ import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { useAuth } from '../../contexts/AuthContext';
+import { formatSaleMode } from '../../utils/formatSaleMode';
 import api from '../../lib/api';
 
 function formatCurrency(v) {
@@ -72,7 +73,7 @@ function ItemDetail({ item, ipiRate, orderSubtotal, orderIpiValue }) {
         <div className="flex items-center gap-4 shrink-0 text-sm">
           <div className="text-right hidden sm:block">
             <p className="text-xs text-gray-400">Qtd</p>
-            <p className="font-medium text-[#4b5757]">{Number(item.quantity).toLocaleString('pt-BR')} {p.unitLabel || p.saleMode || ''}</p>
+            <p className="font-medium text-[#4b5757]">{Number(item.quantity).toLocaleString('pt-BR')} {formatSaleMode(p.unitLabel || p.saleMode)}</p>
           </div>
           <div className="text-right hidden md:block">
             <p className="text-xs text-gray-400">Unitário</p>
