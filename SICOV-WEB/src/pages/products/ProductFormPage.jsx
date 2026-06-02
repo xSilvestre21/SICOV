@@ -327,7 +327,7 @@ export function ProductFormPage() {
       } else {
         await api.post('/products', payload);
       }
-      navigate('/products');
+      navigate(-1);
     } catch (err) {
       setError(err.response?.data?.message || 'Erro ao salvar produto.');
     } finally { setLoading(false); }
