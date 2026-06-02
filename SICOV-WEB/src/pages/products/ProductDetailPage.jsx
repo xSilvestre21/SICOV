@@ -67,7 +67,7 @@ export function ProductDetailPage() {
     <div className="space-y-4 max-w-3xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/products')} className="text-[#58706d] hover:text-[#4b5757]">
+          <button onClick={() => navigate(-1)} className="text-[#58706d] hover:text-[#4b5757]">
             <ArrowLeft size={20} />
           </button>
           <div>
