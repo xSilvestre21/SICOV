@@ -303,6 +303,19 @@ export function NewOrderPage() {
     setItems((prev) =>
       prev.map((item, i) => (i === index ? { ...item, [field]: value } : item)),
     );
+
+    // Atualiza IPI quando um produto é selecionado
+    if (field === 'productId' && value) {
+      const product = products.find((p) => p._id === value);
+      if (product?.supplierId) {
+        const supId = typeof product.supplierId === 'object' ? product.supplierId._id : product.supplierId;
+        if (supId) {
+          api.get(`/suppliers/${supId}`).then(({ data }) => {
+            setSupplierIpi(data.ipi ?? 0);
+          }).catch(() => {});
+        }
+      }
+    }
   };
 
   // Calcula subtotal estimado usando a mesma lógica do backend
