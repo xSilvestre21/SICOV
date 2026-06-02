@@ -50,6 +50,16 @@ const modeLabels = {
   box: 'Caixa', linear_meter: 'Metro Linear', manual: 'Manual',
 };
 
+const calcModeLabels = {
+  dimensions_density_factor: 'Dimensões × Densidade × Fator',
+  weight_times_price_per_kg: 'Peso × Preço/Kg',
+  quantity_times_unit_price: 'Quantidade × Preço Unitário',
+  boxes_times_box_price: 'Caixas × Preço/Caixa',
+  boxes_times_units_per_box_times_unit_price: 'Caixas × Un/Caixa × Preço Un.',
+  pallet: 'Palete (Qtd × Peso × Preço/kg)',
+  manual_price: 'Preço Manual',
+};
+
 function ItemDetail({ item, ipiRate, orderSubtotal, orderIpiValue }) {
   const [expanded, setExpanded] = useState(false);
   const p = item.productSnapshot || {};
@@ -189,7 +199,7 @@ function ItemDetail({ item, ipiRate, orderSubtotal, orderIpiValue }) {
             {p.calculationMode && (
               <div>
                 <p className="text-xs text-gray-400">Modo de Cálculo</p>
-                <p className="font-medium text-[#4b5757] text-xs">{p.calculationMode.replace(/_/g, ' ')}</p>
+                <p className="font-medium text-[#4b5757] text-xs">{calcModeLabels[p.calculationMode] || p.calculationMode}</p>
               </div>
             )}
 
