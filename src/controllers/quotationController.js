@@ -634,10 +634,37 @@ async function convertToOrder(req, res) {
   }
 }
 
+/**
+ * DELETE /quotations/:id
+ * Apaga permanentemente um orçamento (apenas admin).
+ */
+async function deleteQuotation(req, res) {
+  try {
+    const { id } = req.params;
+
+    if (req.user.profile !== 'admin') {
+      return res.status(403).json({ message: 'Apenas administradores podem apagar orçamentos.' });
+    }
+
+    const quotation = await Quotation.findById(id);
+    if (!quotation) {
+      return res.status(404).json({ message: 'Orçamento não encontrado.' });
+    }
+
+    await Quotation.deleteOne({ _id: quotation._id });
+
+    return res.json({ message: 'Orçamento apagado permanentemente.' });
+  } catch (err) {
+    console.error('[deleteQuotation]', err.message);
+    return res.status(500).json({ message: 'Erro ao apagar orçamento.' });
+  }
+}
+
 module.exports = {
   createQuotation,
   updateQuotation,
   convertToOrder,
+  deleteQuotation,
   getQuotations,
   getQuotationById,
   getQuotationPdf,

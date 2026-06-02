@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, ShoppingCart, Edit, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Download, ShoppingCart, Edit, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -197,6 +197,21 @@ export function QuotationDetailPage() {
           <Button size="sm" onClick={handleConvert} disabled={!quotation.clientId || quotation.items?.some((i) => !i.productId)}>
             <ShoppingCart size={14} /> Converter em Pedido
           </Button>
+          {isAdmin && (
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={async () => {
+                if (!confirm('Tem certeza que deseja APAGAR permanentemente este orçamento?')) return;
+                try {
+                  await api.delete(`/quotations/${id}`);
+                  navigate('/quotations');
+                } catch (err) { alert(err.response?.data?.message || 'Erro ao apagar.'); }
+              }}
+            >
+              <Trash2 size={14} /> Apagar
+            </Button>
+          )}
         </div>
       </div>
 

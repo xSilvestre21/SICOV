@@ -4,6 +4,7 @@ const {
   createQuotation,
   updateQuotation,
   convertToOrder,
+  deleteQuotation,
   getQuotations,
   getQuotationById,
   getQuotationPdf,
@@ -25,6 +26,8 @@ router.get('/client-products', authMiddleware, getClientProductsForQuotation);
 router.get('/:id', authMiddleware, getQuotationById);
 
 router.put('/:id', authMiddleware, updateQuotation);
+
+router.delete('/:id', authMiddleware, deleteQuotation);
 
 router.post('/:id/convert-to-order', authMiddleware, convertToOrder);
 
