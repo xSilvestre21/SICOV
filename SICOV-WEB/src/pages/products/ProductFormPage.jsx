@@ -435,7 +435,7 @@ export function ProductFormPage() {
           <CardHeader><h2 className="text-sm font-semibold text-[#4b5757]">Dados Comerciais</h2></CardHeader>
           <CardBody className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {form.calculationMode === 'weight_times_price_per_kg' && (
-              <Input label="Preço Base (R$/kg)" type="number" step="any" value={form.basePrice} onChange={set('basePrice')} />
+              <Input label="Preço Base (R$/kg)" type="number" step="any" value={form.basePrice} onChange={set('basePrice')} placeholder={supplierHint.factorKg ? `Dica: R$ ${Number(supplierHint.factorKg).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : ''} />
             )}
             {form.calculationMode === 'quantity_times_unit_price' && (
               <Input label="Preço Unitário" type="number" step="any" value={form.unitPrice} onChange={set('unitPrice')} />
