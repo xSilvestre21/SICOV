@@ -249,8 +249,18 @@ export function ProductFormPage() {
     return Number(form.factorKg) < Number(supplierHint.limitFactorKg);
   })();
 
-  // Gera o nome do produto automaticamente: LARGURAxCOMPRIMENTOxESPESSURA SF SANFONA MATERIAL
+  // Gera o nome do produto automaticamente
   useEffect(() => {
+    // Fitas: "Fitas Adesivas LARGURAxCOMPRIMENTO"
+    if (form.productType === 'tape') {
+      if (form.width && form.length) {
+        const fmt = (v) => String(v).replace('.', ',');
+        setForm((f) => ({ ...f, name: `Fitas Adesivas ${fmt(f.width)}x${fmt(f.length)}` }));
+      }
+      return;
+    }
+
+    // Outros: LARGURAxCOMPRIMENTOxESPESSURA SF/S/SF MATERIAL
     if (form.calculationMode !== 'dimensions_density_factor' && form.productType !== 'plastic_bag') return;
     const fmt = (v) => String(v).replace('.', ',');
     const parts = [];
@@ -413,8 +423,8 @@ export function ProductFormPage() {
             <CardBody className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <Input label="Largura" type="number" step="any" value={form.width} onChange={set('width')} />
               <Input label="Comprimento" type="number" step="any" value={form.length} onChange={set('length')} />
-              <Input label="Espessura" type="number" step="any" value={form.thickness} onChange={set('thickness')} />
-              <Input label="Sanfona" type="number" step="any" value={form.gusset} onChange={set('gusset')} />
+              {!showTape && <Input label="Espessura" type="number" step="any" value={form.thickness} onChange={set('thickness')} />}
+              {!showTape && <Input label="Sanfona" type="number" step="any" value={form.gusset} onChange={set('gusset')} />}
               {showTape && <Input label="Un/Caixa" type="number" step="1" value={form.unitsPerBox} onChange={set('unitsPerBox')} />}
             </CardBody>
           </Card>
