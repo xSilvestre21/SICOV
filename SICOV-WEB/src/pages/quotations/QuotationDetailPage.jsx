@@ -230,6 +230,7 @@ export function QuotationDetailPage() {
           <CardBody className="text-sm space-y-1">
             <p className="font-medium text-[#4b5757]">{supplier.tradeName || supplier.name}</p>
             {supplier.ipi != null && <p className="text-gray-500">IPI: {supplier.ipi}%</p>}
+            {quotation.sellerName && <p className="text-[#7c8a6e]">Vendedor(a): {quotation.sellerName}</p>}
           </CardBody>
         </Card>
       </div>
