@@ -31,7 +31,7 @@ function resolveLogoPath(logoUrl) {
 }
 
 function formatSaleMode(saleMode) {
-  const map = { kg: 'KG', thousand: 'MIL', unit: 'UN', box: 'CX', linear_meter: 'M', manual: '' };
+  const map = { kg: 'KG', thousand: 'MIL', unit: 'UN', box: 'CX', linear_meter: 'M', manual: '', ML: 'MIL', KG: 'KG', UN: 'UN', CX: 'CX' };
   return map[saleMode] || saleMode || '';
 }
 
@@ -241,7 +241,7 @@ function generateQuotationPdf(quotation, res) {
 
     const values = [
       qtyFormatted,
-      p.unitLabel || formatSaleMode(p.saleMode) || '',
+      formatSaleMode(p.unitLabel || p.saleMode) || '',
       p.clientCode || '',
       p.description || p.name || '',
       formatCurrency(item.unitPrice),
