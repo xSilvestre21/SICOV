@@ -307,12 +307,31 @@ export function NewQuotationPage() {
             saleMode: i.saleMode || 'thousand',
             unitLabel: i.unitLabel || i.saleMode || 'ML',
             supplierCode: i.supplierCode || undefined,
+            calculationMode: i.calculationMode || 'dimensions_density_factor',
+            material: i.material || undefined,
+            technicalData: {
+              measurements: {
+                width: Number(i.width) || undefined,
+                length: Number(i.length) || undefined,
+                thickness: Number(i.thickness) || undefined,
+                gusset: Number(i.gusset) || undefined,
+              },
+            },
+            commercialData: {
+              density: Number(i.density) || undefined,
+              factorKg: Number(i.factorKg) || undefined,
+              basePrice: Number(i.basePrice) || undefined,
+              unitPrice: Number(i.unitPrice) || undefined,
+              boxPrice: Number(i.boxPrice) || undefined,
+              palletQuantity: Number(i.palletQuantity) || undefined,
+              palletWeight: Number(i.palletWeight) || undefined,
+            },
           },
           supplierId,
           unitPrice: calcAdHocUnitPrice(i),
           quantity: Number(i.quantity),
           hasIpi: i.hasIpi !== false,
-        }));
+        )));
       }
 
       const { data } = await api.post('/quotations', payload);
