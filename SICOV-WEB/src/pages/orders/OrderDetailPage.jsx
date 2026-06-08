@@ -88,7 +88,7 @@ function ItemDetail({ item, ipiRate, orderSubtotal, orderIpiValue }) {
           )}
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium text-[#4b5757] truncate">
-              {p.description || p.name || '—'}
+              {p.name ? (p.description ? `${p.name} - ${p.description}` : p.name) : (p.description || '—')}
             </p>
             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
               {p.supplierCode && <span className="text-xs text-gray-400">Forn: {p.supplierCode}</span>}
