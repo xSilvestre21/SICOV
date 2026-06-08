@@ -205,11 +205,17 @@ export function ProductFormPage() {
       .finally(() => setLoadingData(false));
   }, [id, isEdit, navigate]);
 
-  const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
+  const set = (field) => (e) => {
+    if (['width', 'length', 'thickness', 'gusset', 'material'].includes(field)) {
+      userEditedRef.current = true;
+    }
+    setForm((f) => ({ ...f, [field]: e.target.value }));
+  };
 
   const selectedSupplier = suppliers.find((s) => s._id === form.supplierId);
 
   const setMaterial = (e) => {
+    userEditedRef.current = true;
     const material = e.target.value;
     setForm((f) => {
       const updated = { ...f, material };
@@ -249,14 +255,11 @@ export function ProductFormPage() {
     return Number(form.factorKg) < Number(supplierHint.limitFactorKg);
   })();
 
-  // Gera o nome do produto automaticamente
-  const hasLoadedRef = useRef(false);
+  // Gera o nome do produto automaticamente (apenas ao criar ou ao alterar medidas manualmente)
+  const userEditedRef = useRef(false);
   useEffect(() => {
-    // Não sobrescreve o nome ao carregar dados na edição
-    if (isEdit && !hasLoadedRef.current) {
-      hasLoadedRef.current = true;
-      return;
-    }
+    // Na edição, só auto-gera se o usuário alterou medidas/material manualmente
+    if (isEdit && !userEditedRef.current) return;
 
     // Fitas: "Fitas Adesivas LARGURAxCOMPRIMENTO"
     if (form.productType === 'tape') {
