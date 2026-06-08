@@ -243,7 +243,7 @@ function generateQuotationPdf(quotation, res) {
       qtyFormatted,
       formatSaleMode(p.unitLabel || p.saleMode) || '',
       p.clientCode || '',
-      p.description || p.name || '',
+      p.name ? (p.description ? `${p.name} - ${p.description}` : p.name) : (p.description || ''),
       formatCurrency(item.unitPrice),
       formatCurrency(item.subtotal),
       formatCurrency(itemIpi),

@@ -412,7 +412,7 @@ function generateOrderPdf(order, res) {
     const values = [
       p.supplierCode || '',
       p.clientCode   || '',
-      p.description  || p.name || '',
+      p.name ? (p.description ? `${p.name} - ${p.description}` : p.name) : (p.description || ''),
       qtyFormatted,
       formatSaleMode(p.unitLabel || p.saleMode) || '',
       formatCurrency(item.unitPrice),
