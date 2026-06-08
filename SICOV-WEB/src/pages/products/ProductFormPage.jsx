@@ -250,7 +250,14 @@ export function ProductFormPage() {
   })();
 
   // Gera o nome do produto automaticamente
+  const hasLoadedRef = useRef(false);
   useEffect(() => {
+    // Não sobrescreve o nome ao carregar dados na edição
+    if (isEdit && !hasLoadedRef.current) {
+      hasLoadedRef.current = true;
+      return;
+    }
+
     // Fitas: "Fitas Adesivas LARGURAxCOMPRIMENTO"
     if (form.productType === 'tape') {
       if (form.width && form.length) {
