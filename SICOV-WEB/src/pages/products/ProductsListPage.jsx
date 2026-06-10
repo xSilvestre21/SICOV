@@ -29,6 +29,9 @@ export function ProductsListPage() {
   const search = searchParams.get('search') || '';
   const active = searchParams.get('active') || '';
   const clientId = searchParams.get('clientId') || '';
+  const [filterWidth, setFilterWidth] = useState('');
+  const [filterLength, setFilterLength] = useState('');
+  const [filterThickness, setFilterThickness] = useState('');
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
@@ -119,14 +122,39 @@ export function ProductsListPage() {
         </div>
       </Card>
 
+      {/* Filtro por medidas */}
+      {clientId && (
+        <Card className="p-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-[#7c8a6e] shrink-0">Medidas:</span>
+            <input type="number" step="any" value={filterWidth} onChange={(e) => setFilterWidth(e.target.value)} placeholder="Largura" className="w-20 px-2 py-1.5 text-xs rounded-lg border border-[#b0b087] focus:border-[#58706d] outline-none" />
+            <span className="text-xs text-gray-400">×</span>
+            <input type="number" step="any" value={filterLength} onChange={(e) => setFilterLength(e.target.value)} placeholder="Compr." className="w-20 px-2 py-1.5 text-xs rounded-lg border border-[#b0b087] focus:border-[#58706d] outline-none" />
+            <span className="text-xs text-gray-400">×</span>
+            <input type="number" step="any" value={filterThickness} onChange={(e) => setFilterThickness(e.target.value)} placeholder="Espess." className="w-20 px-2 py-1.5 text-xs rounded-lg border border-[#b0b087] focus:border-[#58706d] outline-none" />
+            {(filterWidth || filterLength || filterThickness) && (
+              <button onClick={() => { setFilterWidth(''); setFilterLength(''); setFilterThickness(''); }} className="text-xs text-red-400 hover:text-red-600 ml-1">Limpar</button>
+            )}
+          </div>
+        </Card>
+      )}
+
       <Card className="overflow-hidden">
         {loading ? (
           <div className="p-8 text-center text-sm text-gray-400">Carregando...</div>
-        ) : products.length === 0 ? (
+        ) : (() => {
+          const filtered = products.filter((p) => {
+            const m = p.technicalData?.measurements || {};
+            if (filterWidth && Number(m.width) !== Number(filterWidth)) return false;
+            if (filterLength && Number(m.length) !== Number(filterLength)) return false;
+            if (filterThickness && Number(m.thickness) !== Number(filterThickness)) return false;
+            return true;
+          });
+          return filtered.length === 0 ? (
           <div className="p-8 text-center text-sm text-gray-400">Nenhum produto encontrado.</div>
         ) : (
           <div className="divide-y divide-[#e3e3d1]">
-            {products.map((product) => (
+            {filtered.map((product) => (
               <Link
                 key={product._id}
                 to={`/products/${product._id}`}
@@ -168,7 +196,8 @@ export function ProductsListPage() {
               </Link>
             ))}
           </div>
-        )}
+        );
+        })()}
       </Card>
 
       {totalPages > 1 && (
