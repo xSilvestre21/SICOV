@@ -123,21 +123,19 @@ export function ProductsListPage() {
       </Card>
 
       {/* Filtro por medidas */}
-      {clientId && (
-        <Card className="p-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs text-[#7c8a6e] shrink-0">Medidas:</span>
-            <input type="number" step="any" value={filterWidth} onChange={(e) => setFilterWidth(e.target.value)} placeholder="Largura" className="w-20 px-2 py-1.5 text-xs rounded-lg border border-[#b0b087] focus:border-[#58706d] outline-none" />
-            <span className="text-xs text-gray-400">×</span>
-            <input type="number" step="any" value={filterLength} onChange={(e) => setFilterLength(e.target.value)} placeholder="Compr." className="w-20 px-2 py-1.5 text-xs rounded-lg border border-[#b0b087] focus:border-[#58706d] outline-none" />
-            <span className="text-xs text-gray-400">×</span>
-            <input type="number" step="any" value={filterThickness} onChange={(e) => setFilterThickness(e.target.value)} placeholder="Espess." className="w-20 px-2 py-1.5 text-xs rounded-lg border border-[#b0b087] focus:border-[#58706d] outline-none" />
-            {(filterWidth || filterLength || filterThickness) && (
-              <button onClick={() => { setFilterWidth(''); setFilterLength(''); setFilterThickness(''); }} className="text-xs text-red-400 hover:text-red-600 ml-1">Limpar</button>
-            )}
-          </div>
-        </Card>
-      )}
+      <Card className="p-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-[#7c8a6e] shrink-0">Medidas:</span>
+          <input type="number" step="any" value={filterWidth} onChange={(e) => setFilterWidth(e.target.value)} placeholder="Largura" className="w-20 px-2 py-1.5 text-xs rounded-lg border border-[#b0b087] focus:border-[#58706d] outline-none" />
+          <span className="text-xs text-gray-400">×</span>
+          <input type="number" step="any" value={filterLength} onChange={(e) => setFilterLength(e.target.value)} placeholder="Compr." className="w-20 px-2 py-1.5 text-xs rounded-lg border border-[#b0b087] focus:border-[#58706d] outline-none" />
+          <span className="text-xs text-gray-400">×</span>
+          <input type="number" step="any" value={filterThickness} onChange={(e) => setFilterThickness(e.target.value)} placeholder="Espess." className="w-20 px-2 py-1.5 text-xs rounded-lg border border-[#b0b087] focus:border-[#58706d] outline-none" />
+          {(filterWidth || filterLength || filterThickness) && (
+            <button onClick={() => { setFilterWidth(''); setFilterLength(''); setFilterThickness(''); }} className="text-xs text-red-400 hover:text-red-600 ml-1">Limpar</button>
+          )}
+        </div>
+      </Card>
 
       <Card className="overflow-hidden">
         {loading ? (
