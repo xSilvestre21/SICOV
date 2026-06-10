@@ -155,6 +155,9 @@ export function ProductsListPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0 ml-2">
+                  {product.clientCode && (
+                    <span className="text-xs font-medium text-[#58706d] bg-[#58706d]/10 px-2 py-0.5 rounded">{product.clientCode}</span>
+                  )}
                   {product.supplierCode && (
                     <span className="hidden sm:block text-xs text-gray-400">{product.supplierCode}</span>
                   )}
