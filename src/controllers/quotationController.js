@@ -596,7 +596,7 @@ async function convertToOrder(req, res) {
       customerPurchaseOrder: customerPurchaseOrder || null,
       paymentTerm:          paymentTerm           || client.paymentTerm,
       sellerName:           sellerName            || quotation.sellerName || 'Valquiria Silvestre',
-      notes:                notes                 || null,
+      notes:                notes                 || client.notes || null,
       clientSnapshot: {
         name:             client.name,
         tradeName:        client.tradeName,
