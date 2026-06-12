@@ -230,7 +230,48 @@ function generateQuotationPdf(quotation, res) {
   // Linhas de dados
   doc.fontSize(9).font('Helvetica');
 
+  const ROW_H = 18;
+  const PAGE_BOTTOM = PAGE_H - MARGIN - 20; // margem inferior segura
+
+  // Função para desenhar cabeçalho da tabela em nova página
+  function drawTableHeaderOnNewPage() {
+    doc.addPage();
+    let y = MARGIN + 10;
+
+    // Logo compacto ou nome do fornecedor
+    doc.fontSize(9).font('Helvetica-Bold')
+      .text(s.tradeName || s.name || '', MARGIN, y, { lineBreak: false });
+    y += 16;
+
+    // Linha superior da tabela
+    doc.moveTo(MARGIN, y).lineTo(RIGHT, y)
+      .lineWidth(0.5).opacity(0.5).stroke().opacity(1);
+    y += 6;
+
+    // Cabeçalho das colunas
+    doc.fontSize(9).font('Helvetica-Bold');
+    COLUMNS.forEach((col) => {
+      doc.text(col.label, col.x, y, {
+        width: col.w, align: col.align, lineBreak: false,
+      });
+    });
+    y += 14;
+
+    // Linha abaixo do cabeçalho
+    doc.moveTo(MARGIN, y).lineTo(RIGHT, y)
+      .lineWidth(0.5).opacity(0.5).stroke().opacity(1);
+    y += 5;
+
+    doc.fontSize(9).font('Helvetica');
+    return y;
+  }
+
   (quotation.items || []).forEach((item) => {
+    // Verifica se precisa de nova página
+    if (currentY + ROW_H > PAGE_BOTTOM) {
+      currentY = drawTableHeaderOnNewPage();
+    }
+
     const p = item.productSnapshot || {};
 
     const itemIpi = quotation.subtotal > 0
@@ -256,10 +297,16 @@ function generateQuotationPdf(quotation, res) {
       });
     });
 
-    currentY += 18;
+    currentY += ROW_H;
   });
 
   currentY += 4;
+
+  // Verifica se totais cabem na página atual
+  if (currentY + 80 > PAGE_BOTTOM) {
+    currentY = drawTableHeaderOnNewPage();
+    currentY -= 25; // remove espaço do header da tabela, pois aqui são totais
+  }
 
   // Linha inferior da tabela
   doc.moveTo(MARGIN, currentY).lineTo(RIGHT, currentY)
