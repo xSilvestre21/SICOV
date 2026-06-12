@@ -238,10 +238,19 @@ function generateQuotationPdf(quotation, res) {
     doc.addPage();
     let y = MARGIN + 10;
 
-    // Logo compacto ou nome do fornecedor
-    doc.fontSize(9).font('Helvetica-Bold')
-      .text(s.tradeName || s.name || '', MARGIN, y, { lineBreak: false });
-    y += 16;
+    // Logo ou nome do fornecedor (compacto)
+    if (logoPath) {
+      try {
+        doc.image(logoPath, MARGIN, y, { fit: [180, 45] });
+      } catch {
+        doc.fontSize(10).font('Helvetica-Bold')
+          .text(s.tradeName || s.name || '', MARGIN, y + 10, { lineBreak: false });
+      }
+    } else {
+      doc.fontSize(10).font('Helvetica-Bold')
+        .text(s.tradeName || s.name || '', MARGIN, y + 10, { lineBreak: false });
+    }
+    y += 50;
 
     // Linha superior da tabela
     doc.moveTo(MARGIN, y).lineTo(RIGHT, y)
