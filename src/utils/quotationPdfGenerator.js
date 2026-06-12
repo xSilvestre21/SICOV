@@ -92,14 +92,14 @@ const RIGHT   = PAGE_W - MARGIN; // ~799
 //    - ITEM: 163 → 193pt            (+30) mais espaço para descrição longa
 //    - MILHEIRO/TOT S/IPI/VALOR IPI/TOTAL: 101/101/101/96 → 88/88/88/88  (-39 total)
 const COL = {
-  qtde:     { x: MARGIN,       w: 50,  align: 'left'  },
-  un:       { x: MARGIN + 58,  w: 42,  align: 'left'  },
-  codCli:   { x: MARGIN + 114, w: 70,  align: 'left'  },
-  item:     { x: MARGIN + 192, w: 193, align: 'left'  },
-  milheiro: { x: MARGIN + 393, w: 88,  align: 'right' },
-  totSipi:  { x: MARGIN + 489, w: 88,  align: 'right' },
-  valorIpi: { x: MARGIN + 585, w: 88,  align: 'right' },
-  total:    { x: MARGIN + 681, w: 75,  align: 'right' },
+  qtde:     { x: MARGIN,       w: 35,  align: 'left'  },
+  un:       { x: MARGIN + 38,  w: 30,  align: 'left'  },
+  codCli:   { x: MARGIN + 72,  w: 70,  align: 'left'  },
+  item:     { x: MARGIN + 146, w: 260, align: 'left'  },
+  milheiro: { x: MARGIN + 414, w: 80,  align: 'right' },
+  totSipi:  { x: MARGIN + 500, w: 80,  align: 'right' },
+  valorIpi: { x: MARGIN + 586, w: 80,  align: 'right' },
+  total:    { x: MARGIN + 672, w: 84,  align: 'right' },
 };
 
 const COLUMNS = [
