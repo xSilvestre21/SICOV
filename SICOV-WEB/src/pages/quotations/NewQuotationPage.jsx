@@ -515,6 +515,13 @@ export function NewQuotationPage() {
                   </div>
 
                   {/* Linha 3: Campos de cálculo (condicionais) */}
+                  {/* Fita: sempre mostra largura e comprimento */}
+                  {item.productType === 'tape' && (item.calculationMode || 'dimensions_density_factor') !== 'dimensions_density_factor' && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input label="Largura" type="number" step="any" value={item.width || ''} onChange={(e) => updateItem(i, 'width', e.target.value)} />
+                      <Input label="Comprimento" type="number" step="any" value={item.length || ''} onChange={(e) => updateItem(i, 'length', e.target.value)} />
+                    </div>
+                  )}
                   {(item.calculationMode || 'dimensions_density_factor') === 'dimensions_density_factor' && (() => {
                     const hint = getSupplierHint(item.material);
                     const isTape = item.productType === 'tape';
