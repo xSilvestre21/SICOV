@@ -30,6 +30,7 @@ export function ProductSearch({ products, selectedProductId, onSelect }) {
           <p className="text-xs text-gray-400">
             {selected.supplierId?.tradeName || selected.supplierId?.name || ''}
             {selected.supplierCode ? ` · Cód: ${selected.supplierCode}` : ''}
+            {selected.clientCode ? ` · Cli: ${selected.clientCode}` : ''}
           </p>
         </div>
         <button
