@@ -211,10 +211,17 @@ function generateQuotationPdf(quotation, res) {
 
   currentY += 6;
 
+  // Determina label da coluna de preço baseado no modo de venda dos itens
+  const saleModeMap = { thousand: 'MILHEIRO', kg: 'PREÇO/KG', unit: 'PREÇO/UN', box: 'PREÇO/CX', linear_meter: 'PREÇO/M', manual: 'PREÇO' };
+  const firstQItem = (quotation.items || [])[0];
+  const firstQSaleMode = firstQItem?.productSnapshot?.saleMode || 'thousand';
+  const unitPriceLabel = saleModeMap[firstQSaleMode] || 'VLR. UNIT.';
+
   // Cabeçalho das colunas
   doc.fontSize(9).font('Helvetica-Bold');
   COLUMNS.forEach((col) => {
-    doc.text(col.label, col.x, currentY, {
+    const label = col.label === 'VLR. UNIT.' ? unitPriceLabel : col.label;
+    doc.text(label, col.x, currentY, {
       width: col.w, align: col.align, lineBreak: false,
     });
   });
@@ -260,7 +267,8 @@ function generateQuotationPdf(quotation, res) {
     // Cabeçalho das colunas
     doc.fontSize(9).font('Helvetica-Bold');
     COLUMNS.forEach((col) => {
-      doc.text(col.label, col.x, y, {
+      const label = col.label === 'VLR. UNIT.' ? unitPriceLabel : col.label;
+      doc.text(label, col.x, y, {
         width: col.w, align: col.align, lineBreak: false,
       });
     });

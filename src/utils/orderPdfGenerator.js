@@ -310,13 +310,14 @@ function drawClientData(doc, order, startY) {
 /**
  * Desenha o cabeçalho da tabela de itens e retorna Y abaixo dele.
  */
-function drawTableHeader(doc, y) {
+function drawTableHeader(doc, y, unitPriceLabel) {
   hline(doc, y, 0.6);
   y += 5;
 
   doc.fontSize(8).font('Helvetica-Bold');
   COLUMNS.forEach((col) => {
-    doc.text(col.label, col.x, y, { width: col.w, align: col.align, lineBreak: false });
+    const label = col.label === 'VLR. UNIT.' && unitPriceLabel ? unitPriceLabel : col.label;
+    doc.text(label, col.x, y, { width: col.w, align: col.align, lineBreak: false });
   });
   y += 12;
 
@@ -391,7 +392,14 @@ function generateOrderPdf(order, res) {
   let y = drawHeader(doc, order);
   y = drawClientData(doc, order, y);
   y += 4;
-  y = drawTableHeader(doc, y);
+
+  // Determina o label da coluna de preço unitário baseado no modo de venda dos itens
+  const saleModeMap = { thousand: 'MILHEIRO', kg: 'PREÇO/KG', unit: 'PREÇO/UN', box: 'PREÇO/CX', linear_meter: 'PREÇO/M', manual: 'PREÇO' };
+  const firstItem = (order.items || [])[0];
+  const firstSaleMode = firstItem?.productSnapshot?.saleMode || 'thousand';
+  const unitPriceLabel = saleModeMap[firstSaleMode] || 'VLR. UNIT.';
+
+  y = drawTableHeader(doc, y, unitPriceLabel);
 
   // ── Itens ─────────────────────────────────────────────────────────────────
 
@@ -430,7 +438,7 @@ function generateOrderPdf(order, res) {
       doc.addPage();
       y = drawHeader(doc, order);
       y += 4;
-      y = drawTableHeader(doc, y);
+      y = drawTableHeader(doc, y, unitPriceLabel);
       doc.fontSize(8).font('Helvetica');
     }
 
