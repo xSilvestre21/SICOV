@@ -113,7 +113,7 @@ const COLUMNS = [
   { label: 'DESCRIÇÃO', x: MARGIN + 145, w: 234, align: 'left'  },
   { label: 'QNT',       x: MARGIN + 385, w: 40,  align: 'right' },
   { label: 'UN',        x: MARGIN + 431, w: 34,  align: 'left'  },
-  { label: 'MILHEIRO',  x: MARGIN + 471, w: 75,  align: 'right' },
+  { label: 'VLR. UNIT.', x: MARGIN + 471, w: 75,  align: 'right' },
   { label: 'TOT S/IPI', x: MARGIN + 552, w: 75,  align: 'right' },
   { label: 'IPI',       x: MARGIN + 633, w: 60,  align: 'right' },
   { label: 'TOTAL',     x: MARGIN + 699, w: 57,  align: 'right' },

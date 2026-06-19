@@ -107,7 +107,7 @@ const COLUMNS = [
   { label: 'UN',           ...COL.un       },
   { label: 'CÓD.CLI',      ...COL.codCli   },
   { label: 'ITEM',         ...COL.item     },
-  { label: 'MILHEIRO',     ...COL.milheiro },
+  { label: 'VLR. UNIT.',   ...COL.milheiro },
   { label: 'TOTAL S/ IPI', ...COL.totSipi  },
   { label: 'VALOR IPI',    ...COL.valorIpi },
   { label: 'TOTAL',        ...COL.total    },
