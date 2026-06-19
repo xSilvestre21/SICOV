@@ -222,6 +222,12 @@ export function NewQuotationPage() {
           const fmt = (v) => String(v).replace('.', ',');
           updated.name = `Fitas Adesivas ${fmt(updated.width)}x${fmt(updated.length)}`;
         }
+      // Stretch: "Filme Stretch LARGURAxESPESSURA"
+      } else if (updated.productType === 'stretch') {
+        if (updated.width && updated.thickness) {
+          const fmt = (v) => String(v).replace('.', ',');
+          updated.name = `Filme Stretch ${fmt(updated.width)}x${fmt(updated.thickness)}`;
+        }
       } else if (calcMode === 'dimensions_density_factor') {
         const fmt = (v) => String(v).replace('.', ',');
         const parts = [];
@@ -522,15 +528,23 @@ export function NewQuotationPage() {
                       <Input label="Comprimento" type="number" step="any" value={item.length || ''} onChange={(e) => updateItem(i, 'length', e.target.value)} />
                     </div>
                   )}
+                  {/* Stretch: sempre mostra largura e espessura */}
+                  {item.productType === 'stretch' && (item.calculationMode || 'dimensions_density_factor') !== 'dimensions_density_factor' && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input label="Largura (mm)" type="number" step="any" value={item.width || ''} onChange={(e) => updateItem(i, 'width', e.target.value)} />
+                      <Input label="Espessura (micras)" type="number" step="any" value={item.thickness || ''} onChange={(e) => updateItem(i, 'thickness', e.target.value)} />
+                    </div>
+                  )}
                   {(item.calculationMode || 'dimensions_density_factor') === 'dimensions_density_factor' && (() => {
                     const hint = getSupplierHint(item.material);
                     const isTape = item.productType === 'tape';
+                    const isStretch = item.productType === 'stretch';
                     return (
                     <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                      <Input label="Largura" type="number" step="any" value={item.width || ''} onChange={(e) => updateItem(i, 'width', e.target.value)} />
-                      <Input label="Comprimento" type="number" step="any" value={item.length || ''} onChange={(e) => updateItem(i, 'length', e.target.value)} />
-                      {!isTape && <Input label="Espessura" type="number" step="any" value={item.thickness || ''} onChange={(e) => updateItem(i, 'thickness', e.target.value)} />}
-                      {!isTape && <Input label="Sanfona" type="number" step="any" value={item.gusset || ''} onChange={(e) => updateItem(i, 'gusset', e.target.value)} />}
+                      <Input label={isStretch ? 'Largura (mm)' : 'Largura'} type="number" step="any" value={item.width || ''} onChange={(e) => updateItem(i, 'width', e.target.value)} />
+                      {!isStretch && <Input label="Comprimento" type="number" step="any" value={item.length || ''} onChange={(e) => updateItem(i, 'length', e.target.value)} />}
+                      {!isTape && <Input label={isStretch ? 'Espessura (micras)' : 'Espessura'} type="number" step="any" value={item.thickness || ''} onChange={(e) => updateItem(i, 'thickness', e.target.value)} />}
+                      {!isTape && !isStretch && <Input label="Sanfona" type="number" step="any" value={item.gusset || ''} onChange={(e) => updateItem(i, 'gusset', e.target.value)} />}
                       {selectedSupplierObj?.priceTable?.length > 0 ? (
                         <div>
                           <label className="text-sm font-medium text-[#4b5757] mb-1 block">Material</label>

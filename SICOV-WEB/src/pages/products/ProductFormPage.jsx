@@ -270,6 +270,15 @@ export function ProductFormPage() {
       return;
     }
 
+    // Stretch: "Filme Stretch LARGURAxESPESSURA"
+    if (form.productType === 'stretch') {
+      if (form.width && form.thickness) {
+        const fmt = (v) => String(v).replace('.', ',');
+        setForm((f) => ({ ...f, name: `Filme Stretch ${fmt(f.width)}x${fmt(f.thickness)}` }));
+      }
+      return;
+    }
+
     // Outros: LARGURAxCOMPRIMENTOxESPESSURA SF/S/SF MATERIAL
     if (form.calculationMode !== 'dimensions_density_factor' && form.productType !== 'plastic_bag') return;
     const fmt = (v) => String(v).replace('.', ',');
@@ -427,14 +436,14 @@ export function ProductFormPage() {
         </Card>
 
         {/* Medidas */}
-        {(showPlasticBag || showTape || form.productType === 'bobbin' || form.calculationMode === 'dimensions_density_factor') && (
+        {(showPlasticBag || showTape || form.productType === 'stretch' || form.productType === 'bobbin' || form.calculationMode === 'dimensions_density_factor') && (
           <Card>
             <CardHeader><h2 className="text-sm font-semibold text-[#4b5757]">Medidas</h2></CardHeader>
             <CardBody className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <Input label="Largura" type="number" step="any" value={form.width} onChange={set('width')} />
-              <Input label="Comprimento" type="number" step="any" value={form.length} onChange={set('length')} />
-              {!showTape && <Input label="Espessura" type="number" step="any" value={form.thickness} onChange={set('thickness')} />}
-              {!showTape && <Input label="Sanfona" type="number" step="any" value={form.gusset} onChange={set('gusset')} />}
+              <Input label={form.productType === 'stretch' ? 'Largura (mm)' : 'Largura'} type="number" step="any" value={form.width} onChange={set('width')} />
+              {form.productType !== 'stretch' && <Input label="Comprimento" type="number" step="any" value={form.length} onChange={set('length')} />}
+              {!showTape && <Input label={form.productType === 'stretch' ? 'Espessura (micras)' : 'Espessura'} type="number" step="any" value={form.thickness} onChange={set('thickness')} />}
+              {!showTape && form.productType !== 'stretch' && <Input label="Sanfona" type="number" step="any" value={form.gusset} onChange={set('gusset')} />}
               {showTape && <Input label="Un/Caixa" type="number" step="1" value={form.unitsPerBox} onChange={set('unitsPerBox')} />}
             </CardBody>
           </Card>
