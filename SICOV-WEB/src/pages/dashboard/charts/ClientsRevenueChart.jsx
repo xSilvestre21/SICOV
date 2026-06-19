@@ -138,10 +138,8 @@ function PieChartView({ data }) {
           cx="50%"
           cy="50%"
           outerRadius={100}
-          label={({ tradeName, percent }) =>
-            `${tradeName?.substring(0, 12)}${tradeName?.length > 12 ? '…' : ''} (${(percent * 100).toFixed(0)}%)`
-          }
-          labelLine={{ stroke: '#b0b087' }}
+          label={false}
+          labelLine={false}
         >
           {data.map((_, index) => (
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
