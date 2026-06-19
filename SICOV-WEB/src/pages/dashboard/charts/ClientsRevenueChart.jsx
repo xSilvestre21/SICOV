@@ -137,7 +137,7 @@ function PieChartView({ data }) {
           nameKey="tradeName"
           cx="50%"
           cy="50%"
-          outerRadius={100}
+          outerRadius={120}
           label={false}
           labelLine={false}
         >
@@ -148,11 +148,6 @@ function PieChartView({ data }) {
         <Tooltip
           formatter={(value) => formatCurrency(value)}
           labelFormatter={(_, payload) => payload?.[0]?.payload?.tradeName || ''}
-        />
-        <Legend
-          formatter={(value) =>
-            value?.length > 18 ? `${value.substring(0, 18)}…` : value
-          }
         />
       </PieChart>
     </ResponsiveContainer>
