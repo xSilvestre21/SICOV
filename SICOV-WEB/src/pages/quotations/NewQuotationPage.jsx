@@ -213,24 +213,32 @@ export function NewQuotationPage() {
     if (idx !== i) return item;
     const updated = { ...item, [field]: value };
 
-    // Auto-gera nome para modo dimensions_density_factor (igual ao cadastro de produto)
+    // Auto-gera nome (igual ao cadastro de produto)
     const calcMode = updated.calculationMode || 'dimensions_density_factor';
-    if (calcMode === 'dimensions_density_factor' && ['width', 'length', 'thickness', 'gusset', 'material', 'calculationMode'].includes(field)) {
-      const fmt = (v) => String(v).replace('.', ',');
-      const parts = [];
-      if (updated.width && updated.length && updated.thickness) {
-        parts.push(`${fmt(updated.width)}x${fmt(updated.length)}x${fmt(updated.thickness)}`);
-      }
-      if (updated.gusset) {
-        parts.push(`SF ${fmt(updated.gusset)}`);
-      } else if (updated.width && updated.length && updated.thickness) {
-        parts.push('S/SF');
-      }
-      if (updated.material) {
-        parts.push(String(updated.material).toUpperCase());
-      }
-      if (parts.length > 0) {
-        updated.name = parts.join(' ');
+    if (['width', 'length', 'thickness', 'gusset', 'material', 'calculationMode', 'productType'].includes(field)) {
+      // Fitas: "Fitas Adesivas LARGURAxCOMPRIMENTO"
+      if (updated.productType === 'tape') {
+        if (updated.width && updated.length) {
+          const fmt = (v) => String(v).replace('.', ',');
+          updated.name = `Fitas Adesivas ${fmt(updated.width)}x${fmt(updated.length)}`;
+        }
+      } else if (calcMode === 'dimensions_density_factor') {
+        const fmt = (v) => String(v).replace('.', ',');
+        const parts = [];
+        if (updated.width && updated.length && updated.thickness) {
+          parts.push(`${fmt(updated.width)}x${fmt(updated.length)}x${fmt(updated.thickness)}`);
+        }
+        if (updated.gusset) {
+          parts.push(`SF ${fmt(updated.gusset)}`);
+        } else if (updated.width && updated.length && updated.thickness) {
+          parts.push('S/SF');
+        }
+        if (updated.material) {
+          parts.push(String(updated.material).toUpperCase());
+        }
+        if (parts.length > 0) {
+          updated.name = parts.join(' ');
+        }
       }
     }
 
@@ -462,9 +470,20 @@ export function NewQuotationPage() {
               return (
                 <div key={i} className="p-3 bg-[#f5f5ee] rounded-lg space-y-3 border border-[#e3e3d1]">
                   {/* Linha 1: Nome e descrição */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
                     <Input label="Nome do Produto *" value={item.name || ''} onChange={(e) => updateItem(i, 'name', e.target.value)} />
                     <Input label="Descrição" value={item.description || ''} onChange={(e) => updateItem(i, 'description', e.target.value)} />
+                    <div>
+                      <label className="text-sm font-medium text-[#4b5757] mb-1 block">Tipo</label>
+                      <select value={item.productType || 'plastic_bag'} onChange={(e) => updateItem(i, 'productType', e.target.value)} className="w-full rounded-lg border border-[#b0b087] px-3 py-2 text-sm outline-none focus:border-[#58706d]">
+                        <option value="plastic_bag">Saco Plástico</option>
+                        <option value="tape">Fita</option>
+                        <option value="stretch">Stretch</option>
+                        <option value="shrink">Shrink</option>
+                        <option value="bobbin">Bobina</option>
+                        <option value="custom">Personalizado</option>
+                      </select>
+                    </div>
                     <div>
                       <label className="text-sm font-medium text-[#4b5757] mb-1 block">Modo de Venda</label>
                       <select value={item.saleMode || 'thousand'} onChange={(e) => updateItem(i, 'saleMode', e.target.value)} className="w-full rounded-lg border border-[#b0b087] px-3 py-2 text-sm outline-none focus:border-[#58706d]">
@@ -498,12 +517,13 @@ export function NewQuotationPage() {
                   {/* Linha 3: Campos de cálculo (condicionais) */}
                   {(item.calculationMode || 'dimensions_density_factor') === 'dimensions_density_factor' && (() => {
                     const hint = getSupplierHint(item.material);
+                    const isTape = item.productType === 'tape';
                     return (
                     <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                       <Input label="Largura" type="number" step="any" value={item.width || ''} onChange={(e) => updateItem(i, 'width', e.target.value)} />
                       <Input label="Comprimento" type="number" step="any" value={item.length || ''} onChange={(e) => updateItem(i, 'length', e.target.value)} />
-                      <Input label="Espessura" type="number" step="any" value={item.thickness || ''} onChange={(e) => updateItem(i, 'thickness', e.target.value)} />
-                      <Input label="Sanfona" type="number" step="any" value={item.gusset || ''} onChange={(e) => updateItem(i, 'gusset', e.target.value)} />
+                      {!isTape && <Input label="Espessura" type="number" step="any" value={item.thickness || ''} onChange={(e) => updateItem(i, 'thickness', e.target.value)} />}
+                      {!isTape && <Input label="Sanfona" type="number" step="any" value={item.gusset || ''} onChange={(e) => updateItem(i, 'gusset', e.target.value)} />}
                       {selectedSupplierObj?.priceTable?.length > 0 ? (
                         <div>
                           <label className="text-sm font-medium text-[#4b5757] mb-1 block">Material</label>
