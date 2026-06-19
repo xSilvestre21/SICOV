@@ -220,7 +220,6 @@ export function NewOrderPage() {
     api.get(`/quotations/${fromQuotationId}`)
       .then(({ data }) => {
         if (data.clientId) setSelectedClient(data.clientId);
-        setNotes(data.observations || '');
         // Itens serão preenchidos após os produtos carregarem
         window.__sicov_duplicate_items = (data.items || [])
           .filter((i) => i.productId) // só itens cadastrados
