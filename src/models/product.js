@@ -73,7 +73,7 @@ const productSchema = new mongoose.Schema(
 
     productType: {
       type: String,
-      enum: ['plastic_bag', 'tape', 'stretch', 'shrink', 'bobbin', 'custom'],
+      enum: ['plastic_bag', 'tape', 'stretch', 'shrink', 'bobbin', 'ecofilm', 'custom'],
       required: true,
     },
 

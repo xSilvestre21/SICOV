@@ -228,6 +228,12 @@ export function NewQuotationPage() {
           const fmt = (v) => String(v).replace('.', ',');
           updated.name = `Filme Stretch ${fmt(updated.width)}x${fmt(updated.thickness)}`;
         }
+      // Ecofilm: "Ecofilm LARGURAxESPESSURA Bobina 3 Kg"
+      } else if (updated.productType === 'ecofilm') {
+        if (updated.width && updated.thickness) {
+          const fmt = (v) => String(v).replace('.', ',');
+          updated.name = `Ecofilm ${fmt(updated.width)}x${fmt(updated.thickness)} Bobina 3 Kg`;
+        }
       } else if (calcMode === 'dimensions_density_factor') {
         const fmt = (v) => String(v).replace('.', ',');
         const parts = [];
@@ -485,6 +491,7 @@ export function NewQuotationPage() {
                         <option value="plastic_bag">Saco Plástico</option>
                         <option value="tape">Fita</option>
                         <option value="stretch">Stretch</option>
+                        <option value="ecofilm">Ecofilm</option>
                         <option value="shrink">Shrink</option>
                         <option value="bobbin">Bobina</option>
                         <option value="custom">Personalizado</option>
@@ -528,8 +535,8 @@ export function NewQuotationPage() {
                       <Input label="Comprimento" type="number" step="any" value={item.length || ''} onChange={(e) => updateItem(i, 'length', e.target.value)} />
                     </div>
                   )}
-                  {/* Stretch: sempre mostra largura e espessura */}
-                  {item.productType === 'stretch' && (item.calculationMode || 'dimensions_density_factor') !== 'dimensions_density_factor' && (
+                  {/* Stretch/Ecofilm: sempre mostra largura e espessura */}
+                  {(item.productType === 'stretch' || item.productType === 'ecofilm') && (item.calculationMode || 'dimensions_density_factor') !== 'dimensions_density_factor' && (
                     <div className="grid grid-cols-2 gap-2">
                       <Input label="Largura (mm)" type="number" step="any" value={item.width || ''} onChange={(e) => updateItem(i, 'width', e.target.value)} />
                       <Input label="Espessura (micras)" type="number" step="any" value={item.thickness || ''} onChange={(e) => updateItem(i, 'thickness', e.target.value)} />
@@ -538,7 +545,7 @@ export function NewQuotationPage() {
                   {(item.calculationMode || 'dimensions_density_factor') === 'dimensions_density_factor' && (() => {
                     const hint = getSupplierHint(item.material);
                     const isTape = item.productType === 'tape';
-                    const isStretch = item.productType === 'stretch';
+                    const isStretch = item.productType === 'stretch' || item.productType === 'ecofilm';
                     return (
                     <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                       <Input label={isStretch ? 'Largura (mm)' : 'Largura'} type="number" step="any" value={item.width || ''} onChange={(e) => updateItem(i, 'width', e.target.value)} />
