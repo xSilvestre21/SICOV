@@ -792,7 +792,7 @@ async function aggregateSuppliersComparison({ month, year, granularity }) {
     {
       $group: {
         _id: '$order.supplierId',
-        supplierName: { $first: '$order.supplierSnapshot.name' },
+        supplierName: { $first: { $ifNull: ['$order.supplierSnapshot.tradeName', '$order.supplierSnapshot.name'] } },
         totalRevenue: { $sum: '$order.subtotal' },
         totalAdminCommission: { $sum: '$adminCommission' },
         totalRepresentativeCommission: { $sum: '$representativeCommission' },
