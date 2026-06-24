@@ -172,6 +172,7 @@ export function LoginPage() {
               label="Email"
               type="email"
               placeholder="seu@email.com"
+              autoComplete="email"
               value={form.email}
               onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
               required
