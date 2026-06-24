@@ -53,7 +53,6 @@ const orderSchema = new mongoose.Schema(
   {
     orderNumber: {
       type: Number,
-      unique: true,
     },
 
     clientId: {
