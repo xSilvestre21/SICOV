@@ -383,12 +383,26 @@ function generateQuotationPdf(quotation, res) {
     ].join('\n');
   }
 
+  // Se observações não cabem, quebra com espaço no topo
+  const obsLines = observationsText.split('\n').length;
+  const obsEstimate = obsLines * 14 + 10;
+  if (currentY + obsEstimate > PAGE_BOTTOM) {
+    doc.addPage();
+    currentY = MARGIN + 40;
+  }
+
   doc.fontSize(10).font('Helvetica')
     .text(observationsText, MARGIN, currentY, { width: PAGE_W - 2 * MARGIN });
 
   currentY = doc.y + 20;
 
   // ── ENCERRAMENTO ───────────────────────────────────────────────────────────
+  // Se encerramento não cabe, quebra com espaço no topo
+  if (currentY + 60 > PAGE_BOTTOM) {
+    doc.addPage();
+    currentY = MARGIN + 40;
+  }
+
   doc.fontSize(10).font('Helvetica')
     .text(
       'No aguardo de um retorno positivo, coloco-me à disposição para maiores esclarecimentos',
