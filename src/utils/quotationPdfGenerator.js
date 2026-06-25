@@ -163,7 +163,7 @@ function generateQuotationPdf(quotation, res) {
 
   // Data — canto direito, alinhada verticalmente ao meio do logo
   const city     = s.city || '';
-  const dateLong = formatDateLong(quotation.createdAt);
+  const dateLong = formatDateLong(new Date());
   const dateText = city ? `${city}, ${dateLong}` : dateLong;
 
   doc.fontSize(10).font('Helvetica')

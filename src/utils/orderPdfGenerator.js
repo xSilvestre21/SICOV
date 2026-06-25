@@ -196,7 +196,7 @@ function drawHeader(doc, order) {
   doc.fontSize(13).font('Helvetica-Bold')
     .text(`PEDIDO Nº ${order.orderNumber}`, RIGHT_X, HEADER_TOP + 4, { width: 130, align: 'right', lineBreak: false });
   doc.fontSize(9).font('Helvetica')
-    .text(`Data: ${formatDate(order.createdAt)}`, RIGHT_X, HEADER_TOP + 22, { width: 130, align: 'right', lineBreak: false });
+    .text(`Data: ${formatDate(new Date())}`, RIGHT_X, HEADER_TOP + 22, { width: 130, align: 'right', lineBreak: false });
 
   return HEADER_TOP + LOGO_MAX_H + 8;
 }
