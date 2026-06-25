@@ -451,11 +451,10 @@ function generateOrderPdf(order, res) {
 
   // ── Totais e assinatura ───────────────────────────────────────────────────
 
-  // Se não couber na página atual, abre nova
+  // Se não couber na página atual, abre nova com espaço no topo
   if (y + FOOTER_RESERVE > PAGE_H - MARGIN) {
     doc.addPage();
-    y = drawHeader(doc, order);
-    y += 8;
+    y = MARGIN + 40; // espaço confortável no topo da nova página
   }
 
   drawTotals(doc, order, y);

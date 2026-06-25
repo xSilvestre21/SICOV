@@ -243,21 +243,21 @@ function generateQuotationPdf(quotation, res) {
   // Função para desenhar cabeçalho da tabela em nova página
   function drawTableHeaderOnNewPage() {
     doc.addPage();
-    let y = MARGIN + 10;
+    let y = HEADER_TOP;
 
-    // Logo ou nome do fornecedor (compacto)
+    // Logo ou nome do fornecedor (mesmo tamanho da primeira página)
     if (logoPath) {
       try {
-        doc.image(logoPath, MARGIN, y, { fit: [180, 45] });
+        doc.image(logoPath, MARGIN, y, { fit: [LOGO_MAX_W, LOGO_MAX_H] });
       } catch {
-        doc.fontSize(10).font('Helvetica-Bold')
-          .text(s.tradeName || s.name || '', MARGIN, y + 10, { lineBreak: false });
+        doc.fontSize(13).font('Helvetica-Bold')
+          .text(s.tradeName || s.name || '', MARGIN, y + 20, { lineBreak: false });
       }
     } else {
-      doc.fontSize(10).font('Helvetica-Bold')
-        .text(s.tradeName || s.name || '', MARGIN, y + 10, { lineBreak: false });
+      doc.fontSize(13).font('Helvetica-Bold')
+        .text(s.tradeName || s.name || '', MARGIN, y + 20, { lineBreak: false });
     }
-    y += 50;
+    y += LOGO_MAX_H + 14;
 
     // Linha superior da tabela
     doc.moveTo(MARGIN, y).lineTo(RIGHT, y)
@@ -319,10 +319,15 @@ function generateQuotationPdf(quotation, res) {
 
   currentY += 4;
 
-  // Verifica se totais cabem na página atual
-  if (currentY + 80 > PAGE_BOTTOM) {
-    currentY = drawTableHeaderOnNewPage();
-    currentY -= 25; // remove espaço do header da tabela, pois aqui são totais
+  // Calcula espaço necessário para totais + observações + encerramento
+  const TOTALS_BLOCK_H = 80;
+  const OBS_ESTIMATE_H = 100; // estimativa para observações + encerramento
+  const FOOTER_BLOCK_H = TOTALS_BLOCK_H + OBS_ESTIMATE_H;
+
+  // Se totais + observações não cabem, nova página com espaço no topo (sem cabeçalho de tabela)
+  if (currentY + FOOTER_BLOCK_H > PAGE_BOTTOM) {
+    doc.addPage();
+    currentY = MARGIN + 40; // espaço confortável no topo da nova página
   }
 
   // Linha inferior da tabela
