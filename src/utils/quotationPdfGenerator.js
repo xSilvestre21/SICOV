@@ -319,22 +319,17 @@ function generateQuotationPdf(quotation, res) {
 
   currentY += 4;
 
-  // Calcula espaço necessário para totais + observações + encerramento
-  const TOTALS_BLOCK_H = 80;
-  const OBS_ESTIMATE_H = 100; // estimativa para observações + encerramento
-  const FOOTER_BLOCK_H = TOTALS_BLOCK_H + OBS_ESTIMATE_H;
-
-  // Se totais + observações não cabem, nova página com espaço no topo (sem cabeçalho de tabela)
-  if (currentY + FOOTER_BLOCK_H > PAGE_BOTTOM) {
-    doc.addPage();
-    currentY = MARGIN + 40; // espaço confortável no topo da nova página
-  }
-
   // Linha inferior da tabela
   doc.moveTo(MARGIN, currentY).lineTo(RIGHT, currentY)
     .lineWidth(0.5).opacity(0.5).stroke().opacity(1);
 
   currentY += 14;
+
+  // Verifica se os totais (3 linhas ~45pt) cabem na página atual
+  if (currentY + 50 > PAGE_BOTTOM) {
+    doc.addPage();
+    currentY = MARGIN + 40;
+  }
 
   // ── TOTAIS ─────────────────────────────────────────────────────────────────
   // Alinhados à direita, espelhando o modelo
