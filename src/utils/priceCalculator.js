@@ -11,8 +11,8 @@ function calculateProductPrice(product, quantity, supplierPriceTable) {
 
     let factorKg = cd.factorKg;
 
-    // Se o fornecedor tem faixas de peso, resolve o fator correto
-    if (supplierPriceTable && supplierPriceTable.length > 0 && product.material) {
+    // Se o produto NÃO tem factorKg próprio e o fornecedor tem faixas de peso, resolve o fator correto
+    if (!factorKg && supplierPriceTable && supplierPriceTable.length > 0 && product.material) {
       const materialRows = supplierPriceTable.filter(
         (row) => row.material && row.material.toLowerCase() === product.material.toLowerCase()
       );
