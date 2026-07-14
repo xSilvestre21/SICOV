@@ -430,7 +430,7 @@ async function createInstallments(req, res) {
 // ─────────────────────────────────────────────────────────────────────────────
 async function getCommissionsSummary(req, res) {
   try {
-    const { month, year, representativeId, page = 1, limit = 20 } = req.query;
+    const { month, year, representativeId, supplierId, page = 1, limit = 20 } = req.query;
 
     const matchStage = {};
 
@@ -450,6 +450,7 @@ async function getCommissionsSummary(req, res) {
 
     if (month) matchStage['period.month'] = Number(month);
     if (year) matchStage['period.year'] = Number(year);
+    if (supplierId) matchStage.supplierId = supplierId;
 
     // Exclui do total comissões originais que foram parceladas
     // Uma comissão parcelada tem projected:true mas NÃO tem installmentIndex (é a original)
