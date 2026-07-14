@@ -450,7 +450,11 @@ async function getCommissionsSummary(req, res) {
 
     if (month) matchStage['period.month'] = Number(month);
     if (year) matchStage['period.year'] = Number(year);
-    if (supplierId) matchStage.supplierId = supplierId;
+    if (supplierId) {
+      matchStage.supplierId = mongoose.isValidObjectId(supplierId)
+        ? new mongoose.Types.ObjectId(supplierId)
+        : supplierId;
+    }
 
     // Exclui do total comissões originais que foram parceladas
     // Uma comissão parcelada tem projected:true mas NÃO tem installmentIndex (é a original)
