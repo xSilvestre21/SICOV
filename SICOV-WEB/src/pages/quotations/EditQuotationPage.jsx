@@ -11,9 +11,10 @@ function formatCurrency(v) {
   return Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-function formatCnpj(v) {
+function formatCnpjCpf(v) {
   if (!v) return '';
   const d = String(v).replace(/\D/g, '');
+  if (d.length === 11) return d.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
   if (d.length === 14) return d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
   return v;
 }
@@ -257,7 +258,7 @@ export function EditQuotationPage() {
             {mode === 'existing' && (
               <div className="p-3 bg-[#f5f5ee] rounded-lg border border-[#e3e3d1]">
                 <p className="text-sm font-medium text-[#4b5757]">{quotation.clientSnapshot?.tradeName || quotation.clientSnapshot?.name}</p>
-                <p className="text-xs text-gray-400">{formatCnpj(quotation.clientSnapshot?.cnpj)}</p>
+                <p className="text-xs text-gray-400">{formatCnpjCpf(quotation.clientSnapshot?.cnpj)}</p>
               </div>
             )}
           </CardBody>

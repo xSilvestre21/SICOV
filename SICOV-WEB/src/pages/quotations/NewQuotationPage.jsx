@@ -7,9 +7,10 @@ import { Input } from '../../components/ui/Input';
 import { ProductSearch } from '../../components/ui/ProductSearch';
 import api from '../../lib/api';
 
-function formatCnpj(v) {
+function formatCnpjCpf(v) {
   if (!v) return '';
   const d = String(v).replace(/\D/g, '');
+  if (d.length === 11) return d.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
   if (d.length === 14) return d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
   return v;
 }
@@ -103,7 +104,7 @@ function ClientSelector({ clients, selectedClient, adHocClient, onSelectExisting
             <div className="flex items-center gap-2 p-3 bg-[#f5f5ee] rounded-lg border border-[#e3e3d1]">
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-[#4b5757] truncate">{selected.tradeName || selected.name}</p>
-                <p className="text-xs text-gray-400">{formatCnpj(selected.cnpj)} {selected.city ? `· ${selected.city}/${selected.state}` : ''}</p>
+                <p className="text-xs text-gray-400">{formatCnpjCpf(selected.cnpj)} {selected.city ? `· ${selected.city}/${selected.state}` : ''}</p>
               </div>
               <button type="button" onClick={() => onSelectExisting('')} className="p-1 text-gray-400 hover:text-red-500 rounded-lg hover:bg-white"><X size={16} /></button>
             </div>
@@ -131,7 +132,7 @@ function ClientSelector({ clients, selectedClient, adHocClient, onSelectExisting
                         <button key={c._id} type="button" onClick={() => { onSelectExisting(c._id); setQuery(''); setOpen(false); }}
                           className="w-full text-left px-4 py-2.5 hover:bg-[#f5f5ee] transition-colors border-b border-[#e3e3d1] last:border-b-0">
                           <p className="text-sm font-medium text-[#4b5757]">{c.tradeName || c.name}</p>
-                          <p className="text-xs text-gray-400">{formatCnpj(c.cnpj)} {c.city ? `· ${c.city}/${c.state}` : ''}</p>
+                          <p className="text-xs text-gray-400">{formatCnpjCpf(c.cnpj)} {c.city ? `· ${c.city}/${c.state}` : ''}</p>
                         </button>
                       ))
                     )}

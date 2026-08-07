@@ -75,9 +75,10 @@ function calculateUnitPrice(product, quantity = 1) {
   return unitPrice;
 }
 
-function formatCnpj(v) {
+function formatCnpjCpf(v) {
   if (!v) return '';
   const d = String(v).replace(/\D/g, '');
+  if (d.length === 11) return d.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
   if (d.length === 14) return d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
   return v;
 }
@@ -119,7 +120,7 @@ function ClientSearch({ clients, selectedClient, onSelect }) {
           <p className="text-sm font-medium text-[#4b5757] truncate">
             {selected.tradeName || selected.name}
           </p>
-          <p className="text-xs text-gray-400">{formatCnpj(selected.cnpj)} {selected.city ? `· ${selected.city}/${selected.state}` : ''}</p>
+          <p className="text-xs text-gray-400">{formatCnpjCpf(selected.cnpj)} {selected.city ? `· ${selected.city}/${selected.state}` : ''}</p>
         </div>
         <button
           type="button"
@@ -161,7 +162,7 @@ function ClientSearch({ clients, selectedClient, onSelect }) {
                   className="w-full text-left px-4 py-2.5 hover:bg-[#f5f5ee] transition-colors border-b border-[#e3e3d1] last:border-b-0"
                 >
                   <p className="text-sm font-medium text-[#4b5757]">{c.tradeName || c.name}</p>
-                  <p className="text-xs text-gray-400">{formatCnpj(c.cnpj)} {c.city ? `· ${c.city}/${c.state}` : ''}</p>
+                  <p className="text-xs text-gray-400">{formatCnpjCpf(c.cnpj)} {c.city ? `· ${c.city}/${c.state}` : ''}</p>
                 </button>
               ))
             )}

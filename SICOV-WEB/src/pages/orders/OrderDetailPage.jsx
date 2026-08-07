@@ -28,9 +28,10 @@ function formatDate(v) {
   return new Date(v).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
 }
 
-function formatCnpj(v) {
+function formatCnpjCpf(v) {
   if (!v) return '—';
   const d = String(v).replace(/\D/g, '');
+  if (d.length === 11) return d.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
   if (d.length === 14) return d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
   return v;
 }
@@ -420,7 +421,7 @@ export function OrderDetailPage() {
             {client.name !== client.tradeName && client.tradeName && (
               <p className="text-gray-500">{client.name}</p>
             )}
-            <p className="text-gray-500">CNPJ: {formatCnpj(client.cnpj)}</p>
+            <p className="text-gray-500">{String(client.cnpj || '').replace(/\D/g, '').length <= 11 ? 'CPF' : 'CNPJ'}: {formatCnpjCpf(client.cnpj)}</p>
             {client.address && <p className="text-gray-500">{client.address}</p>}
             {client.city && (
               <p className="text-gray-500">{client.city}{client.state ? `/${client.state}` : ''}</p>

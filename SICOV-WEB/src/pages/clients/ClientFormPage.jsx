@@ -7,8 +7,16 @@ import { Input } from '../../components/ui/Input';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
 
-function maskCnpj(value) {
+function maskCnpjCpf(value) {
   const digits = value.replace(/\D/g, '').slice(0, 14);
+  if (digits.length <= 11) {
+    // CPF: 000.000.000-00
+    return digits
+      .replace(/^(\d{3})(\d)/, '$1.$2')
+      .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
+      .replace(/\.(\d{3})(\d)/, '.$1-$2');
+  }
+  // CNPJ: 00.000.000/0000-00
   return digits
     .replace(/^(\d{2})(\d)/, '$1.$2')
     .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
@@ -127,7 +135,7 @@ export function ClientFormPage() {
           <CardBody className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input label="Razão Social *" value={form.name} onChange={set('name')} required />
             <Input label="Nome Fantasia" value={form.tradeName} onChange={set('tradeName')} />
-            <Input label="CNPJ" value={form.cnpj} onChange={setMasked('cnpj', maskCnpj)} placeholder="00.000.000/0000-00" />
+            <Input label="CPF/CNPJ" value={form.cnpj} onChange={setMasked('cnpj', maskCnpjCpf)} placeholder="000.000.000-00 ou 00.000.000/0000-00" />
             <Input label="Inscrição Estadual" value={form.stateRegistration} onChange={set('stateRegistration')} />
             <Input label="Email" type="email" value={form.email} onChange={set('email')} />
             <Input label="Telefone" value={form.phone} onChange={setMasked('phone', maskPhone)} placeholder="(00) 00000-0000" />

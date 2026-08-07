@@ -7,9 +7,10 @@ import { Badge } from '../../components/ui/Badge';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
 
-function formatCnpj(v) {
+function formatCnpjCpf(v) {
   if (!v) return '—';
   const d = String(v).replace(/\D/g, '');
+  if (d.length === 11) return d.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
   if (d.length === 14) return d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
   return v;
 }
@@ -118,7 +119,7 @@ export function ClientDetailPage() {
         <Card>
           <CardHeader><h2 className="text-sm font-semibold text-[#4b5757]">Dados Cadastrais</h2></CardHeader>
           <CardBody className="space-y-3 text-sm">
-            <InfoRow label="CNPJ" value={formatCnpj(client.cnpj)} />
+            <InfoRow label={String(client.cnpj || '').replace(/\D/g, '').length <= 11 ? 'CPF' : 'CNPJ'} value={formatCnpjCpf(client.cnpj)} />
             <InfoRow label="Inscrição Estadual" value={client.stateRegistration} />
             {client.phone && (
               <div className="flex items-center gap-2 text-gray-600">

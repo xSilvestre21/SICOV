@@ -7,9 +7,10 @@ import { Badge } from '../../components/ui/Badge';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
 
-function formatCnpj(v) {
+function formatCnpjCpf(v) {
   if (!v) return '—';
   const d = String(v).replace(/\D/g, '');
+  if (d.length === 11) return d.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
   if (d.length === 14) return d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
   return v;
 }
@@ -157,7 +158,7 @@ export function ClientsListPage() {
                       {client.tradeName || client.name}
                     </p>
                     <div className="flex items-center gap-3 mt-0.5">
-                      <span className="text-xs text-gray-400">{formatCnpj(client.cnpj)}</span>
+                      <span className="text-xs text-gray-400">{formatCnpjCpf(client.cnpj)}</span>
                       {client.city && (
                         <span className="text-xs text-gray-400">
                           {client.city}{client.state ? `/${client.state}` : ''}

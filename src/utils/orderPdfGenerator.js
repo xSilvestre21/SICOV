@@ -264,8 +264,9 @@ function drawClientData(doc, order, startY) {
   y += 16;
 
   // ── Linha 1: Razão Social | CNPJ/CPF | UF | IE ───────────────────────────
+  const cnpjCpfLabel = String(c.cnpj || '').replace(/\D/g, '').length <= 11 ? 'CPF' : 'CNPJ';
   field(doc, 'RAZÃO SOCIAL', c.name,                    COL_A, y, W_A);
-  field(doc, 'CNPJ/CPF',     formatCnpjCpf(c.cnpj),    COL_B, y, W_B);
+  field(doc, cnpjCpfLabel,   formatCnpjCpf(c.cnpj),    COL_B, y, W_B);
   field(doc, 'UF',           c.state,                   COL_C, y, W_C);
   field(doc, 'IE',           c.stateRegistration,       COL_D, y, W_D);
 
