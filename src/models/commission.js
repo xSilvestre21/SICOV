@@ -46,6 +46,13 @@ const commissionSchema = new mongoose.Schema(
       default: null,
     },
 
+    // Cliente (snapshot para exibição)
+    clientName: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+
     // PC do cliente (customerPurchaseOrder — snapshot para facilitar localização e filtro)
     customerPurchaseOrder: {
       type: String,

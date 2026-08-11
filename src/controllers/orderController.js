@@ -203,6 +203,7 @@ async function createOrder(req, res) {
         orderNumber: order.orderNumber,
         supplierId: supplierId,
         supplierName: supplier.tradeName || supplier.name,
+        clientName: client.tradeName || client.name || null,
         customerPurchaseOrder: customerPurchaseOrder ?? null,
         deliveryDate: deliveryDate || null,
         pool,

@@ -113,6 +113,19 @@ async function getCommissions(req, res) {
       }
     }
 
+    // Preenche clientName para comissões que não o têm (registros antigos)
+    const missingClients = commissions.filter((c) => !c.clientName && c.orderId);
+    if (missingClients.length > 0) {
+      const orderIds = [...new Set(missingClients.map((c) => c.orderId.toString()))];
+      const orders = await Order.find({ _id: { $in: orderIds } }).select('clientSnapshot.tradeName clientSnapshot.name').lean();
+      const clientNameMap = new Map(orders.map((o) => [o._id.toString(), o.clientSnapshot?.tradeName || o.clientSnapshot?.name || null]));
+      for (const c of commissions) {
+        if (!c.clientName && c.orderId) {
+          c.clientName = clientNameMap.get(c.orderId.toString()) || null;
+        }
+      }
+    }
+
     const data =
       req.user.profile !== 'admin'
         ? commissions.map((c) => {
@@ -391,6 +404,7 @@ async function createInstallments(req, res) {
         orderNumber: parentCommission.orderNumber || null,
         supplierId: parentCommission.supplierId || null,
         supplierName: parentCommission.supplierName || null,
+        clientName: parentCommission.clientName || null,
         customerPurchaseOrder: parentCommission.customerPurchaseOrder || null,
         pool,
         realReceivedValue: null,

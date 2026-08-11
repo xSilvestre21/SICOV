@@ -364,7 +364,8 @@ export function CommissionsListPage() {
                         {c.status === 'cancelled' && <Badge variant="cancelled">Cancelada</Badge>}
                       </div>
                       <p className="text-xs text-gray-400 mt-0.5 truncate">
-                        {c.supplierName ? `${c.supplierName}` : ''}
+                        {c.clientName ? `${c.clientName}` : ''}
+                        {c.supplierName ? ` · ${c.supplierName}` : ''}
                         {c.customerPurchaseOrder ? ` · PC: ${c.customerPurchaseOrder}` : ''}
                         {' · '}{c.deliveryDate ? new Date(c.deliveryDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : `${c.period?.month}/${c.period?.year}`}
                         {isAdmin
