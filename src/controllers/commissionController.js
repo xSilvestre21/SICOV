@@ -326,26 +326,13 @@ async function createInstallments(req, res) {
     const { id } = req.params;
     const {
       intervals,
+      customValues,
+      intervalDays,
       representativePercentage,
       adminPercentage = DEFAULT_ADMIN_PERCENTAGE,
     } = req.body;
 
-    // Validações
-    if (!Array.isArray(intervals) || intervals.length === 0) {
-      return res
-        .status(400)
-        .json({ message: 'intervals deve ser uma lista não vazia' });
-    }
-
-    const hasInvalidInterval = intervals.some(
-      (v) => !Number.isInteger(v) || v <= 0,
-    );
-    if (hasInvalidInterval) {
-      return res
-        .status(400)
-        .json({ message: 'Todos os intervalos devem ser inteiros positivos' });
-    }
-
+    // Validações comuns
     if (representativePercentage === undefined || representativePercentage === null) {
       return res
         .status(400)
@@ -364,6 +351,37 @@ async function createInstallments(req, res) {
         .json({ message: 'adminPercentage deve ser um número >= 0' });
     }
 
+    const isCustomMode = Array.isArray(customValues) && customValues.length > 0;
+    const isEqualMode = Array.isArray(intervals) && intervals.length > 0;
+
+    if (!isCustomMode && !isEqualMode) {
+      return res
+        .status(400)
+        .json({ message: 'Informe intervals (parcelas iguais) ou customValues (valores diferentes)' });
+    }
+
+    if (isEqualMode) {
+      const hasInvalidInterval = intervals.some(
+        (v) => !Number.isInteger(v) || v <= 0,
+      );
+      if (hasInvalidInterval) {
+        return res
+          .status(400)
+          .json({ message: 'Todos os intervalos devem ser inteiros positivos' });
+      }
+    }
+
+    if (isCustomMode) {
+      const hasInvalidValue = customValues.some(
+        (v) => typeof v !== 'number' || v <= 0,
+      );
+      if (hasInvalidValue) {
+        return res
+          .status(400)
+          .json({ message: 'Todos os valores das parcelas devem ser números positivos' });
+      }
+    }
+
     const parentCommission = await Commission.findById(id);
     if (!parentCommission) {
       return res.status(404).json({ message: 'Comissão não encontrada' });
@@ -380,47 +398,94 @@ async function createInstallments(req, res) {
     const alreadyReceived = parentCommission.realReceivedValue ?? 0;
     const pendingBalance = parentCommission.orderValueWithoutIpi - alreadyReceived;
 
-    const installmentValue = parseFloat(
-      (pendingBalance / intervals.length).toFixed(2),
-    );
+    let installments;
 
-    const installments = intervals.map((intervalDays, index) => {
-      const dueDate = new Date(referenceDate);
-      dueDate.setUTCDate(dueDate.getUTCDate() + intervalDays);
+    if (isCustomMode) {
+      // Modo valores diferentes: cada parcela tem um valor específico, com intervalo fixo de 30 dias
+      const stepDays = intervalDays || 30;
 
-      const period = periodFromDate(dueDate);
+      installments = customValues.map((value, index) => {
+        const dueDate = new Date(referenceDate);
+        dueDate.setUTCDate(dueDate.getUTCDate() + (stepDays * (index + 1)));
 
-      const { pool, representativeCommission, adminCommission } = calcCommissions(
-        installmentValue,
-        representativePercentage,
-        adminPercentage,
+        const period = periodFromDate(dueDate);
+        const installmentValue = parseFloat(value.toFixed(2));
+
+        const { pool, representativeCommission, adminCommission } = calcCommissions(
+          installmentValue,
+          representativePercentage,
+          adminPercentage,
+        );
+
+        return {
+          orderId: parentCommission.orderId,
+          representativeId: parentCommission.representativeId,
+          representativeName: parentCommission.representativeName || null,
+          orderValueWithoutIpi: installmentValue,
+          orderNumber: parentCommission.orderNumber || null,
+          supplierId: parentCommission.supplierId || null,
+          supplierName: parentCommission.supplierName || null,
+          clientName: parentCommission.clientName || null,
+          customerPurchaseOrder: parentCommission.customerPurchaseOrder || null,
+          pool,
+          realReceivedValue: null,
+          representativePercentage,
+          adminPercentage,
+          representativeCommission,
+          adminCommission,
+          period,
+          deliveryDate: order.deliveryDate || null,
+          realDeliveryDate: null,
+          projected: true,
+          dueDate,
+          parentOrderId: parentCommission.orderId,
+          installmentIndex: index + 1,
+        };
+      });
+    } else {
+      // Modo parcelas iguais (comportamento original)
+      const installmentValue = parseFloat(
+        (pendingBalance / intervals.length).toFixed(2),
       );
 
-      return {
-        orderId: parentCommission.orderId,
-        representativeId: parentCommission.representativeId,
-        representativeName: parentCommission.representativeName || null,
-        orderValueWithoutIpi: installmentValue,
-        orderNumber: parentCommission.orderNumber || null,
-        supplierId: parentCommission.supplierId || null,
-        supplierName: parentCommission.supplierName || null,
-        clientName: parentCommission.clientName || null,
-        customerPurchaseOrder: parentCommission.customerPurchaseOrder || null,
-        pool,
-        realReceivedValue: null,
-        representativePercentage,
-        adminPercentage,
-        representativeCommission,
-        adminCommission,
-        period,
-        deliveryDate: order.deliveryDate || null,
-        realDeliveryDate: null,
-        projected: true,
-        dueDate,
-        parentOrderId: parentCommission.orderId,
-        installmentIndex: index + 1,
-      };
-    });
+      installments = intervals.map((intervalDayValue, index) => {
+        const dueDate = new Date(referenceDate);
+        dueDate.setUTCDate(dueDate.getUTCDate() + intervalDayValue);
+
+        const period = periodFromDate(dueDate);
+
+        const { pool, representativeCommission, adminCommission } = calcCommissions(
+          installmentValue,
+          representativePercentage,
+          adminPercentage,
+        );
+
+        return {
+          orderId: parentCommission.orderId,
+          representativeId: parentCommission.representativeId,
+          representativeName: parentCommission.representativeName || null,
+          orderValueWithoutIpi: installmentValue,
+          orderNumber: parentCommission.orderNumber || null,
+          supplierId: parentCommission.supplierId || null,
+          supplierName: parentCommission.supplierName || null,
+          clientName: parentCommission.clientName || null,
+          customerPurchaseOrder: parentCommission.customerPurchaseOrder || null,
+          pool,
+          realReceivedValue: null,
+          representativePercentage,
+          adminPercentage,
+          representativeCommission,
+          adminCommission,
+          period,
+          deliveryDate: order.deliveryDate || null,
+          realDeliveryDate: null,
+          projected: true,
+          dueDate,
+          parentOrderId: parentCommission.orderId,
+          installmentIndex: index + 1,
+        };
+      });
+    }
 
     const created = await Commission.insertMany(installments);
 

@@ -228,7 +228,9 @@ export function CommissionDetailModal({ commission, onClose, onUpdated }) {
 
 function InstallmentsSection({ commission, onCreated }) {
   const [showForm, setShowForm] = useState(false);
+  const [mode, setMode] = useState('equal'); // 'equal' ou 'custom'
   const [intervals, setIntervals] = useState('');
+  const [customValues, setCustomValues] = useState('');
   const [loading, setLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [error, setError] = useState('');
@@ -236,31 +238,68 @@ function InstallmentsSection({ commission, onCreated }) {
 
   const isAlreadyInstallmented = commission.installmentsCreated || (commission.projected && !commission.installmentIndex);
 
+  const totalValue = commission.orderValueWithoutIpi - (commission.realReceivedValue ?? 0);
+
   const handleCreate = async () => {
     setError('');
     setSuccess('');
 
-    const parsed = intervals
-      .split(/[,\s]+/)
-      .map((v) => parseInt(v.trim(), 10))
-      .filter((v) => !isNaN(v) && v > 0);
+    if (mode === 'equal') {
+      const parsed = intervals
+        .split(/[,\s]+/)
+        .map((v) => parseInt(v.trim(), 10))
+        .filter((v) => !isNaN(v) && v > 0);
 
-    if (parsed.length === 0) {
-      return setError('Informe os dias (ex: 30, 60, 90)');
+      if (parsed.length === 0) {
+        return setError('Informe os dias (ex: 30, 60, 90)');
+      }
+
+      setLoading(true);
+      try {
+        await api.post(`/commissions/${commission._id}/installments`, {
+          intervals: parsed,
+          representativePercentage: commission.representativePercentage,
+          adminPercentage: commission.adminPercentage,
+        });
+        setSuccess(`${parsed.length} parcela(s) criada(s) com sucesso!`);
+        setTimeout(() => onCreated(commission), 1500);
+      } catch (err) {
+        setError(err.response?.data?.message || 'Erro ao criar parcelas.');
+      } finally { setLoading(false); }
+    } else {
+      // Modo custom: valores diferentes por parcela
+      const values = customValues
+        .split(/[,\s]+/)
+        .map((v) => parseFloat(v.trim().replace(',', '.')))
+        .filter((v) => !isNaN(v) && v > 0);
+
+      if (values.length === 0) {
+        return setError('Informe pelo menos um valor (ex: 5000, 3000)');
+      }
+
+      const sumValues = values.reduce((acc, v) => acc + v, 0);
+      const remaining = totalValue - sumValues;
+
+      // Se sobrar valor, adiciona como última parcela
+      const finalValues = [...values];
+      if (remaining > 0.01) {
+        finalValues.push(parseFloat(remaining.toFixed(2)));
+      }
+
+      setLoading(true);
+      try {
+        await api.post(`/commissions/${commission._id}/installments`, {
+          customValues: finalValues,
+          intervalDays: 30,
+          representativePercentage: commission.representativePercentage,
+          adminPercentage: commission.adminPercentage,
+        });
+        setSuccess(`${finalValues.length} parcela(s) criada(s) com sucesso!`);
+        setTimeout(() => onCreated(commission), 1500);
+      } catch (err) {
+        setError(err.response?.data?.message || 'Erro ao criar parcelas.');
+      } finally { setLoading(false); }
     }
-
-    setLoading(true);
-    try {
-      await api.post(`/commissions/${commission._id}/installments`, {
-        intervals: parsed,
-        representativePercentage: commission.representativePercentage,
-        adminPercentage: commission.adminPercentage,
-      });
-      setSuccess(`${parsed.length} parcela(s) criada(s) com sucesso!`);
-      setTimeout(() => onCreated(commission), 1500);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Erro ao criar parcelas.');
-    } finally { setLoading(false); }
   };
 
   const handleDeleteInstallments = async () => {
@@ -268,13 +307,11 @@ function InstallmentsSection({ commission, onCreated }) {
     setDeleteLoading(true);
     setError('');
     try {
-      // Busca e deleta parcelas vinculadas a este pedido
       const { data } = await api.get('/commissions', { params: { orderNumber: commission.orderNumber, status: 'all', limit: 100 } });
       const parcelas = (data.commissions || []).filter((c) => c.projected && c.installmentIndex && c.orderId === commission.orderId);
       for (const p of parcelas) {
         await api.delete(`/commissions/${p._id}`);
       }
-      // Desmarca a comissão original como parcelada
       await api.put(`/commissions/${commission._id}`, { projected: false, installmentsCreated: false });
       setSuccess('Parcelas deletadas.');
       setTimeout(() => onCreated(commission), 1500);
@@ -283,20 +320,54 @@ function InstallmentsSection({ commission, onCreated }) {
     } finally { setDeleteLoading(false); }
   };
 
-  // Preview das datas
+  // Preview das datas (modo igual)
   const previewDates = (() => {
-    if (!intervals) return [];
+    if (mode !== 'equal' || !intervals) return [];
     const deliveryDate = commission.realDeliveryDate || commission.deliveryDate || commission.dueDate;
     if (!deliveryDate) return [];
 
     const parsed = intervals.split(/[,\s]+/).map((v) => parseInt(v.trim(), 10)).filter((v) => !isNaN(v) && v > 0);
     const base = new Date(deliveryDate);
+    const valuePerInstallment = totalValue / parsed.length;
 
-    return parsed.map((days) => {
+    return parsed.map((days, i) => {
       const date = new Date(base);
       date.setUTCDate(date.getUTCDate() + days);
       return {
         days,
+        value: valuePerInstallment,
+        supplierDate: date.toLocaleDateString('pt-BR', { timeZone: 'UTC' }),
+        period: { month: date.getUTCMonth() + 1, year: date.getUTCFullYear() },
+      };
+    });
+  })();
+
+  // Preview das parcelas (modo custom)
+  const previewCustom = (() => {
+    if (mode !== 'custom' || !customValues) return [];
+    const deliveryDate = commission.realDeliveryDate || commission.deliveryDate || commission.dueDate;
+    if (!deliveryDate) return [];
+
+    const values = customValues
+      .split(/[,\s]+/)
+      .map((v) => parseFloat(v.trim().replace(',', '.')))
+      .filter((v) => !isNaN(v) && v > 0);
+
+    if (values.length === 0) return [];
+
+    const sumValues = values.reduce((acc, v) => acc + v, 0);
+    const remaining = totalValue - sumValues;
+    const finalValues = [...values];
+    if (remaining > 0.01) finalValues.push(parseFloat(remaining.toFixed(2)));
+
+    const base = new Date(deliveryDate);
+
+    return finalValues.map((val, i) => {
+      const date = new Date(base);
+      date.setUTCDate(date.getUTCDate() + (30 * (i + 1)));
+      return {
+        value: val,
+        isRemainder: i >= values.length,
         supplierDate: date.toLocaleDateString('pt-BR', { timeZone: 'UTC' }),
         period: { month: date.getUTCMonth() + 1, year: date.getUTCFullYear() },
       };
@@ -321,43 +392,111 @@ function InstallmentsSection({ commission, onCreated }) {
         )}
       </div>
 
-      {/* Indicador de que já foi parcelada */}
       {isAlreadyInstallmented && !showForm && (
-        <p className="text-xs text-[#7c8a6e] mb-2">Esta comissão foi parcelada. Clique em "Editar Parcelas" para alterar os dias.</p>
+        <p className="text-xs text-[#7c8a6e] mb-2">Esta comissão foi parcelada. Clique em "Editar Parcelas" para alterar.</p>
       )}
 
       {showForm && (
         <div className="space-y-3">
           {isAlreadyInstallmented && (
             <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-              <p className="text-xs text-amber-700">As parcelas existentes serão deletadas e recriadas com os novos dias.</p>
+              <p className="text-xs text-amber-700">As parcelas existentes serão deletadas e recriadas.</p>
             </div>
           )}
 
-          <div>
-            <label className="text-sm font-medium text-[#4b5757] mb-1 block">
-              Dias após a entrega (separados por vírgula)
-            </label>
-            <input
-              type="text"
-              value={intervals}
-              onChange={(e) => setIntervals(e.target.value)}
-              placeholder="Ex: 30, 60, 90"
-              className="w-full rounded-lg border border-[#b0b087] px-3 py-2 text-sm outline-none focus:border-[#58706d] focus:ring-1 focus:ring-[#58706d]"
-            />
-            <p className="text-xs text-gray-400 mt-1">
-              Base: {commission.realDeliveryDate ? new Date(commission.realDeliveryDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : commission.deliveryDate ? new Date(commission.deliveryDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : 'sem data de entrega'}
-            </p>
+          {/* Saldo a parcelar */}
+          <div className="bg-[#f5f5ee] rounded-lg px-3 py-2">
+            <p className="text-xs text-gray-400">Saldo a parcelar</p>
+            <p className="text-sm font-bold text-[#4b5757]">{formatCurrency(totalValue)}</p>
           </div>
 
+          {/* Toggle de modo */}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setMode('equal')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                mode === 'equal'
+                  ? 'bg-[#58706d] text-white border-[#58706d]'
+                  : 'bg-white text-[#4b5757] border-[#e3e3d1] hover:border-[#58706d]'
+              }`}
+            >
+              Parcelas iguais
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('custom')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                mode === 'custom'
+                  ? 'bg-[#58706d] text-white border-[#58706d]'
+                  : 'bg-white text-[#4b5757] border-[#e3e3d1] hover:border-[#58706d]'
+              }`}
+            >
+              Valores diferentes
+            </button>
+          </div>
+
+          {mode === 'equal' ? (
+            <div>
+              <label className="text-sm font-medium text-[#4b5757] mb-1 block">
+                Dias após a entrega (separados por vírgula)
+              </label>
+              <input
+                type="text"
+                value={intervals}
+                onChange={(e) => setIntervals(e.target.value)}
+                placeholder="Ex: 30, 60, 90"
+                className="w-full rounded-lg border border-[#b0b087] px-3 py-2 text-sm outline-none focus:border-[#58706d] focus:ring-1 focus:ring-[#58706d]"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Base: {commission.realDeliveryDate ? new Date(commission.realDeliveryDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : commission.deliveryDate ? new Date(commission.deliveryDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : 'sem data de entrega'}
+              </p>
+            </div>
+          ) : (
+            <div>
+              <label className="text-sm font-medium text-[#4b5757] mb-1 block">
+                Valores das parcelas (separados por vírgula)
+              </label>
+              <input
+                type="text"
+                value={customValues}
+                onChange={(e) => setCustomValues(e.target.value)}
+                placeholder="Ex: 5000, 3000"
+                className="w-full rounded-lg border border-[#b0b087] px-3 py-2 text-sm outline-none focus:border-[#58706d] focus:ring-1 focus:ring-[#58706d]"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                O que faltar será adicionado como parcela seguinte (30 dias após cada). Base: {commission.realDeliveryDate ? new Date(commission.realDeliveryDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : commission.deliveryDate ? new Date(commission.deliveryDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : 'sem data de entrega'}
+              </p>
+            </div>
+          )}
+
+          {/* Preview modo igual */}
           {previewDates.length > 0 && (
             <div className="bg-[#f5f5ee] rounded-lg p-3">
               <p className="text-xs font-medium text-[#7c8a6e] mb-2">Preview das parcelas:</p>
               <div className="space-y-1">
                 {previewDates.map((p, i) => (
                   <div key={i} className="flex justify-between text-xs">
-                    <span className="text-[#4b5757]">Parcela {i + 1} (+{p.days} dias)</span>
-                    <span className="text-gray-500">Vencimento: {p.supplierDate} · Mês: {p.period.month}/{p.period.year}</span>
+                    <span className="text-[#4b5757]">Parcela {i + 1} (+{p.days} dias) — {formatCurrency(p.value)}</span>
+                    <span className="text-gray-500">{p.supplierDate} · {p.period.month}/{p.period.year}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Preview modo custom */}
+          {previewCustom.length > 0 && (
+            <div className="bg-[#f5f5ee] rounded-lg p-3">
+              <p className="text-xs font-medium text-[#7c8a6e] mb-2">Preview das parcelas:</p>
+              <div className="space-y-1">
+                {previewCustom.map((p, i) => (
+                  <div key={i} className="flex justify-between text-xs">
+                    <span className="text-[#4b5757]">
+                      Parcela {i + 1} — {formatCurrency(p.value)}
+                      {p.isRemainder && <span className="text-amber-600 ml-1">(restante)</span>}
+                    </span>
+                    <span className="text-gray-500">{p.supplierDate} · {p.period.month}/{p.period.year}</span>
                   </div>
                 ))}
               </div>
