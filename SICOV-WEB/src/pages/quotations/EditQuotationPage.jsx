@@ -115,6 +115,7 @@ export function EditQuotationPage() {
             palletWeight: cd.palletWeight != null ? String(cd.palletWeight) : '',
             unitsPerBox: p.technicalData?.unitsPerBox != null ? String(p.technicalData.unitsPerBox) : '',
             supplierCode: p.supplierCode || '',
+            hasIpi: i.hasIpi !== false,
           };
         }));
       }
@@ -131,7 +132,7 @@ export function EditQuotationPage() {
         setProducts(data || []);
         // Se é a carga inicial e já temos itens do orçamento, mantém
         if (quotation && quotation.clientId === selectedClient && items.length === 0) {
-          setItems(quotation.items.map((i) => ({ productId: i.productId, quantity: String(i.quantity) })));
+          setItems(quotation.items.map((i) => ({ productId: i.productId, quantity: String(i.quantity), hasIpi: i.hasIpi !== false })));
         }
       })
       .catch(() => setProducts([]))
@@ -141,15 +142,15 @@ export function EditQuotationPage() {
   // Preenche itens na primeira carga para cliente existente
   useEffect(() => {
     if (quotation && mode === 'existing' && products.length > 0 && items.length === 0) {
-      setItems(quotation.items.map((i) => ({ productId: i.productId, quantity: String(i.quantity) })));
+      setItems(quotation.items.map((i) => ({ productId: i.productId, quantity: String(i.quantity), hasIpi: i.hasIpi !== false })));
     }
   }, [products, quotation, mode]);
 
   const addItem = () => {
     if (mode === 'new') {
-      setItems((prev) => [...prev, { name: '', description: '', saleMode: 'thousand', calculationMode: 'dimensions_density_factor', quantity: '', width: '', length: '', thickness: '', density: '', factorKg: '', unitPrice: '', basePrice: '', boxPrice: '', unitsPerBox: '', supplierCode: '' }]);
+      setItems((prev) => [...prev, { name: '', description: '', saleMode: 'thousand', calculationMode: 'dimensions_density_factor', quantity: '', width: '', length: '', thickness: '', density: '', factorKg: '', unitPrice: '', basePrice: '', boxPrice: '', unitsPerBox: '', supplierCode: '', hasIpi: true }]);
     } else {
-      setItems((prev) => [...prev, { productId: '', quantity: '' }]);
+      setItems((prev) => [...prev, { productId: '', quantity: '', hasIpi: true }]);
     }
   };
   const removeItem = (i) => setItems((prev) => prev.filter((_, idx) => idx !== i));
@@ -198,10 +199,11 @@ export function EditQuotationPage() {
           supplierId,
           unitPrice: calcAdHocUnitPrice(i) || parseNum(i.unitPrice),
           quantity: parseNum(i.quantity),
+          hasIpi: i.hasIpi !== false,
         }));
       } else {
         if (selectedClient) payload.clientId = selectedClient;
-        payload.items = items.map((i) => ({ productId: i.productId, quantity: Number(i.quantity) }));
+        payload.items = items.map((i) => ({ productId: i.productId, quantity: Number(i.quantity), hasIpi: i.hasIpi !== false }));
       }
 
       await api.put(`/quotations/${id}`, payload);
@@ -308,6 +310,10 @@ export function EditQuotationPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <input type="number" min="1" step="any" placeholder="Qtd" value={item.quantity} onChange={(e) => updateItem(i, 'quantity', e.target.value)} className="w-24 rounded-lg border border-[#b0b087] px-3 py-2 text-sm outline-none focus:border-[#58706d]" />
+                    <label className="flex items-center gap-1 text-xs text-[#4b5757] cursor-pointer" title="Incide IPI?">
+                      <input type="checkbox" checked={item.hasIpi !== false} onChange={(e) => updateItem(i, 'hasIpi', e.target.checked)} className="rounded border-[#b0b087] text-[#58706d] focus:ring-[#58706d]" />
+                      IPI
+                    </label>
                     {subtotal > 0 && <span className="text-sm font-medium text-[#4b5757] min-w-[80px] text-right">{formatCurrency(subtotal)}</span>}
                     <button type="button" onClick={() => removeItem(i)} className="p-1.5 text-red-400 hover:text-red-600"><Trash2 size={16} /></button>
                   </div>
@@ -379,7 +385,13 @@ export function EditQuotationPage() {
                   )}
 
                   <div className="flex items-center justify-between pt-2 border-t border-[#e3e3d1]">
-                    <div className="text-xs text-gray-400">{up > 0 ? `Preço unitário: ${formatCurrency(up)}` : 'Preencha os campos para calcular'}</div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-xs text-gray-400">{up > 0 ? `Preço unitário: ${formatCurrency(up)}` : 'Preencha os campos para calcular'}</div>
+                      <label className="flex items-center gap-1 text-xs text-[#4b5757] cursor-pointer" title="Incide IPI?">
+                        <input type="checkbox" checked={item.hasIpi !== false} onChange={(e) => updateItem(i, 'hasIpi', e.target.checked)} className="rounded border-[#b0b087] text-[#58706d] focus:ring-[#58706d]" />
+                        IPI
+                      </label>
+                    </div>
                     <div className="flex items-center gap-3">
                       {subtotal > 0 && <span className="text-sm font-semibold text-[#4b5757]">{formatCurrency(subtotal)}</span>}
                       <button type="button" onClick={() => removeItem(i)} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg"><Trash2 size={16} /></button>
